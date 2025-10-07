@@ -4,18 +4,14 @@ import { useMemo } from "react"
 
 import { useAppDispatch, useAppSelector } from "app/hooks"
 
-import {
-  selectFilterSettings,
-  testCasesFilterSchema,
-  updateFilter,
-  updateFilterSettings,
-} from "entities/test-case/model"
+import { selectFilterSettings, updateFilter, updateFilterSettings } from "entities/test-case/model"
+import { filterTestCaseSchema } from "entities/test-case/model/schemas"
 
 import { SavedFilters } from "features/filter"
 
 import { useProjectContext } from "pages/project"
 
-import { queryParamsBySchema } from "shared/libs/query-params"
+import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
 export const TestCasesSavedFilters = () => {
   const project = useProjectContext()
@@ -26,8 +22,7 @@ export const TestCasesSavedFilters = () => {
 
   const handleChange = (value: string) => {
     const valueFilter = configFilters?.[value]
-
-    const filterParse = queryParamsBySchema(testCasesFilterSchema, { url: valueFilter })
+    const filterParse = schemaFillBySearchParams(filterTestCaseSchema, { url: valueFilter })
     dispatch(updateFilterSettings({ selected: value }))
     dispatch(updateFilter(filterParse as Record<string, unknown>))
   }
@@ -50,6 +45,7 @@ export const TestCasesSavedFilters = () => {
         options={configFiltersKeys}
         value={testCasesSelectedFilter.selected}
         onChange={handleChange}
+        hasUnsavedChanges={testCasesSelectedFilter.hasUnsavedChanges}
       />
     </Flex>
   )

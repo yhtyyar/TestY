@@ -27,7 +27,7 @@ export const TestsTree = ({ testPlanId = null }: Props) => {
 
   const testsFilter = useAppSelector(selectFilter)
   const testsOrdering = useAppSelector(selectOrdering)
-  const testsTreeSettings = useAppSelector(selectSettings<TestTreeParams>("tree"))
+  const testsTreeSettings = useAppSelector(selectSettings<BaseTreeParams>("tree"))
 
   return (
     <TreeTable visibleColumns={testsTreeSettings.visibleColumns}>

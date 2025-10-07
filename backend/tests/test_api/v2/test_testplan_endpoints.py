@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -751,6 +751,15 @@ class TestPlanEndpoints:
             assert status_statistic is not None
             assert not status_statistic['value']
 
+    @pytest.mark.parametrize('wrong_query', ('project', 'parent'))
+    def test_statistic_with_wrong_ids(self, superuser_client, wrong_query):
+        wrong_id = 9999
+        superuser_client.send_request(
+            self.view_name_project_statistics,
+            query_params={wrong_query: wrong_id},
+            expected_status=HTTPStatus.NOT_FOUND,
+        )
+
     @pytest.mark.parametrize('is_query_param', [True, False], ids=['pk in query', 'pk in url'])
     @pytest.mark.parametrize(
         'attribute, attr_values',
@@ -1351,6 +1360,39 @@ class TestPlanEndpoints:
         ).json()[0]['id']
         assert getattr(plan_to_copy, attribute_name) != getattr(TestPlan.objects.get(pk=copied_plan_id), attribute_name)
 
+    def test_plan_copying_with_wrong_dates(
+        self,
+        superuser_client,
+        test_plan_factory,
+        project,
+    ):
+        started_at = timezone.now() + timezone.timedelta(days=1)
+        due_date = timezone.now() + timezone.timedelta(days=2)
+        plan_to_copy = test_plan_factory(project=project, started_at=started_at, due_date=due_date)
+        plan_payloads = [
+            {
+                'plan': plan_to_copy.pk,
+                'started_at': due_date.isoformat(),
+                'due_date': started_at.isoformat(),
+            },
+            {
+                'plan': plan_to_copy.pk,
+                'due_date': started_at.isoformat(),
+            },
+            {
+                'plan': plan_to_copy.pk,
+                'started_at': due_date.isoformat(),
+            },
+        ]
+        for plan_payload in plan_payloads:
+            response = superuser_client.send_request(
+                self.view_name_copy,
+                request_type=RequestType.POST,
+                data={'plans': [plan_payload]},
+                expected_status=HTTPStatus.BAD_REQUEST,
+            ).json()
+            assert response['plans'][0]['errors'][0] == DATE_RANGE_ERROR
+
     def test_plan_not_keep_assignee(
         self,
         superuser_client,
@@ -1700,22 +1742,23 @@ class TestPlanEndpoints:
                     )
                     assert response.json()['count'] == number_of_plans
 
-    def test_plan_union(self, test_plan_factory, test_factory, project, authorized_superuser_client):
+    def test_plan_union(self, test_plan_factory, test_factory, project, authorized_superuser_client, test_case_factory):
         roots = []
         child_plans = defaultdict(list)
         for _ in range(3):
             plan = test_plan_factory(project=project)
-            child_plan = model_to_dict_via_serializer(
-                test_plan_factory(project=project, parent=plan),
-                TestPlanUnionMockSerializer,
-                refresh_instances=True,
-            )
+            child_plan = test_plan_factory(project=project, parent=plan)
             child_test = model_to_dict_via_serializer(
-                test_factory(project=project, plan=plan),
+                test_factory(project=project, plan=plan, case=test_case_factory(estimate=120)),
                 TestUnionMockSerializer,
                 refresh_instances=True,
             )
-            child_plans[plan.pk].append(child_plan)
+            child_plan_serialized = model_to_dict_via_serializer(
+                child_plan,
+                TestPlanUnionMockSerializer,
+                refresh_instances=True,
+            )
+            child_plans[plan.pk].append(child_plan_serialized)
             child_plans[plan.pk].append(child_test)
             roots.append(plan)
         for root in roots:
@@ -1727,7 +1770,9 @@ class TestPlanEndpoints:
             assert child_plans[parent_id] == response_data
 
     @pytest.mark.parametrize('descending', [True, False], ids=['Descending', 'Ascending'])
-    @pytest.mark.parametrize('order_by', ['id', 'started_at', 'created_at', 'name', 'assignee_username', 'suite_path'])
+    @pytest.mark.parametrize('order_by', [
+        'id', 'started_at', 'created_at', 'name', 'assignee_username', 'suite_path', 'estimate',
+    ])
     def test_plan_union_order_by_filter(
         self,
         test_plan_factory,
@@ -1748,12 +1793,15 @@ class TestPlanEndpoints:
         with allure.step('Generate and sort plans'):
             for idx in range(3):
                 started_at += timedelta(hours=1)
-                plan = model_to_dict_via_serializer(
-                    test_plan_factory(project=project, parent=root_plan, name=str(idx), started_at=started_at),
+                plan = test_plan_factory(project=project, parent=root_plan, name=str(idx), started_at=started_at)
+                for _ in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
+                    test_factory(plan=plan, case=test_case_factory(estimate=idx + 1))
+                serialized_plan = model_to_dict_via_serializer(
+                    plan,
                     TestPlanUnionMockSerializer,
                     refresh_instances=True,
                 )
-                expected_plans.append(plan)
+                expected_plans.append(serialized_plan)
             expected_plans.sort(key=lambda elem: elem.get(order_by, elem['id']), reverse=descending)
         with allure.step('Generate and sort tests'):
             expected_tests = []
@@ -2310,6 +2358,38 @@ class TestPlanEndpoints:
                 continue
             assert str(plan.id) in response_body
             assert response_body[str(plan.id)][0]['value'] == cases_count * (len(plans) - idx)
+
+    def test_pie_chart_status_ordering(
+        self,
+        project,
+        superuser_client,
+        result_status_factory,
+    ):
+        status_ordering = {}
+        for idx in range(constants.NUMBER_OF_OBJECTS_TO_CREATE, 2):
+            status = result_status_factory(project=project)
+            status_ordering[status.id] = idx
+
+        project.settings.update({'status_order': status_ordering})
+        project.save()
+        response_body = superuser_client.send_request(
+            self.view_name_project_statistics,
+            query_params={'project': project.id},
+        ).json()
+        ordering_list = list(status_ordering.keys())
+
+        for idx, status_id in enumerate(ordering_list):
+            assert response_body[idx]['id'] == status_id, 'Wrong status ordering'
+        new_status = result_status_factory(project=project)
+        project.settings['status_order'][new_status.id] = 1
+        project.save()
+        response_body = superuser_client.send_request(
+            self.view_name_project_statistics,
+            query_params={'project': project.id},
+        ).json()
+        assert response_body[0]['id'] == new_status.id, 'Ordering was not changed'
+        for idx, status_id in enumerate(ordering_list):
+            assert response_body[idx + 1]['id'] == status_id, 'Old statuses orderin was changed'
 
     @classmethod
     @allure.step('Validate copied objects')

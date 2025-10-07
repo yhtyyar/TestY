@@ -1,59 +1,18 @@
 import { PayloadAction, createAction, createSlice } from "@reduxjs/toolkit"
 
 import { RootState } from "app/store"
+import { orderingSchema } from "app/zod-common.schema"
 
-import { formatStringToNumberArray } from "shared/libs"
-import { queryParamsBySchema } from "shared/libs/query-params"
+import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 
-export const testCasesOrderingSchema = {
-  ordering: {
-    default: "name",
-  },
-}
+import { schemaFillBySearchParams, schemaFillUndefined } from "shared/libs/sync-url"
 
-export const testCasesEmptyFilter: TestCaseDataFilters = {
-  name_or_id: "",
-  suites: [],
-  is_archive: undefined,
-  labels: [],
-  not_labels: [],
-  labels_condition: undefined,
-  test_suite_created_before: undefined,
-  test_suite_created_after: undefined,
-  test_case_created_before: undefined,
-  test_case_created_after: undefined,
-}
+import { TestCaseDataFilters, filterTestCaseSchema } from "./schemas"
+import { TestCaseStateFilters } from "./test-case-filter-slice.types"
 
-export const testCasesFilterSchema = {
-  name_or_id: {
-    default: "",
-  },
-  suites: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  labels: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  not_labels: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  labels_condition: {
-    format: (value: string) => (value === "and" ? "and" : "or"),
-  },
-  is_archive: {
-    format: (value: string) => value === "true",
-  },
-  test_suite_created_before: {},
-  test_suite_created_after: {},
-  test_case_created_before: {},
-  test_case_created_after: {},
-}
-
-const initOrdering = queryParamsBySchema(testCasesOrderingSchema)
-const initFilter = queryParamsBySchema(testCasesFilterSchema)
+export const testCasesEmptyFilter = schemaFillUndefined(filterTestCaseSchema)
+const initOrdering = schemaFillBySearchParams(orderingSchema)
+const initFilter = schemaFillBySearchParams(filterTestCaseSchema)
 
 const initialState: TestCaseStateFilters = {
   filter: {
@@ -105,6 +64,9 @@ export const testCasesfilterSlice = createSlice({
     resetFormComplete: (state) => {
       state.shouldResetForm = false
     },
+    reinitializeFilter: (state) => {
+      state.filter = schemaFillBySearchParams(filterTestCaseSchema)
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(updateFilter, (state, action) => {
@@ -120,8 +82,13 @@ export const testCasesfilterSlice = createSlice({
   },
 })
 
-export const { updateFilterSettings, updateOrdering, resetFilterSettings, resetFormComplete } =
-  testCasesfilterSlice.actions
+export const {
+  updateFilterSettings,
+  updateOrdering,
+  resetFilterSettings,
+  resetFormComplete,
+  reinitializeFilter,
+} = testCasesfilterSlice.actions
 
 export const selectFilter = (state: RootState) => state.testCasesFilter.filter
 export const selectFilterSettings = (state: RootState) => state.testCasesFilter.settings

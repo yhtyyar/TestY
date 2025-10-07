@@ -37,6 +37,7 @@ const INGNORED_LIST_OUTSIDE_CLICK = [
   ".ant-select-dropdown",
   ".ant-dropdown",
   ".ant-picker-dropdown",
+  ".ant-tabs-dropdown-menu-item",
 ]
 
 export const Drawer = ({

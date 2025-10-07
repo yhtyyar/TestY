@@ -285,7 +285,7 @@
   }
 
   .ant-drawer {
-    z-index: 999;
+    z-index: var(--max-z-index);
   }
 
   .ant-tabs-nav {

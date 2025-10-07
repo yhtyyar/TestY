@@ -7,7 +7,7 @@ import { ContainerLoader } from "shared/ui"
 
 import { useGetTestPlanQuery } from "../../api"
 import { useTestPlanActivity } from "../../model"
-import { TestPlanActivityFilers } from "./test-plan-activity-filters"
+import { TestPlanActivityFilters } from "./test-plan-activity-filters"
 import { TestPlanActivityTable } from "./test-plan-activity-table"
 
 export const TestPlanActivityWrapper = () => {
@@ -37,7 +37,7 @@ export const TestPlanActivityWrapper = () => {
           {testPlan.title}
         </Link>
       </Typography.Text>
-      <TestPlanActivityFilers testPlanActivity={testPlanActivity} />
+      <TestPlanActivityFilters testPlanActivity={testPlanActivity} />
       <TestPlanActivityTable testPlanActivity={testPlanActivity} />
     </div>
   )

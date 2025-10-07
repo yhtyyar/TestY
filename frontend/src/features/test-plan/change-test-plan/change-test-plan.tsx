@@ -26,11 +26,11 @@ export const ChangeTestPlan = memo(
       )
       const currentSearchParams = new URLSearchParams(window.location.search)
 
-      const parentTestPlan =
+      const parent =
         (type === "create" ? testPlan?.id.toString() : testPlan?.parent?.id.toString()) ??
         testPlanId
-      if (parentTestPlan) {
-        url.searchParams.append("parentTestPlan", parentTestPlan)
+      if (parent) {
+        url.searchParams.append("parent", parent)
       }
 
       url.searchParams.append(

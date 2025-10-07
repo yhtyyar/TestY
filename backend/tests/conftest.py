@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -48,78 +48,46 @@ from django.db import connection
 from django.utils import timezone
 from pytest_factoryboy import register
 
-from tests import constants
+from tests import constants, factories
 from tests.commons import CustomAPIClient, RequestType
-from tests.factories import (
-    AttachmentFactory,
-    AttachmentTestCaseFactory,
-    AttachmentTestResultFactory,
-    AttachmentTestSuiteFactory,
-    CommentTestCaseFactory,
-    CommentTestFactory,
-    CommentTestPlanFactory,
-    CommentTestResultFactory,
-    CommentTestSuiteFactory,
-    CustomAttributeFactory,
-    GroupFactory,
-    LabeledItemFactory,
-    LabelFactory,
-    MembershipFactory,
-    NotificationFactory,
-    NotificationSettingFactory,
-    ParameterFactory,
-    PermissionFactory,
-    ProjectFactory,
-    ResultStatusFactory,
-    RoleFactory,
-    SystemMessageFactory,
-    TestCaseFactory,
-    TestCaseWithStepsFactory,
-    TestFactory,
-    TestPlanFactory,
-    TestPlanWithParametersFactory,
-    TestResultFactory,
-    TestResultWithStepsFactory,
-    TestSuiteFactory,
-    UserFactory,
-)
 from testy.core.choices import ActionCode
 from testy.core.models import NotificationSetting, Project
 from testy.core.selectors.custom_attribute import CustomAttributeSelector
 from testy.tests_representation.models import TestResult
 from testy.users.choices import UserAllowedPermissionCodenames
 
-register(ParameterFactory)
-register(ProjectFactory)
-register(TestCaseFactory)
-register(TestCaseWithStepsFactory, _name='test_case_with_steps')
-register(TestFactory)
-register(TestPlanFactory)
-register(TestPlanWithParametersFactory)
-register(TestResultFactory)
-register(TestSuiteFactory)
-register(UserFactory)
-register(GroupFactory)
-register(LabelFactory)
-register(AttachmentTestCaseFactory, _name='attachment_test_case')
-register(AttachmentTestResultFactory, _name='attachment_test_result')
-register(AttachmentTestSuiteFactory, _name='attachment_test_suite')
-register(AttachmentFactory)
-register(LabeledItemFactory)
-register(CommentTestFactory)
-register(CommentTestCaseFactory)
-register(CommentTestSuiteFactory)
-register(CommentTestPlanFactory)
-register(CommentTestResultFactory)
-register(SystemMessageFactory)
-register(RoleFactory)
-register(MembershipFactory)
-register(CustomAttributeFactory)
-register(PermissionFactory)
-register(TestResultWithStepsFactory)
-register(ResultStatusFactory)
-register(NotificationSettingFactory)
-register(NotificationFactory)
+register(factories.ParameterFactory)
+register(factories.ProjectFactory)
+register(factories.TestCaseFactory)
+register(factories.TestCaseWithStepsFactory, _name='test_case_with_steps')
+register(factories.TestFactory)
+register(factories.TestPlanFactory)
+register(factories.TestPlanWithParametersFactory)
+register(factories.TestResultFactory)
+register(factories.TestSuiteFactory)
+register(factories.UserFactory)
+register(factories.GroupFactory)
+register(factories.LabelFactory)
+register(factories.AttachmentTestCaseFactory, _name='attachment_test_case')
+register(factories.AttachmentTestResultFactory, _name='attachment_test_result')
+register(factories.AttachmentTestSuiteFactory, _name='attachment_test_suite')
+register(factories.AttachmentFactory)
+register(factories.LabeledItemFactory)
+register(factories.CommentTestFactory)
+register(factories.CommentTestCaseFactory)
+register(factories.CommentTestSuiteFactory)
+register(factories.CommentTestPlanFactory)
+register(factories.CommentTestResultFactory)
+register(factories.SystemMessageFactory)
+register(factories.RoleFactory)
+register(factories.MembershipFactory)
+register(factories.CustomAttributeFactory)
+register(factories.PermissionFactory)
+register(factories.TestResultWithStepsFactory)
+register(factories.ResultStatusFactory)
+register(factories.NotificationSettingFactory)
+register(factories.NotificationFactory)
+register(factories.PlanIntegrationFactory)
 
 UserModel = get_user_model()
 
@@ -258,6 +226,18 @@ def create_file(extension, media_directory):
         content_type=extension_to_content_type[extension][0],
     )
     yield file
+
+
+@pytest.fixture
+def png_as_jpeg_file():
+    media_path = Path(__file__).resolve().parent
+    with open(media_path / 'media_for_tests' / 'png_as_jpeg.jpeg', 'rb') as file:
+        png_as_jpeg_image = file.read()
+    yield SimpleUploadedFile(
+        'png_as_jpeg.jpeg',
+        png_as_jpeg_image,
+        content_type='image/jpeg',
+    )
 
 
 @pytest.fixture

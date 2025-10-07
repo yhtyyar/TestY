@@ -21,10 +21,11 @@ import { useAppSelector } from "app/hooks"
 import { selectFilter } from "entities/test/model"
 
 import { useGetTestPlanHistogramQuery } from "entities/test-plan/api"
+import { TestPlanStatisticTooltipHistogram } from "entities/test-plan/ui"
 
 import { NOT_ASSIGNED_FILTER_VALUE } from "shared/constants"
 
-import styles from "../styles.module.css"
+import styles from "./styles.module.css"
 import { TestPlanHistogramFilters } from "./test-plan-histogram-filters"
 
 type ValuesData = "passed" | "failed" | "skipped" | "broken" | "blocked" | "retest"
@@ -151,8 +152,8 @@ export const TestPlanHistogram = ({ testPlanId }: Props) => {
 
   return (
     <div className={styles.barWrapper}>
-      <div className={styles.pieHeader}>
-        <h3 className={styles.graphsTitle}>{t("Tests Count Histogram")}</h3>
+      <div className={styles.barHeader}>
+        <h3 className={styles.barTitle}>{t("Tests Count Histogram")}</h3>
         <TestPlanHistogramFilters
           barType={barType}
           testPlanId={testPlanId}
@@ -191,6 +192,8 @@ export const TestPlanHistogram = ({ testPlanId }: Props) => {
             <Tooltip
               wrapperClassName="recharts-tooltip"
               cursor={{ fill: "var(--y-color-control-background-hover)" }}
+              content={<TestPlanStatisticTooltipHistogram />}
+              wrapperStyle={{ zIndex: "var(--max-z-index)" }}
             />
             {statuses.map((status) => (
               <Bar
@@ -203,7 +206,7 @@ export const TestPlanHistogram = ({ testPlanId }: Props) => {
                 key={status.name}
               />
             ))}
-            <Legend formatter={legendFormatter} iconType="square" />
+            <Legend formatter={legendFormatter} iconType="circle" />
           </BarChart>
         </ResponsiveContainer>
       )}

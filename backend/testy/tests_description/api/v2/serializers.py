@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -31,15 +31,7 @@
 from functools import partial
 
 from rest_framework import serializers
-from rest_framework.fields import (
-    BooleanField,
-    CharField,
-    IntegerField,
-    JSONField,
-    ListField,
-    SerializerMethodField,
-    empty,
-)
+from rest_framework.fields import BooleanField, CharField, IntegerField, JSONField, SerializerMethodField, empty
 from rest_framework.relations import HyperlinkedIdentityField, PrimaryKeyRelatedField
 
 from testy.core.api.v2.serializers import (
@@ -190,7 +182,7 @@ class TestCaseListSerializer(TestCaseBaseSerializer):
     url = HyperlinkedIdentityField(view_name='api:v2:testcase-detail')
     attachments = SerializerMethodField()
     labels = SerializerMethodField(read_only=True)
-    versions = ListField(child=IntegerField(), read_only=True)
+    versions = SerializerMethodField(read_only=True)
     current_version = SerializerMethodField(read_only=True)
     suite = ParentMinSerializer(read_only=True)
     suite_path = CharField(read_only=True)
@@ -215,9 +207,16 @@ class TestCaseListSerializer(TestCaseBaseSerializer):
         )
 
     def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.current_version
+        if current_version := getattr(instance, 'current_version', None):
+            return current_version
+        version = self._version or instance.history.first().history_id
+        return TestCaseSelector.get_display_version_by_version(instance.id, version)
+
+    def get_versions(self, instance):
+        if versions := getattr(instance, 'versions', None):
+            return versions
+        versions_number = instance.history.values_list('history_id', flat=True).count()
+        return list(range(versions_number, 0, -1))
 
     def get_labels(self, instance):
         if self._version is not None:
@@ -272,13 +271,17 @@ class TestCaseRetrieveSerializer(TestCaseBaseSerializer):
     def get_source_archived(self, instance):
         return instance.history.latest().is_archive
 
-    def get_versions(self, instance):
-        return instance.history.values_list('history_id', flat=True).order_by('-history_id').all()
-
     def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.history.first().history_id
+        if current_version := getattr(instance, 'current_version', None):
+            return current_version
+        version = self._version or instance.history.first().history_id
+        return TestCaseSelector.get_display_version_by_version(instance.id, version)
+
+    def get_versions(self, instance):
+        if versions := getattr(instance, 'versions', None):
+            return versions
+        versions_number = instance.history.values_list('history_id', flat=True).count()
+        return list(range(versions_number, 0, -1))
 
     def get_labels(self, instance):
         if self._version is not None:
@@ -423,7 +426,7 @@ class TestCaseHistorySerializer(serializers.Serializer):
         '-': 'Deleted',
     }
     user = SerializerMethodField(read_only=True)
-    version = IntegerField(source='history_id')
+    version = IntegerField(read_only=True)
     action = SerializerMethodField(read_only=True)
     history_date = serializers.DateTimeField()
 

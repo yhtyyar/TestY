@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -28,20 +28,62 @@
 # if any, to sign a "copyright disclaimer" for the program, if necessary.
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
+from django.core.paginator import Paginator
 from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.utils.urls import replace_query_param
 
 
+class OptimizedCounterPaginator(Paginator):
+    @property
+    def count(self):  # noqa: WPS231
+        if hasattr(self, '_count'):
+            return self._count
+        model = self.object_list.model
+        where = self.object_list.query.where
+        is_joins_required = False
+        combined_queries = getattr(self.object_list.query, 'combined_queries', [])
+        has_filter_annotations = bool(self.get_annotations(self.object_list.query))
+        if combined_queries or has_filter_annotations:
+            is_joins_required = True
+
+        for child in where.children:
+            if is_joins_required:
+                break
+            lhs = getattr(child, 'lhs', None)
+            if lhs:
+                field = lhs.field
+                if getattr(field, 'model', model) != model:
+                    is_joins_required = True
+            else:
+                is_joins_required = True
+        if is_joins_required:
+            self._count = self.object_list.count()
+        else:
+            new_queryset = model.objects.all()
+            new_queryset.query.where = where
+            self._count = new_queryset.count()
+        return self._count
+
+    def get_annotations(self, query):
+        annotations = query.annotations
+        result = {}
+        for name, annotation in annotations.items():
+            used_in_filter = any(
+                name in str(clause)
+                for clause in query.where.children
+            )
+            if used_in_filter:
+                result[name] = annotation
+        return result
+
+
 class StandardSetPagination(PageNumberPagination):
     page_size = 100
     page_size_query_param = 'page_size'
     max_page_size = 1000
-
-    @property
-    def count(self):
-        return self.object_list.values('id').count()
+    django_paginator_class = OptimizedCounterPaginator
 
     def get_paginated_response(self, data):
         return Response({

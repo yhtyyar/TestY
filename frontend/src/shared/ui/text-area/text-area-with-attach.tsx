@@ -1,12 +1,23 @@
 import { PictureOutlined } from "@ant-design/icons"
 import { Input, Upload } from "antd"
+import { UploadFileStatus } from "antd/es/upload/interface"
 import { TextAreaProps } from "antd/lib/input/TextArea"
+import { UploadChangeParam, UploadFile } from "antd/lib/upload"
 import type { UploadRequestOption } from "rc-upload/lib/interface"
 import { CSSProperties, useEffect, useRef, useState } from "react"
 import { UseFormSetValue } from "react-hook-form"
 
 import { Button, MarkdownViewer, MarkdownViewerTabs } from ".."
 import styles from "./styles.module.css"
+
+interface IAttachmentWithStatus extends IAttachmentWithUid {
+  status: UploadFileStatus
+}
+
+interface UploadFileExtend<T> extends UploadFile<T> {
+  id?: number
+  link?: string
+}
 
 interface TSTextAreaProps {
   uploadId?: string
@@ -39,17 +50,14 @@ export const TextAreaWithAttach = ({
   const { attachments, setAttachments } = stateAttachments
   const uploadRef = useRef(null)
 
-  // TODO need refactoring
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const onChange = (info: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    setAttachments(info.fileList)
+  const onChange = (info: UploadChangeParam<UploadFileExtend<IAttachmentWithStatus[]>>) => {
+    setAttachments(
+      (info.fileList as IAttachmentWithStatus[]).map((f) => ({ ...f, filename: f.name }))
+    )
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const { status } = info.file
+    const { status } = info.file as IAttachmentWithStatus
     if (status === "done" && fieldProps.name) {
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions
-      const value = `${fieldProps.value ?? ""}![](${info.file.link})`
+      const value = `${(fieldProps.value as string) ?? ""}![](${info.file.link})`
       setValue(fieldProps.name, value, {
         shouldDirty: true,
       })

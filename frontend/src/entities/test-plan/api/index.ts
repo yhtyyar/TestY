@@ -300,6 +300,14 @@ export const testPlanInvalidate = (id?: number) => {
   )
 }
 
+export const testPlanCasesIdsInvalidate = (id: number) => {
+  return testPlanApi.util.invalidateTags([{ type: "TestPlanCasesIds", id }])
+}
+
+export const testPlanTestsInvalidate = () => {
+  return testPlanApi.util.invalidateTags([{ type: "TestPlanTest", id: "LIST" }])
+}
+
 export const testPlanLabelsInvalidate = testPlanApi.util.invalidateTags([
   { type: "TestPlanLabels", id: "LIST" },
 ])
@@ -322,6 +330,7 @@ export const {
   useLazyGetTestPlanSuitesQuery,
   useGetTestPlanLabelsQuery,
   useLazyGetTestPlanActivityQuery,
+  useGetTestPlanActivityQuery,
   useGetTestPlanCasesQuery,
   useGetTestPlanDeletePreviewQuery,
   useGetTestPlanArchivePreviewQuery,

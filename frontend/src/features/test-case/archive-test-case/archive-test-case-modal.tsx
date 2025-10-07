@@ -1,13 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { useSearchParams } from "react-router-dom"
-
-import { useAppDispatch } from "app/hooks"
 
 import {
   useArchiveTestCaseMutation,
   useGetTestCaseArchivePreviewQuery,
 } from "entities/test-case/api"
-import { clearDrawerTestCase } from "entities/test-case/model"
 
 import { initInternalError } from "shared/libs"
 import { antdNotification } from "shared/libs/antd-modals"
@@ -28,8 +24,6 @@ export const ArchiveTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: 
   const { data, isLoading, status } = useGetTestCaseArchivePreviewQuery(String(testCase.id), {
     skip: !isShow,
   })
-  const dispatch = useAppDispatch()
-  const [searchParams, setSearchParams] = useSearchParams()
 
   const handleClose = () => {
     setIsShow(false)
@@ -48,10 +42,7 @@ export const ArchiveTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: 
           />
         ),
       })
-      searchParams.delete("test_case")
-      searchParams.delete("version")
-      setSearchParams(searchParams)
-      dispatch(clearDrawerTestCase())
+
       onSubmit?.(testCase)
     } catch (err: unknown) {
       initInternalError(err)

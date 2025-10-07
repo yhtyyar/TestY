@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -55,6 +55,7 @@ from tests.mock_serializers.v2 import TestCaseListMockSerializer, TestCaseMockSe
 from testy.core.models import Attachment, Label, LabeledItem
 from testy.tests_description.api.v2.serializers import TestCaseHistorySerializer, TestCaseRetrieveSerializer
 from testy.tests_description.models import TestCase, TestCaseStep
+from testy.tests_description.selectors.cases import TestCaseSelector
 from testy.utilities.string import join_iterable
 
 _ERRORS = 'errors'
@@ -496,7 +497,7 @@ class TestCaseEndpoints:
         )
         content = response.json()['results']
         with allure.step('Get history by case_id'):
-            case_history_manager = TestCase.objects.get(pk=case_id).history
+            case_history_manager = TestCaseSelector.get_history_by_case_id(case_id)
         expected_list = model_to_dict_via_serializer(
             case_history_manager.all(),
             TestCaseHistorySerializer,
@@ -532,9 +533,9 @@ class TestCaseEndpoints:
         )
         content = response.json()['results']
         with allure.step('Get history by case_id'):
-            case_history_manager = TestCase.objects.get(pk=test_case.id).history
+            case_history_manager = TestCaseSelector.get_history_by_case_id(test_case.pk)
         expected_list = model_to_dict_via_serializer(
-            case_history_manager.all().order_by('-history_id'),
+            case_history_manager,
             TestCaseHistorySerializer,
             many=True,
         )
@@ -661,7 +662,7 @@ class TestCaseEndpoints:
     def test_restore_version(self, superuser_client, test_case, attachment_factory):
         assert test_case.history.count(), 'History was not created'
         attachment = attachment_factory(content_object=test_case)
-        version = test_case.history.last().history_id
+        version = 1
         old_name = test_case.name
         new_name = 'new_test_case_name'
         case_dict = {
@@ -1024,7 +1025,7 @@ class TestCaseEndpoints:
 
     @allure.step('Get number of labels from response via api')
     def labels_count_from_api(self, superuser_client: CustomAPIClient, pk: int, version: int | None = None) -> int:
-        query_params = {'version': version} if version else None
+        query_params = {'ver': version} if version else None
         return len(
             superuser_client.send_request(
                 self.view_name_detail,
@@ -1475,6 +1476,16 @@ class TestCaseEndpoints:
                 RequestType.PUT,
             )
 
+    def test_version_redirect(self, superuser_client, test_case):
+        response = superuser_client.send_request(
+            self.view_name_detail,
+            reverse_kwargs={'pk': test_case.pk},
+            query_params={'version': 1},
+            expected_status=HTTPStatus.PERMANENT_REDIRECT,
+        )
+        assert response.status_code == HTTPStatus.PERMANENT_REDIRECT.value
+        assert response.headers.get('location') == '/api/v2/cases/1/?ver=1'
+
 
 @pytest.mark.django_db(reset_sequences=True)
 @allure.parent_suite('Test cases with steps')
@@ -1713,12 +1724,12 @@ class TestCaseWithStepsEndpoints:
         ],
     )
     def test_restore_version_with_steps(
-        self,
-        superuser_client,
-        attachment_factory,
-        is_case_attachment,
-        is_steps_attachment,
-        test,
+            self,
+            superuser_client,
+            attachment_factory,
+            is_case_attachment,
+            is_steps_attachment,
+            test,
     ):
         title = 'Test restore case version with attachment for{0}{1}'
         allure.dynamic.title(
@@ -1753,7 +1764,6 @@ class TestCaseWithStepsEndpoints:
         ).json()['id']
 
         test_case = TestCase.objects.get(pk=created_case_id)
-        version = test_case.history.latest().history_id
         assert bool(test_case.attachments.count()) == is_case_attachment
         for step in test_case.steps.all():
             assert bool(step.attachments.count()) == is_steps_attachment
@@ -1791,15 +1801,13 @@ class TestCaseWithStepsEndpoints:
         for step in updated_test_case.steps.all():
             assert bool(step.attachments.count()) == is_steps_attachment
 
-        for idx in range(1, 10):
-            previous_version = test_case.history.latest().history_id
-
+        for idx in range(1, constants.NUMBER_OF_OBJECTS_TO_CREATE):
             content = superuser_client.send_request(
                 self.view_restore_version,
                 reverse_kwargs={'pk': test_case.pk},
                 request_type=RequestType.POST,
                 expected_status=HTTPStatus.OK,
-                data={'version': version},
+                data={'version': idx},
             ).json()
             restored_test_case = TestCase.objects.get(pk=test_case.id)
             expected_name = old_name if idx % 2 else new_name
@@ -1815,7 +1823,6 @@ class TestCaseWithStepsEndpoints:
                     'Steps were not restored after restore'
             for step in restored_test_case.steps.all():
                 assert step.attachments.count() == expected_step_value
-            version = previous_version
 
     @allure.title('Test attachments on steps restored')
     def test_restore_steps_attachments(self, superuser_client, attachment_factory, test):
@@ -1847,7 +1854,6 @@ class TestCaseWithStepsEndpoints:
             for step in test_case_json['steps']:
                 step.pop('attachments')
         test_case = TestCase.objects.get(pk=created_case_id)
-        version = test_case.history.latest().history_id
         with allure.step('Validate attachments count'):
             for step in test_case.steps.all():
                 assert step.attachments.count() == 1
@@ -1865,18 +1871,16 @@ class TestCaseWithStepsEndpoints:
                 assert step.attachments.count() == 0
 
         with allure.step('Validate attachments count changes on version restore'):
-            for idx in range(1, 10):
-                previous_version = test_case.history.latest().history_id
+            for idx in range(1, constants.NUMBER_OF_OBJECTS_TO_CREATE):
                 superuser_client.send_request(
                     self.view_restore_version,
                     reverse_kwargs={'pk': test_case.pk},
                     request_type=RequestType.POST,
                     expected_status=HTTPStatus.OK,
-                    data={'version': version},
+                    data={'version': idx},
                 )
                 for step in test_case.steps.all():
                     assert step.attachments.count() == idx % 2
-                version = previous_version
 
     @pytest.mark.parametrize('field_to_update', ['name', 'scenario', 'expected', 'sort_order'])
     def test_update_without_new_version(
@@ -1951,6 +1955,7 @@ class TestCaseWithStepsEndpoints:
         with allure.step('Validate error message'):
             assert response.json()[_ERRORS][0] == FORBIDDEN_USER_TEST_CASE
 
+    @allure.link('https://j.yadro.com/browse/TMS-894')
     @allure.title('Regression migrating back steps')
     def test_migrating_steps(self, authorized_client, project, test_suite_factory):
         suite = test_suite_factory(project=project)
@@ -1995,7 +2000,7 @@ class TestCaseWithStepsEndpoints:
                 data=payload,
                 request_type=RequestType.PUT,
             )
-        restore_ver = copied_case.history.all().order_by('history_date').first().history_id
+        restore_ver = 1
         authorized_client.send_request(
             self.view_restore_version,
             reverse_kwargs={'pk': copied_case.pk},
@@ -2071,3 +2076,34 @@ class TestCaseFilter:
             },
         ).json()
         assert response['count'] == 2
+
+    @pytest.mark.parametrize('field_name', ['id', 'name', 'created_at', 'estimate'])
+    @pytest.mark.parametrize('descending', [True, False], ids=['desc', 'asc'])
+    def test_ordering(
+            self, test_case_factory, test_suite_factory, project, superuser_client, field_name, descending,
+    ):
+        suite = test_suite_factory(project=project)
+        cases = [test_case_factory(suite=suite, project=project) for _ in range(2)]
+
+        expected_instances = model_to_dict_via_serializer(
+            sorted(cases, key=lambda instance: getattr(instance, field_name), reverse=descending),
+            TestCaseMockSerializer,
+            many=True,
+            refresh_instances=True,
+        )
+
+        response = superuser_client.send_request(
+            self.view_name_list,
+            query_params={
+                'ordering': f'{"-" if descending else ""}{field_name}',
+                'project': project.id,
+            },
+        )
+
+        response_dict = response.json()['results']
+
+        for expected_instance, actual_instance in zip(
+                expected_instances,
+                response_dict,
+        ):
+            assert expected_instance[field_name] == actual_instance[field_name]

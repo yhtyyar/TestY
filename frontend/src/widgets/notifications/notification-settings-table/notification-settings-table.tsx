@@ -1,5 +1,5 @@
-import { Switch, Table } from "antd"
-import { ColumnsType } from "antd/es/table"
+import { createColumnHelper } from "@tanstack/react-table"
+import { Switch } from "antd"
 import {
   useDisableNotificationMutation,
   useEnableNotificationMutation,
@@ -7,12 +7,14 @@ import {
 } from "entities/notifications/api"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { DataTable } from "widgets"
 
 import { initInternalError } from "shared/libs"
 
+const columnHelper = createColumnHelper<NotificationSetting>()
 export const NotificationSettingsTable = () => {
   const { t } = useTranslation()
-  const { data, isFetching } = useGetNotificationSettingsQuery()
+  const { data = [], isFetching } = useGetNotificationSettingsQuery()
   const [enableSetting] = useEnableNotificationMutation()
   const [disableSetting] = useDisableNotificationMutation()
   const [isEnableLoading, setIsEnableLoading] = useState(false)
@@ -36,38 +38,33 @@ export const NotificationSettingsTable = () => {
     }
   }
 
-  const columns: ColumnsType<NotificationSetting> = [
-    {
-      title: t("Name"),
-      dataIndex: "verbose_name",
-      key: "name",
-    },
-    {
-      width: 100,
-      title: t("Enabled"),
-      dataIndex: "enabled",
-      key: "enabled",
-      render: (enabled: boolean, record) => {
-        return (
-          <Switch
-            checked={enabled}
-            onChange={(checked) => handleChangeSetting(record.action_code, checked)}
-          />
-        )
+  const columns = [
+    columnHelper.accessor("verbose_name", {
+      id: "verbose_name",
+      header: t("Name"),
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
       },
-    },
+    }),
+    columnHelper.accessor("enabled", {
+      id: "enabled",
+      header: t("Enabled"),
+      cell: ({ getValue, row }) => (
+        <Switch
+          checked={getValue()}
+          onChange={(checked) => handleChangeSetting(row.original.action_code, checked)}
+        />
+      ),
+      size: 100,
+    }),
   ]
 
   return (
-    <Table
-      loading={isFetching || isEnableLoading}
-      dataSource={data}
+    <DataTable
+      isLoading={isFetching || isEnableLoading}
+      data={data}
       columns={columns}
-      rowKey="action_code"
-      style={{ marginTop: 12 }}
-      id="administration-projects-labels"
-      rowClassName="administration-projects-labels-row"
-      pagination={false}
       data-testid="notification-settings-table"
     />
   )

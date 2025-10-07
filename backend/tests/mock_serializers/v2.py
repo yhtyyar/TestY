@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -28,6 +28,7 @@
 # if any, to sign a "copyright disclaimer" for the program, if necessary.
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
+from django.db.models import Q, Sum
 from rest_framework.fields import CharField, DateTimeField, SerializerMethodField
 
 from tests.mock_serializers.base import (
@@ -45,6 +46,7 @@ from testy.core.api.v2.serializers import (
     ProjectRetrieveSerializer,
     ProjectStatisticsSerializer,
 )
+from testy.serializer_fields import EstimateField
 from testy.tests_description.api.v2.serializers import (
     TestCaseListSerializer,
     TestCaseRetrieveSerializer,
@@ -62,7 +64,7 @@ from testy.tests_representation.api.v2.serializers import (
     TestSerializer,
     TestUnionSerializer,
 )
-from testy.tests_representation.models import TestPlan
+from testy.tests_representation.models import Test, TestPlan
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.utilities.time import WorkTimeProcessor
 
@@ -110,18 +112,9 @@ class TestCaseMockSerializer(TestCaseRetrieveSerializer):
 
 class TestCaseListMockSerializer(TestCaseListSerializer):
     suite_path = SerializerMethodField()
-    versions = SerializerMethodField()
-
-    def get_versions(self, instance):
-        return list(instance.history.values_list('history_id', flat=True).order_by('-history_date'))
 
     def get_suite_path(self, instance):
         return '/'.join(suite.name for suite in instance.suite.get_ancestors(include_self=True))
-
-    def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.history.first().history_id
 
 
 class TestSuiteBaseMockSerializer(TestSuiteBaseSerializer, PathRetrieveMixin):
@@ -163,6 +156,7 @@ class TestPlanUnionMockSerializer(TestPlanUnionSerializer):
     is_leaf = SerializerMethodField()
     has_children = SerializerMethodField()
     title = SerializerMethodField()
+    estimate = SerializerMethodField()
 
     def get_is_leaf(self, instance):
         return False
@@ -174,6 +168,16 @@ class TestPlanUnionMockSerializer(TestPlanUnionSerializer):
         if parameters := instance.parameters.all().order_by('id'):
             return '{0} [{1}]'.format(instance.name, ', '.join([parameter.data for parameter in parameters]))
         return instance.name
+
+    def get_estimate(self, instance: TestPlan):
+        estimate_sum = (
+            Test
+            .objects
+            .filter(Q(plan_id=instance.pk) | Q(plan__path__descendant=instance.path))
+            .aggregate(estimate_sum=Sum('case__estimate'))
+            .get('estimate_sum', 0)
+        )
+        return EstimateField(read_only=True, allow_blank=True, allow_null=True).to_representation(estimate_sum)
 
 
 class TestUnionMockSerializer(TestUnionSerializer):
@@ -258,16 +262,8 @@ class TestCaseUnionMockSerializer(TestCaseUnionSerializer):
     versions = SerializerMethodField()
     suite_path = SerializerMethodField()
 
-    def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.history.first().history_id
-
     def get_suite_path(self, instance):
         return '/'.join(suite.name for suite in instance.suite.get_ancestors(include_self=True))
-
-    def get_versions(self, instance):
-        return list(instance.history.values_list('history_id', flat=True).order_by('-history_date'))
 
     def get_is_leaf(self, instance):
         return True

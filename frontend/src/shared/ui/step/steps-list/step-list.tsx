@@ -66,26 +66,28 @@ export const StepList = ({
     actions?.onChangeStatus?.({ ...stepStatuses, [resultStepId ?? testCaseStepId]: status.id })
   }
 
-  const stepElements = steps.map((testCaseStep, index) => {
-    const resultStepId = result?.steps_results?.find(({ step }) => step === testCaseStep.id)?.id
+  const stepElements = [...steps]
+    .sort((first, second) => first.sort_order - second.sort_order)
+    .map((testCaseStep, index) => {
+      const resultStepId = result?.steps_results?.find(({ step }) => step === testCaseStep.id)?.id
 
-    return (
-      <Step
-        key={testCaseStep.id}
-        id={`${id}-step-${testCaseStep.name}`}
-        isExpanded={expandedSteps.includes(testCaseStep.id)}
-        onToggleExpanded={handleToggleExpanded}
-        actions={{
-          ...actions,
-          onChangeStatus: actions?.onChangeStatus && handleStatusChange,
-        }}
-        step={testCaseStep}
-        index={index}
-        statusesOptions={statusesOptions}
-        status={stepStatuses?.[resultStepId ?? testCaseStep.id]}
-      />
-    )
-  })
+      return (
+        <Step
+          key={testCaseStep.id}
+          id={`${id}-step-${testCaseStep.name}`}
+          isExpanded={expandedSteps.includes(testCaseStep.id)}
+          onToggleExpanded={handleToggleExpanded}
+          actions={{
+            ...actions,
+            onChangeStatus: actions?.onChangeStatus && handleStatusChange,
+          }}
+          step={testCaseStep}
+          index={index}
+          statusesOptions={statusesOptions}
+          status={stepStatuses?.[resultStepId ?? testCaseStep.id]}
+        />
+      )
+    })
 
   return (
     <Flex vertical>

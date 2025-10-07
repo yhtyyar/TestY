@@ -1,7 +1,9 @@
 import commonEN from "shared/locales/en/common.json"
 import entitiesEN from "shared/locales/en/entities.json"
+import errorsEN from "shared/locales/en/errors.json"
 import commonRU from "shared/locales/ru/common.json"
 import entitiesRU from "shared/locales/ru/entities.json"
+import errorsRU from "shared/locales/ru/errors.json"
 import translationRU from "shared/locales/ru/ru.json"
 
 const genByKeys = <T extends Record<string, string>>(ruData: T): T => {
@@ -19,10 +21,12 @@ export const i18nConfig = {
     translation: genByKeys(translationRU),
     common: commonEN,
     entities: entitiesEN,
+    errors: errorsEN,
   },
   ru: {
     translation: translationRU,
     common: commonRU,
     entities: entitiesRU,
+    errors: errorsRU,
   },
 }

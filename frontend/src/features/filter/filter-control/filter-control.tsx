@@ -3,12 +3,16 @@ import equal from "fast-deep-equal"
 import { useMeContext } from "processes"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { ZodObject } from "zod"
+
+import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 
 import { useProjectContext } from "pages/project"
 
 import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
-import { QuryParamsSchema, queryParamsBySchema } from "shared/libs/query-params"
+import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
+import styles from "./styles.module.css"
 import { ActionButtonsFilter } from "./ui/action-buttons-filter/action-buttons-filter"
 import { SelectFilter } from "./ui/select-filter/select-filter"
 
@@ -16,7 +20,7 @@ interface Props {
   type: "plans" | "suites"
   hasSomeFilter: boolean
   filterData: Record<string, unknown>
-  filterSchema: QuryParamsSchema
+  filterSchema: ZodObject
   filterSettings: FilterSettings
   updateFilter: (filter: Record<string, unknown>) => void
   updateSettings: (settings: Partial<FilterSettings>) => void
@@ -57,6 +61,7 @@ export const FilterControl = ({
           [typeKey]: {
             ...userConfig?.[typeKey],
             filters: {
+              ...(userConfig?.[typeKey]?.filters ?? {}),
               [project.id]: {
                 ...filtersData,
               },
@@ -78,7 +83,7 @@ export const FilterControl = ({
 
   const handleSelect = (name: string) => {
     const value = configFilters?.[name]
-    const filterParse = queryParamsBySchema(filterSchema, { url: value })
+    const filterParse = schemaFillBySearchParams(filterSchema, { url: value })
     updateFilter(filterParse)
   }
 
@@ -87,7 +92,7 @@ export const FilterControl = ({
       return
     }
     const value = configFilters?.[filterSettings.selected]
-    const filterParse = queryParamsBySchema(filterSchema, { url: value })
+    const filterParse = schemaFillBySearchParams(filterSchema, { url: value })
     updateFilter(filterParse)
   }
 
@@ -96,9 +101,9 @@ export const FilterControl = ({
       return
     }
 
-    const urlParse = queryParamsBySchema(filterSchema)
+    const urlParse = schemaFillBySearchParams(filterSchema)
     for (const [filterName, filterValue] of Object.entries(configFilters)) {
-      const filterParse = queryParamsBySchema(filterSchema, { url: filterValue })
+      const filterParse = schemaFillBySearchParams(filterSchema, { url: filterValue })
       const isEqualUrlFilter = equal(urlParse, filterParse)
       if (isEqualUrlFilter) {
         updateSettings({ selected: filterName })
@@ -108,26 +113,33 @@ export const FilterControl = ({
   }, [hasSomeFilter, configFilters, filterSettings.selected])
 
   return (
-    <Flex align="center" justify="space-between">
-      <SelectFilter
-        type={type}
-        filterData={filterData}
-        filterSettings={filterSettings}
-        configFilters={configFilters}
-        filterSchema={filterSchema}
-        onDelete={handleDelete}
-        onSelect={handleSelect}
-        updateSettings={updateSettings}
-      />
-      <ActionButtonsFilter
-        type={type}
-        filterData={filterData}
-        filterSettings={filterSettings}
-        onDelete={handleDelete}
-        updateSettings={updateSettings}
-        resetFilterToSelected={handleResetToSelected}
-        clearFilter={clearFilter}
-      />
+    <Flex vertical justify="space-between">
+      <Flex align="center" justify="space-between">
+        <SelectFilter
+          type={type}
+          filterData={filterData}
+          filterSettings={filterSettings}
+          configFilters={configFilters}
+          filterSchema={filterSchema}
+          onDelete={handleDelete}
+          onSelect={handleSelect}
+          updateSettings={updateSettings}
+        />
+        <ActionButtonsFilter
+          type={type}
+          filterData={filterData}
+          filterSettings={filterSettings}
+          onDelete={handleDelete}
+          updateSettings={updateSettings}
+          resetFilterToSelected={handleResetToSelected}
+          clearFilter={clearFilter}
+        />
+      </Flex>
+      {filterSettings.hasUnsavedChanges && (
+        <span className={styles.unsaved} data-testid="select-filter-unsaved-changes">
+          {t("Unsaved Changes")}
+        </span>
+      )}
     </Flex>
   )
 }

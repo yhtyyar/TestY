@@ -1,5 +1,5 @@
 import { CloseOutlined, CopyOutlined } from "@ant-design/icons"
-import { Col, Row, Space, message } from "antd"
+import { Flex, message } from "antd"
 
 import FileLinear from "shared/assets/yi-icons/file-linear.svg?react"
 
@@ -17,34 +17,31 @@ export const AttachmentItemMin = ({
   id,
 }: AttachmentItemProps) => {
   return (
-    <Row className={styles.row} align="middle">
+    <Flex className={styles.row} align="center">
       <FileLinear className={styles.fileIcon} />
-      <Col flex="1 1" className={styles.nameBlock}>
-        <span className={styles.name} data-testid={id}>
-          {attachment.name}
+      <Flex className={styles.attachNameContainer} align="center">
+        <span className={styles.attachName} data-testid={id}>
+          {attachment.filename}
         </span>
-      </Col>
-
-      <Col flex="0 1">
-        <Space>
-          <CopyOutlined
-            onClick={(e) => {
-              e.stopPropagation()
-              navigator.clipboard.writeText(attachment.link)
-              message.info("Attachment url copied to clipboard")
-            }}
-            className={styles.copyBtn}
-            data-testid={`attachment-copy-btn-${id}`}
+      </Flex>
+      <Flex align="center" gap={4}>
+        <CopyOutlined
+          onClick={(e) => {
+            e.stopPropagation()
+            navigator.clipboard.writeText(attachment.link)
+            message.info("Attachment url copied to clipboard")
+          }}
+          className={styles.copyBtn}
+          data-testid={`attachment-copy-btn-${id}`}
+        />
+        {handleAttachmentRemove && (
+          <CloseOutlined
+            data-testid={`attachment-remove-btn-${id}`}
+            onClick={() => handleAttachmentRemove(attachment.id)}
+            className={styles.removeBtn}
           />
-          {handleAttachmentRemove && (
-            <CloseOutlined
-              data-testid={`attachment-remove-btn-${id}`}
-              onClick={() => handleAttachmentRemove(attachment.id)}
-              className={styles.removeBtn}
-            />
-          )}
-        </Space>
-      </Col>
-    </Row>
+        )}
+      </Flex>
+    </Flex>
   )
 }

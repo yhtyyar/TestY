@@ -1,7 +1,7 @@
-import { TablePaginationConfig, TableProps } from "antd"
-import { ColumnsType } from "antd/es/table"
-import { useLazyGetNotificationsListQuery, useMarkAsMutation } from "entities/notifications/api"
-import { useEffect, useState } from "react"
+import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
+import { Checkbox } from "antd"
+import { useGetNotificationsListQuery, useMarkAsMutation } from "entities/notifications/api"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
@@ -10,6 +10,7 @@ import { initInternalError } from "shared/libs"
 import styles from "./notifications-table.module.css"
 
 const PLACEHOLDER_TEXT = "{{placeholder}}"
+const columnHelper = createColumnHelper<NotificationData>()
 
 const convertToLinkText = (record: NotificationData["message"]) => {
   const { template, placeholder_link, placeholder_text } = record
@@ -27,89 +28,94 @@ const convertToLinkText = (record: NotificationData["message"]) => {
 
 export const useNotificationsTable = () => {
   const { t } = useTranslation()
-  const [isLoading, setIsLoading] = useState(false)
-  const [data, setData] = useState<NotificationData[]>([])
-  const [pagination, setPagination] = useState<TablePaginationConfig>({ current: 1, pageSize: 10 })
-  const [getNotifications] = useLazyGetNotificationsListQuery()
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [markAs] = useMarkAsMutation()
 
-  const columns: ColumnsType<NotificationData> = [
+  const tableRef = useRef<Table<NotificationData> | null>(null)
+  const [paginationParams, setPaginationParams] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+
+  const selectedRowKeys =
+    tableRef.current?.getSelectedRowModel().rows.map((row) => row.original.id) ?? []
+
+  const { data, isLoading, refetch } = useGetNotificationsListQuery({
+    page: paginationParams.pageIndex + 1,
+    page_size: paginationParams.pageSize,
+  })
+
+  const columns = [
     {
-      title: t("ID"),
-      dataIndex: "id",
-      key: "id",
-      width: "70px",
-    },
-    {
-      title: t("Message"),
-      dataIndex: "message",
-      key: "message",
-      render: (record: NotificationData["message"]) => {
-        if (!record) {
+      id: "checkbox",
+      header: ({ table }) => {
+        return (
+          <Checkbox
+            checked={table.getIsAllRowsSelected()}
+            onChange={() => table.toggleAllRowsSelected()}
+            onClick={(e) => e.stopPropagation()}
+            indeterminate={table.getIsSomeRowsSelected()}
+          />
+        )
+      },
+      cell: ({ row }) => {
+        return (
+          <Checkbox
+            onClick={(e) => e.stopPropagation()}
+            checked={row.getIsSelected()}
+            onChange={() => row.toggleSelected()}
+          />
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
+      size: 50,
+    } as ColumnDef<NotificationData>,
+    columnHelper.accessor("id", {
+      id: "id",
+      header: t("ID"),
+      cell: (info) => <span style={{ wordBreak: "keep-all" }}>{info.getValue()}</span>,
+      size: 70,
+      meta: {
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("message", {
+      id: "message",
+      header: t("Message"),
+      cell: ({ getValue }) => {
+        if (!getValue()) {
           return null
         }
-        return convertToLinkText(record)
+        return convertToLinkText(getValue())
       },
-    },
-    {
-      title: t("Actor"),
-      dataIndex: "actor",
-      key: "actor",
-    },
-    {
-      title: t("Time"),
-      dataIndex: "timeago",
-      key: "timeago",
-    },
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("actor", {
+      id: "actor",
+      header: t("Actor"),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("timeago", {
+      id: "timeago",
+      header: t("Time"),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
   ]
-
-  const fetchData = async ({
-    force = false,
-    paginationData = pagination,
-  }: {
-    force?: boolean
-    paginationData?: TablePaginationConfig
-  }) => {
-    setIsLoading(true)
-    try {
-      const response = await getNotifications(
-        {
-          page: paginationData.current,
-          page_size: paginationData.pageSize,
-          v: force ? Date.now() : undefined,
-        },
-        false
-      )
-      setData(response?.data?.results ?? [])
-      setPagination({ ...paginationData, total: response?.data?.count })
-    } catch (error) {
-      initInternalError(error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchData({})
-  }, [])
-
-  const handleChange: TableProps<NotificationData>["onChange"] = (newPagination) => {
-    fetchData({ paginationData: newPagination })
-  }
-
-  const handleSelectRows = (newSelectedRowKeys: React.Key[]) => {
-    setSelectedRowKeys(newSelectedRowKeys)
-  }
 
   const handleRead = async () => {
     try {
       await markAs({
         unread: false,
-        notifications: selectedRowKeys.map((key) => Number(key)),
+        notifications: selectedRowKeys,
       })
-      fetchData({ force: true })
-      setSelectedRowKeys([])
+      tableRef.current?.resetRowSelection()
+      refetch()
     } catch (error) {
       initInternalError(error)
     }
@@ -119,24 +125,25 @@ export const useNotificationsTable = () => {
     try {
       await markAs({
         unread: true,
-        notifications: selectedRowKeys.map((key) => Number(key)),
+        notifications: selectedRowKeys,
       })
-      fetchData({ force: true })
-      setSelectedRowKeys([])
+      tableRef.current?.resetRowSelection()
+      refetch()
     } catch (error) {
       initInternalError(error)
     }
   }
 
   return {
+    tableRef,
     isLoading,
-    data,
-    pagination,
+    data: data?.results ?? [],
+    total: data?.count ?? 0,
     columns,
-    handleChange,
-    handleSelectRows,
+    paginationParams,
+    selectedRowKeys,
+    setPaginationParams,
     handleRead,
     handleUnread,
-    selectedRowKeys,
   }
 }

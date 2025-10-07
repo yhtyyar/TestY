@@ -29,7 +29,7 @@ export const useTestDetail = () => {
   const drawerData = useAppSelector(selectDrawerData)
   const drawerTest = useAppSelector(selectDrawerTest)
   const showArchive = useAppSelector(selectArchivedResultsIsShow)
-  const [selectedResult, setSelectedResult] = useState<Result>()
+  const [resultView, setResultView] = useState<{ result: Result; testCase: TestCase }>()
   const [isDirty, setIsDirty] = useState(false)
 
   const [testCaseData, setTestCaseData] = useState<TestCase | null>(null)
@@ -96,8 +96,8 @@ export const useTestDetail = () => {
     setOrdering(ordering === "asc" ? "desc" : "asc")
   }
 
-  const handleEditCloneClick = (result: Result, isClone: boolean) => {
-    setSelectedResult(result)
+  const handleEditCloneClick = (result: Result, resultTestCase: TestCase, isClone: boolean) => {
+    setResultView({ result, testCase: resultTestCase })
     dispatch(setDrawerView({ view: isClone ? "cloneResult" : "editResult" }))
   }
 
@@ -163,7 +163,7 @@ export const useTestDetail = () => {
     handleCancelAction,
     handleAddResultClick,
     handleEditCloneClick,
-    selectedResult,
+    resultView,
     setIsDirty,
   }
 }

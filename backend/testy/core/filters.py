@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -34,7 +34,7 @@ from django_filters import rest_framework as filters
 from notifications.models import Notification
 from rest_framework.filters import OrderingFilter, SearchFilter
 
-from testy.core.models import Attachment, CustomAttribute, Label, NotificationSetting, Project
+from testy.core.models import Attachment, CustomAttribute, Label, NotificationSetting, Project, ProjectIntegration
 from testy.core.selectors.projects import ProjectSelector
 from testy.filters import ArchiveFilterMixin, SearchView, case_insensitive_filter, ordering_filter, project_filter
 from testy.utilities.request import get_user_favorites
@@ -173,3 +173,12 @@ class ParentFilterMixin(filters.FilterSet):
         elif parent_id := parse_int(parent):
             lookup = Q(parent__id=parent_id) | Q(id=parent_id)
         return queryset.filter(lookup)
+
+
+class ProjectIntegrationFilterSet(filters.FilterSet):
+    project = project_filter()
+    page_type = filters.CharFilter(field_name='page_type__model', lookup_expr='iexact')
+
+    class Meta:
+        model = ProjectIntegration
+        fields = ('project', 'name', 'page_type')

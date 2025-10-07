@@ -4,7 +4,6 @@ import { useMeContext } from "processes"
 import { useTranslation } from "react-i18next"
 
 import { CreateProject } from "features/project"
-import { ChangeLang, ChangeTheme } from "features/system"
 
 import ColumnViewIcon from "shared/assets/yi-icons/column-view.svg?react"
 import TableIcon from "shared/assets/yi-icons/table.svg?react"
@@ -60,11 +59,7 @@ export const DashboardHeader = ({
           size="lg"
         />
       </Flex>
-      <Flex gap={16}>
-        <ChangeTheme />
-        <ChangeLang />
-        <CreateProject />
-      </Flex>
+      <CreateProject />
       <Flex align="center" gap={4} style={{ marginLeft: 16 }}>
         <button
           type="button"

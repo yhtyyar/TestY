@@ -2,13 +2,11 @@ import { Checkbox, Spin } from "antd"
 import { CheckboxChangeEvent } from "antd/es/checkbox"
 import classNames from "classnames"
 
-import { icons } from "shared/assets/inner-icons"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { LazyNodeProps, LazyTreeNodeApi, TreeBaseLoadMore } from "shared/libs/tree"
 import { HighLighterTesty } from "shared/ui"
 
 import styles from "./styles.module.css"
-
-const { ArrowIcon } = icons
 
 interface Props {
   node: LazyTreeNodeApi<Suite, LazyNodeProps>
@@ -56,7 +54,7 @@ export const SelectSuitesNode = ({ node, searchText, onCheck }: Props) => {
             />
             {node.props.isLoading && <Spin size="small" className={styles.loader} />}
             {!node.props.isLoading && node.props.canOpen && (
-              <ArrowIcon
+              <ChevronIcon
                 className={classNames(styles.arrowIcon, {
                   [styles.arrowIconOpen]: node.props.isOpen,
                 })}

@@ -1,73 +1,16 @@
 import { PayloadAction, createAction, createSlice } from "@reduxjs/toolkit"
 
 import { RootState } from "app/store"
+import { orderingSchema } from "app/zod-common.schema"
 
-import { orderingSchema } from "shared/config/query-schemas"
-import { formatStringToNumberArray, formatStringToStringArray } from "shared/libs"
-import { queryParamsBySchema } from "shared/libs/query-params"
+import { schemaFillBySearchParams, schemaFillUndefined } from "shared/libs/sync-url"
 
-export const testEmptyFilter: TestDataFilters = {
-  name_or_id: "",
-  plans: [],
-  suites: [],
-  statuses: [],
-  assignee: [],
-  labels: [],
-  not_labels: [],
-  labels_condition: undefined,
-  is_archive: undefined,
-  test_plan_started_before: undefined,
-  test_plan_started_after: undefined,
-  test_plan_created_before: undefined,
-  test_plan_created_after: undefined,
-  test_created_before: undefined,
-  test_created_after: undefined,
-}
+import { TestDataFilters, filterTestsSchema } from "./schemas"
+import { FilterSettings, TestStateFilters } from "./test-filter-slice.types"
 
-export const testFilterSchema = {
-  name_or_id: {
-    default: "",
-  },
-  plans: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  suites: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  statuses: {
-    format: formatStringToStringArray,
-    default: [],
-  },
-  assignee: {
-    format: formatStringToStringArray,
-    default: [],
-  },
-  labels: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  not_labels: {
-    format: formatStringToNumberArray,
-    default: [],
-  },
-  labels_condition: {
-    format: (value: string) => (value === "and" ? "and" : "or"),
-  },
-  is_archive: {
-    format: (value: string) => value === "true",
-  },
-  test_plan_started_before: {},
-  test_plan_started_after: {},
-  test_plan_created_before: {},
-  test_plan_created_after: {},
-  test_created_before: {},
-  test_created_after: {},
-}
-
-const initOrdering = queryParamsBySchema(orderingSchema())
-const initFilter = queryParamsBySchema(testFilterSchema)
+export const testEmptyFilter = schemaFillUndefined(filterTestsSchema)
+const initOrdering = schemaFillBySearchParams(orderingSchema)
+const initFilter = schemaFillBySearchParams(filterTestsSchema)
 
 const initialState: TestStateFilters = {
   filter: {
@@ -125,7 +68,7 @@ export const testsfilterSlice = createSlice({
       state.shouldResetForm = false
     },
     reinitializeFilter: (state) => {
-      state.filter = queryParamsBySchema(testFilterSchema)
+      state.filter = schemaFillBySearchParams(filterTestsSchema)
     },
   },
   extraReducers: (builder) => {

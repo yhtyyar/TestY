@@ -149,6 +149,7 @@ html[data-theme="dark"] {
   --y-color-datatable-header-background: var(--y-grey-80);
   --y-color-datatable-cell-hover: var(--y-grey-80);
   --y-color-datatable-selected-row-background: var(--y-blue-80);
+  --y-color-databale-overlay-loading: rgba(0, 0, 0, 0.25);
 
   /* Menu */
   --y-color-menu-background: var(--y-grey-80);

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -31,7 +31,7 @@
 from functools import partial
 
 from rest_framework import serializers
-from rest_framework.fields import BooleanField, CharField, IntegerField, ListField, SerializerMethodField, empty
+from rest_framework.fields import BooleanField, CharField, IntegerField, SerializerMethodField, empty
 from rest_framework.relations import HyperlinkedIdentityField, PrimaryKeyRelatedField
 
 from testy.core.api.v1.serializers import AttachmentSerializer, CopyDetailSerializer
@@ -185,12 +185,12 @@ class TestCaseListSerializer(TestCaseBaseSerializer):
     url = HyperlinkedIdentityField(view_name='api:v1:testcase-detail')
     attachments = SerializerMethodField()
     labels = SerializerMethodField(read_only=True)
-    versions = ListField(child=IntegerField(), read_only=True)
     current_version = SerializerMethodField(read_only=True)
+    versions = SerializerMethodField(read_only=True)
     suite_name = CharField(source='suite.name', read_only=True)
 
     def __init__(self, instance=None, version=None, data=empty, **kwargs):
-        self._version = version
+        self._version = int(version) if version else None
         super().__init__(instance, data, **kwargs)
 
     class Meta(TestCaseBaseSerializer.Meta):
@@ -200,9 +200,16 @@ class TestCaseListSerializer(TestCaseBaseSerializer):
         ref_name = 'TestCaseListSerializerV1'
 
     def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.current_version
+        if current_version := getattr(instance, 'current_version', None):
+            return current_version
+        version = self._version or instance.history.first().history_id
+        return TestCaseSelector.get_display_version_by_version(instance.id, version)
+
+    def get_versions(self, instance):
+        if versions := getattr(instance, 'versions', None):
+            return versions
+        versions_number = instance.history.values_list('history_id', flat=True).count()
+        return list(range(versions_number, 0, -1))
 
     def get_labels(self, instance):
         if self._version is not None:
@@ -232,13 +239,17 @@ class TestCaseRetrieveSerializer(TestCaseListSerializer):
     versions = SerializerMethodField(read_only=True)
     current_version = SerializerMethodField(read_only=True)
 
-    def get_versions(self, instance):
-        return instance.history.values_list('history_id', flat=True).order_by('-history_id').all()
-
     def get_current_version(self, instance):
-        if self._version is not None:
-            return self._version
-        return instance.history.first().history_id
+        if current_version := getattr(instance, 'current_version', None):
+            return current_version
+        version = self._version or instance.history.first().history_id
+        return TestCaseSelector.get_display_version_by_version(instance.id, version)
+
+    def get_versions(self, instance):
+        if versions := getattr(instance, 'versions', None):
+            return versions
+        versions_number = instance.history.values_list('history_id', flat=True).count()
+        return list(range(versions_number, 0, -1))
 
     class Meta(TestCaseListSerializer.Meta):
         ref_name = 'TestCaseRetrieveV1'
@@ -351,7 +362,7 @@ class TestCaseHistorySerializer(serializers.Serializer):
         '-': 'Deleted',
     }
     user = SerializerMethodField(read_only=True)
-    version = IntegerField(source='history_id')
+    version = IntegerField(read_only=True)
     action = SerializerMethodField(read_only=True)
     history_date = serializers.DateTimeField()
 
@@ -372,7 +383,7 @@ class TestCaseRestoreSerializer(serializers.Serializer):
 
     def validate_version(self, version):
         if not TestCaseSelector.version_exists(version=version, pk=self.instance.id):
-            raise serializers.ValidationError('Incorrect version')
+            raise serializers.ValidationError(f'Incorrect version {version}')
         return version
 
     class Meta:

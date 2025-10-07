@@ -89,8 +89,8 @@ export const useTestPlanCopyModal = ({ testPlan, onSubmit }: Props) => {
           {
             plan: testPlan.id,
             new_name,
-            started_at: startedAt?.toISOString(),
-            due_date: dueDate?.toISOString(),
+            started_at: startedAt?.format("YYYY-MM-DD"),
+            due_date: dueDate?.format("YYYY-MM-DD"),
           },
         ],
         dst_plan: plan?.value,

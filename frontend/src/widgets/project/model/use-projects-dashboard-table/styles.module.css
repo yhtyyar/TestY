@@ -1,10 +1,7 @@
 .action {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
   transition: all 0.2s ease-in;
   color: var(--y-grey-30);
+  width: 100%;
 }
 
 .action svg {

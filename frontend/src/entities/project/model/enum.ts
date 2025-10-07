@@ -6,4 +6,5 @@ export enum ProjectTab {
   CUSTOM_ATTRIBUTES = "custom-attributes",
   SETTINGS = "settings",
   ACCESS_MANAGEMENT = "access-management",
+  INTEGRATIONS = "integrations",
 }

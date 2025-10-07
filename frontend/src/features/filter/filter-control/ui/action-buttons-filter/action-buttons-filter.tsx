@@ -6,10 +6,11 @@ import {
   EditOutlined,
 } from "@ant-design/icons"
 import { Flex, Popover, Tooltip } from "antd"
-import classNames from "classnames"
 import { useMeContext } from "processes"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
+import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 
 import { useProjectContext } from "pages/project"
 
@@ -18,6 +19,7 @@ import ResetIcon from "shared/assets/yi-icons/reset.svg?react"
 import SaveIcon from "shared/assets/yi-icons/save.svg?react"
 import { clearObject } from "shared/libs"
 import { antdNotification } from "shared/libs/antd-modals"
+import { Button } from "shared/ui"
 
 import styles from "./styles.module.css"
 
@@ -40,7 +42,7 @@ export const ActionButtonsFilter = ({
   resetFilterToSelected,
   clearFilter,
 }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "errors"])
 
   const { userConfig, updateConfig } = useMeContext()
   const project = useProjectContext()
@@ -84,7 +86,7 @@ export const ActionButtonsFilter = ({
   const handleNewNameAccept = () => {
     if (!filterSettings.editingValue.length) {
       antdNotification.error("action-buttons-filter", {
-        description: t("Name filter cant be empty!"),
+        description: t("errors:filterNameNotBeEmpty"),
       })
       return
     }
@@ -168,21 +170,25 @@ export const ActionButtonsFilter = ({
 
   if (filterSettings.editing) {
     return (
-      <Flex style={{ marginLeft: "auto" }} gap={7}>
-        <button
-          className={classNames(styles.renameBtn, styles.saveRename)}
+      <Flex style={{ marginLeft: "auto" }} gap={8}>
+        <Button
+          size="m"
+          color="secondary-linear"
+          shape="circle"
+          type="button"
+          icon={<CheckOutlined style={{ color: "var(--y-success-block)" }} />}
           onClick={handleNewNameAccept}
           data-testid="action-buttons-filter-rename-accept"
-        >
-          <CheckOutlined />
-        </button>
-        <button
-          className={styles.renameBtn}
+        />
+        <Button
+          size="m"
+          color="secondary-linear"
+          shape="circle"
+          type="button"
+          icon={<CloseOutlined />}
           onClick={handleNewNameClose}
           data-testid="action-buttons-filter-rename-close"
-        >
-          <CloseOutlined />
-        </button>
+        />
       </Flex>
     )
   }
@@ -192,65 +198,78 @@ export const ActionButtonsFilter = ({
       <Flex gap={8}>
         {filterSettings.hasUnsavedChanges && (
           <Tooltip title={t("Reset filter")}>
-            <button
+            <Button
+              size="m"
+              color="ghost"
+              shape="square"
               type="button"
-              className={styles.actionBtn}
+              icon={<ResetIcon />}
               onClick={resetFilterToSelected}
               data-testid="action-buttons-filter-reset"
-            >
-              <ResetIcon />
-            </button>
+            />
           </Tooltip>
         )}
         <Popover
           id="menu-filter"
-          overlayInnerStyle={{ padding: "8px 0" }}
+          styles={{
+            body: { padding: "8px 0" },
+          }}
           content={
             <ul className={styles.filterMenuList}>
               {filterSettings.hasUnsavedChanges && (
-                <li className={styles.filterMenuListItem} onClick={handleSaveChanges}>
-                  <button
+                <li className={styles.filterMenuListItem}>
+                  <Button
+                    className={styles.filterMenuListItemBtn}
+                    size="m"
+                    color="ghost"
                     type="button"
-                    className={styles.btn}
+                    icon={<CheckOutlined style={{ fontSize: 14 }} />}
+                    onClick={handleSaveChanges}
                     data-testid="action-buttons-filter-save-changes"
                   >
-                    <CheckOutlined style={{ fontSize: 14 }} />
-                  </button>
-                  <span>{t("Save Changes")}</span>
+                    {t("Save Changes")}
+                  </Button>
                 </li>
               )}
-              <li className={styles.filterMenuListItem} onClick={handleSaveAsNew}>
-                <button
+              <li className={styles.filterMenuListItem}>
+                <Button
+                  className={styles.filterMenuListItemBtn}
+                  size="m"
+                  color="ghost"
                   type="button"
-                  className={styles.btn}
+                  icon={<CopyOutlined style={{ fontSize: 14 }} />}
+                  onClick={handleSaveAsNew}
                   data-testid="action-buttons-filter-save-as-new"
                 >
-                  <CopyOutlined style={{ fontSize: 14 }} />
-                </button>
-                <span>{t("Save as New Filter")}</span>
+                  {t("Save as New Filter")}
+                </Button>
               </li>
-              <li className={styles.filterMenuListItem} onClick={handleShowEdit}>
-                <button
+              <li className={styles.filterMenuListItem}>
+                <Button
+                  className={styles.filterMenuListItemBtn}
+                  size="m"
+                  color="ghost"
                   type="button"
-                  className={styles.btn}
+                  icon={<EditOutlined style={{ fontSize: 14 }} />}
+                  onClick={handleShowEdit}
                   data-testid="action-buttons-filter-rename"
                 >
-                  <EditOutlined style={{ fontSize: 14 }} />
-                </button>
-                <span>{t("Rename")}</span>
+                  {t("Rename")}
+                </Button>
               </li>
-              <li
-                className={classNames(styles.filterMenuListItem, styles.delete)}
-                onClick={() => onDelete(filterSettings.selected ?? "")}
-              >
-                <button
+              <li className={styles.filterMenuListItem}>
+                <Button
+                  className={styles.filterMenuListItemBtn}
+                  size="m"
+                  color="ghost"
                   type="button"
-                  className={styles.btn}
+                  style={{ color: "var(--y-error-block)" }}
+                  icon={<DeleteOutlined style={{ fontSize: 14, color: "var(--y-error-block)" }} />}
+                  onClick={() => onDelete(filterSettings.selected ?? "")}
                   data-testid="action-buttons-filter-delete"
                 >
-                  <DeleteOutlined style={{ fontSize: 14 }} />
-                </button>
-                <span>{t("Delete")}</span>
+                  {t("Delete")}
+                </Button>
               </li>
             </ul>
           }
@@ -260,13 +279,14 @@ export const ActionButtonsFilter = ({
           onOpenChange={setIsOpen}
           arrow={false}
         >
-          <button
+          <Button
+            size="m"
+            color="ghost"
             type="button"
-            className={styles.actionBtn}
+            shape="square"
+            icon={<ContextMenuIcon />}
             data-testid="action-buttons-filter-context-menu"
-          >
-            <ContextMenuIcon />
-          </button>
+          />
         </Popover>
       </Flex>
     )
@@ -276,25 +296,27 @@ export const ActionButtonsFilter = ({
     <Flex gap={8}>
       {filterSettings.hasUnsavedChanges && (
         <Tooltip title="Reset filter">
-          <button
+          <Button
+            size="m"
+            color="ghost"
             type="button"
-            className={styles.actionBtn}
+            shape="square"
+            icon={<ResetIcon />}
             onClick={clearFilter}
             data-testid="action-buttons-filter-reset"
-          >
-            <ResetIcon />
-          </button>
+          />
         </Tooltip>
       )}
       <Tooltip title="Save filter" placement="bottomRight">
-        <button
+        <Button
+          size="m"
+          color="ghost"
           type="button"
-          className={styles.actionBtn}
+          shape="square"
+          icon={<SaveIcon />}
           onClick={handleShowEdit}
           data-testid="action-buttons-filter-save"
-        >
-          <SaveIcon />
-        </button>
+        />
       </Tooltip>
     </Flex>
   )

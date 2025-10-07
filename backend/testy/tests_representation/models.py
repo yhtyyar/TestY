@@ -137,8 +137,9 @@ class TestResult(BaseModel):
     comment = models.TextField(blank=True)
     is_archive = models.BooleanField(default=False)
     test_case_version = models.IntegerField(
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
+        default=settings.MIN_VALUE_POSITIVE_INTEGER,
         validators=[MinValueValidator(settings.MIN_VALUE_POSITIVE_INTEGER)],
     )
     execution_time = models.IntegerField(

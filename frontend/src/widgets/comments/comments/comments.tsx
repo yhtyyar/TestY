@@ -1,12 +1,11 @@
 import { WechatOutlined } from "@ant-design/icons"
-import { Pagination } from "antd"
 import { useGetCommentsQuery } from "entities/comments/api"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { AddComment } from "features/comments"
 
-import { Button, ContainerLoader } from "shared/ui"
+import { Button, ContainerLoader, TablePageChanger } from "shared/ui"
 
 import { CommentList } from ".."
 import styles from "./styles.module.css"
@@ -24,7 +23,7 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
   const bottomRef = useRef<HTMLDivElement>(null)
   const orderingRequest = ordering === "asc" ? "created_at" : "-created_at"
   const [pagination, setPagination] = useState({
-    page: 1,
+    page: 0,
     page_size: 5,
   })
   const comment_id = window.location.hash.split("#comment-")[1]
@@ -32,7 +31,7 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
     comment_id,
     model,
     object_id,
-    page: pagination.page,
+    page: pagination.page + 1,
     page_size: pagination.page_size,
     ordering: orderingRequest,
   })
@@ -42,10 +41,6 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
       onUpdateCommentsCount(data.count)
     }
   }, [data])
-
-  const handlePaginationChange = (page: number, page_size: number) => {
-    setPagination({ page, page_size })
-  }
 
   const handleAddCommentClick = () => {
     setIsShowAdd(true)
@@ -77,14 +72,16 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
             {t("Add comment")}
           </Button>
         )}
-        <Pagination
-          defaultCurrent={1}
-          current={pagination.page}
+        <TablePageChanger
+          current={pagination.page + 1}
           pageSize={pagination.page_size}
-          size="small"
           total={data.count}
-          style={{ width: "fit-content", marginLeft: "auto" }}
-          onChange={handlePaginationChange}
+          onChangePage={(page) => {
+            setPagination((prevState) => ({
+              ...prevState,
+              page: page - 1,
+            }))
+          }}
         />
       </div>
       {isShowAdd && <AddComment model={model} object_id={object_id} setIsShowAdd={setIsShowAdd} />}

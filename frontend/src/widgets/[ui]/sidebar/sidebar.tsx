@@ -2,7 +2,7 @@ import { Badge, Tooltip } from "antd"
 import cn from "classnames"
 import classNames from "classnames"
 import { useNotificationWS } from "entities/notifications/model/use-notification-ws"
-import { memo } from "react"
+import { memo, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom"
 
@@ -12,6 +12,7 @@ import { useLogoutMutation } from "entities/auth/api"
 import { selectUser } from "entities/auth/model"
 
 import NotificationIcon from "shared/assets/icons/bell.svg?react"
+import DocumentationIcon from "shared/assets/icons/documentation.svg?react"
 import DashboardIcon from "shared/assets/yi-icons/dashboard.svg?react"
 import LogoutIcon from "shared/assets/yi-icons/logout.svg?react"
 import TestPlansIcon from "shared/assets/yi-icons/test-plans.svg?react"
@@ -31,22 +32,28 @@ export const Sidebar = memo(() => {
   const user = useAppSelector(selectUser)
   const { notificationsCount } = useNotificationWS()
 
+  const [lastProjectId, setLastProjectId] = useState<string>()
+
+  useEffect(() => {
+    setLastProjectId((prev) => projectId ?? prev)
+  }, [projectId])
+
   const UP_LINKS = [
     {
       key: "overview",
-      to: `/projects/${projectId}/overview`,
+      to: `/projects/${lastProjectId}/overview`,
       title: t("Overview"),
       icon: <DashboardIcon className={styles.icon} />,
     },
     {
       key: "suites",
-      to: `/projects/${projectId}/suites`,
+      to: `/projects/${lastProjectId}/suites`,
       title: t("Test Suites & Cases"),
       icon: <TestSuitesIcon className={styles.icon} />,
     },
     {
       key: "plans",
-      to: `/projects/${projectId}/plans`,
+      to: `/projects/${lastProjectId}/plans`,
       title: t("Test Plans & Results"),
       icon: <TestPlansIcon className={styles.icon} />,
     },
@@ -68,6 +75,8 @@ export const Sidebar = memo(() => {
       .then(() => {
         navigate("/login")
       })
+
+    setLastProjectId(undefined)
   }
 
   return (
@@ -75,7 +84,7 @@ export const Sidebar = memo(() => {
       <Link id="logo" to="/">
         <TestyIcon width={40} height={40} />
       </Link>
-      {location.pathname.includes("project") && !location.pathname.includes("administration") && (
+      {lastProjectId && (
         <ul className={styles.links}>
           {UP_LINKS.map((link) => (
             <Tooltip key={link.key} title={link.title} placement="right">
@@ -127,6 +136,11 @@ export const Sidebar = memo(() => {
               count={notificationsCount}
               showZero={false}
             />
+          </Link>
+        </Tooltip>
+        <Tooltip title={t("Documentation")} placement="right">
+          <Link target="_blank" id="sidebar-link-documentation" to="/docs/" className={styles.link}>
+            <DocumentationIcon className={styles.icon} />
           </Link>
         </Tooltip>
         <div className={styles.divider} />

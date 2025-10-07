@@ -18,7 +18,7 @@ interface Props {
   testId: number
   testCase: TestCase
   isProjectArchive: boolean
-  onActionClick: (result: Result, isClone: boolean) => void
+  onActionClick: (result: Result, testCase: TestCase, isClone: boolean) => void
   isFetching?: boolean
   model: Models
   object_id: string

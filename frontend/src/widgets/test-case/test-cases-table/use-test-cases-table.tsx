@@ -1,5 +1,13 @@
-import { TablePaginationConfig } from "antd"
-import { ColumnsType } from "antd/lib/table"
+import {
+  ColumnDef,
+  PaginationState,
+  Row,
+  Table,
+  Updater,
+  createColumnHelper,
+} from "@tanstack/react-table"
+import { VisibilityState } from "@tanstack/react-table"
+import { Checkbox } from "antd"
 import dayjs from "dayjs"
 import { useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
@@ -18,26 +26,30 @@ import {
   selectOrdering,
   selectSettings,
   setDrawerTestCase,
-  setPagination,
   updateSettings,
 } from "entities/test-case/model"
 
-import { colors, config } from "shared/config"
-import { paginationSchema } from "shared/config/query-schemas"
-import { useRowSelection, useUrlSyncParams } from "shared/hooks"
+import { useProjectContext } from "pages/project"
+
+import { colors } from "shared/config"
+import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH } from "shared/constants"
+import { useRowSelection } from "shared/hooks"
 import { ArchivedTag, HighLighterTesty } from "shared/ui"
 
 import styles from "./styles.module.css"
 
+const columnHelper = createColumnHelper<TestCase>()
 export const useTestCasesTable = () => {
   const { t } = useTranslation()
-  const { testSuiteId, projectId } = useParams<ParamTestSuiteId & ParamProjectId>()
+  const project = useProjectContext()
+  const { testSuiteId } = useParams<ParamTestSuiteId>()
   const dispatch = useAppDispatch()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const testCasesFilter = useAppSelector(selectFilter)
   const testCasesOrdering = useAppSelector(selectOrdering)
   const tableSettings = useAppSelector(selectSettings<TestTableParams>("table"))
+  const tableRef = useRef<Table<TestCase> | null>(null)
 
   const testSuiteIdPrev = useRef(testSuiteId)
 
@@ -53,7 +65,8 @@ export const useTestCasesTable = () => {
       updateSettings({
         key: "table",
         settings: {
-          testSuiteId: Number(testSuiteId),
+          testSuiteId: testSuiteId ? Number(testSuiteId) : null,
+          isResetSelection: true,
         },
       })
     )
@@ -64,36 +77,15 @@ export const useTestCasesTable = () => {
           key: "table",
           settings: {
             page: 1,
-            selectedRows: [],
-            excludedRows: [],
-            isAllSelectedTableBulk: false,
-            hasBulk: false,
+            isResetSelection: true,
           },
         })
       )
     }
   }, [testSuiteId])
 
-  const syncObject = { page: tableSettings.page, page_size: tableSettings.page_size }
-  useUrlSyncParams({
-    params: syncObject as unknown as Record<string, unknown>,
-    queryParamsSchema: paginationSchema,
-    updateParams: (params) => {
-      const paramsData = params as { page?: number; page_size?: number }
-      dispatch(
-        setPagination({
-          key: "table",
-          pagination: {
-            page: paramsData?.page ?? 1,
-            page_size: paramsData?.page_size ?? tableSettings.page_size,
-          },
-        })
-      )
-    },
-  })
-
   const queryParams = {
-    project: projectId ?? "",
+    project: project.id.toString(),
     suite: testCasesFilter.suites,
     is_archive: testCasesFilter.is_archive,
     labels: testCasesFilter.labels,
@@ -113,138 +105,237 @@ export const useTestCasesTable = () => {
       ...queryParams,
     },
     {
-      skip: !projectId || !testSuiteId || isWaitingForChangeSuite,
+      skip: !testSuiteId || isWaitingForChangeSuite,
     }
   )
   const { data: suitesFromRoot, isFetching: isSuitesFromRootFetching } =
     useGetTestPlanTestCasesQuery(queryParams, {
-      skip: !projectId || !!testSuiteId || isWaitingForChangeSuite,
+      skip: !!testSuiteId || isWaitingForChangeSuite,
     })
 
   const data = testSuiteId ? suitesData : suitesFromRoot
   const isFetching = testSuiteId ? isSuitesFetching : isSuitesFromRootFetching
 
-  const handleRowClick = (testCase: TestCase) => {
-    searchParams.set("test_case", String(testCase.id))
+  const handleRowClick = (row: Row<TestCase>) => {
+    searchParams.set("test_case", String(row.original.id))
     setSearchParams(searchParams)
-    dispatch(setDrawerTestCase(testCase))
+    dispatch(setDrawerTestCase(row.original))
   }
 
-  const { handleSelectRows } = useRowSelection({
-    tableSettings,
-    data,
-    dispatch: (settings: Partial<TestCaseTableParams>) =>
+  const selectedTestCase = useAppSelector(selectDrawerTestCase)
+
+  const { rowSelection, handleSelectRow, handleToggleSelectAllRows, setRowSelection, resetAll } =
+    useRowSelection({
+      tableRef,
+      tableSettings,
+      update: (settings: Partial<TestTableParams>) => {
+        dispatch(
+          updateSettings({
+            key: "table",
+            settings,
+          })
+        )
+      },
+    })
+
+  useEffect(() => {
+    if (data) {
       dispatch(
         updateSettings({
           key: "table",
-          settings: { ...settings },
+          settings: {
+            count: data.count,
+          },
         })
-      ),
-  })
+      )
+    }
+  }, [data?.count])
 
-  const handleTableChange = (pagination: TablePaginationConfig) => {
+  // TODO Need to think about how to make one API for the table, changing the value in 2 places, it's sad
+  useEffect(() => {
+    if (tableSettings.isResetSelection) {
+      resetAll()
+      dispatch(
+        updateSettings({
+          key: "table",
+          settings: {
+            isResetSelection: false,
+            selectedRows: [],
+            excludedRows: [],
+            isAllSelected: false,
+          },
+        })
+      )
+    }
+  }, [tableSettings.isResetSelection])
+
+  const columns = useMemo(() => {
+    return [
+      {
+        id: "checkbox",
+        header: ({ table }) => {
+          return (
+            <Checkbox
+              checked={tableSettings.isAllSelected}
+              onChange={() => handleToggleSelectAllRows()}
+              onClick={(e) => e.stopPropagation()}
+              indeterminate={tableSettings.isAllSelected ? false : table.getIsSomeRowsSelected()}
+            />
+          )
+        },
+        cell: ({ row }) => {
+          const isExcluded = tableSettings.excludedRows.includes(row.original.id)
+          const isChecked = tableSettings.isAllSelected ? !isExcluded : row.getIsSelected()
+
+          return (
+            <Checkbox
+              onClick={(e) => e.stopPropagation()}
+              checked={isChecked}
+              onChange={() => handleSelectRow(row)}
+            />
+          )
+        },
+        enableSorting: false,
+        enableHiding: false,
+        size: 50,
+      } as ColumnDef<TestCase>,
+      columnHelper.accessor("id", {
+        id: "id",
+        header: t("ID"),
+        cell: (info) => <span style={{ wordBreak: "keep-all" }}>{info.getValue()}</span>,
+        size: 70,
+        meta: {
+          useInDataTestId: true,
+        },
+      }),
+      columnHelper.accessor((row) => row.name, {
+        id: "name",
+        header: t("Name"),
+        cell: ({ row: { original: record }, getValue }) => {
+          const newQueryParams = new URLSearchParams(location.search)
+          newQueryParams.delete("test_case")
+
+          return (
+            <Link
+              id={record.name}
+              to={`/projects/${record.project}/suites/${testSuiteId ?? ""}?test_case=${record.id}${newQueryParams.size ? `&${newQueryParams.toString()}` : ""}`}
+              className={styles.link}
+              onClick={(e) => {
+                e.stopPropagation()
+                dispatch(setDrawerTestCase(record))
+              }}
+            >
+              {record.is_archive && <ArchivedTag />}
+              <HighLighterTesty
+                searchWords={testCasesFilter.name_or_id}
+                textToHighlight={getValue()}
+              />
+            </Link>
+          )
+        },
+        enableResizing: true,
+        size: 350,
+        minSize: MIN_COLUMN_WIDTH,
+        meta: {
+          fullWidth: true,
+        },
+      }),
+      columnHelper.accessor("suite_path", {
+        id: "suite_path",
+        header: t("Test Suite"),
+        cell: (info) => info.getValue(),
+        enableResizing: true,
+        size: 350,
+        minSize: MIN_COLUMN_WIDTH,
+        maxSize: MAX_COLUMN_WIDTH,
+      }),
+      columnHelper.accessor("labels", {
+        id: "labels",
+        header: t("Labels"),
+        cell: ({ getValue }) => (
+          <ul className={styles.list}>
+            {getValue().map((label) => (
+              <li key={label.id}>
+                <Label content={label.name} color={colors.accent} />
+              </li>
+            ))}
+          </ul>
+        ),
+        enableResizing: true,
+        size: 250,
+        minSize: MIN_COLUMN_WIDTH,
+        maxSize: MAX_COLUMN_WIDTH,
+      }),
+      columnHelper.accessor("estimate", {
+        id: "estimate",
+        header: t("Estimate"),
+        cell: ({ getValue }) => getValue() ?? "-",
+        enableResizing: true,
+        size: 250,
+        minSize: MIN_COLUMN_WIDTH,
+        maxSize: MAX_COLUMN_WIDTH,
+      }),
+      columnHelper.accessor("created_at", {
+        id: "created_at",
+        header: t("Created At"),
+        cell: ({ getValue }) => dayjs(getValue()).format("YYYY-MM-DD HH:mm"),
+        enableResizing: true,
+        size: 160,
+        minSize: MIN_COLUMN_WIDTH,
+        maxSize: MAX_COLUMN_WIDTH,
+      }),
+    ]
+  }, [testCasesFilter, testSuiteId, tableSettings])
+
+  const statePagination = {
+    pageIndex: tableSettings.page - 1,
+    pageSize: tableSettings.page_size,
+  }
+
+  const handleTablePaginationChange = (updater: Updater<PaginationState>) => {
+    if (typeof updater !== "function") return
+    const nextState = updater(statePagination)
     dispatch(
       updateSettings({
         key: "table",
         settings: {
-          page: pagination.current,
-          page_size: pagination.pageSize,
+          ...tableSettings,
+          page: nextState.pageIndex + 1,
+          page_size: nextState.pageSize,
         },
       })
     )
   }
 
-  const selectedTestCase = useAppSelector(selectDrawerTestCase)
+  const columnVisibility = useMemo(() => {
+    const columnsVisibilityObj = {} as VisibilityState
+    columns.forEach((i) => {
+      if (!i.id) {
+        return
+      }
 
-  const paginationTable: TablePaginationConfig = {
-    hideOnSinglePage: false,
-    pageSizeOptions: config.pageSizeOptions,
-    showLessItems: true,
-    showSizeChanger: true,
-    current: tableSettings.page,
-    pageSize: tableSettings.page_size,
-    total: data?.count ?? 0,
-  }
-
-  const columns: ColumnsType<TestCase> = useMemo(() => {
-    return (
-      [
-        {
-          title: t("ID"),
-          dataIndex: "id",
-          key: "id",
-          width: "70px",
-        },
-        {
-          title: t("Name"),
-          dataIndex: "name",
-          key: "name",
-          render: (text: string, record) => {
-            const newQueryParams = new URLSearchParams(location.search)
-            newQueryParams.delete("test_case")
-
-            return (
-              <Link
-                id={record.name}
-                to={`/projects/${record.project}/suites/${testSuiteId ?? ""}?test_case=${record.id}${newQueryParams.size ? `&${newQueryParams.toString()}` : ""}`}
-                className={styles.link}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  dispatch(setDrawerTestCase(record))
-                }}
-              >
-                {record.is_archive && <ArchivedTag />}
-                <HighLighterTesty searchWords={testCasesFilter.name_or_id} textToHighlight={text} />
-              </Link>
-            )
-          },
-        },
-        {
-          title: t("Test Suite"),
-          dataIndex: "suite_path",
-          key: "suite_path",
-        },
-        {
-          title: t("Labels"),
-          dataIndex: "labels",
-          key: "labels",
-          render: (labels: Test["labels"]) => (
-            <ul className={styles.list}>
-              {labels.map((label) => (
-                <li key={label.id}>
-                  <Label content={label.name} color={colors.accent} />
-                </li>
-              ))}
-            </ul>
-          ),
-        },
-        {
-          title: t("Estimate"),
-          dataIndex: "estimate",
-          key: "estimate",
-          width: "100px",
-          render: (estimate: string | null) => estimate ?? "-",
-        },
-        {
-          title: t("Created At"),
-          dataIndex: "created_at",
-          key: "created_at",
-          width: 150,
-          render: (value: string) => dayjs(value).format("YYYY-MM-DD HH:mm"),
-        },
-      ] as ColumnsType<TestCase>
-    ).filter((col) => tableSettings.visibleColumns.some((i) => i.key === col.key))
-  }, [testCasesFilter, tableSettings, testSuiteId])
+      if (i?.enableHiding === false) {
+        columnsVisibilityObj[i.id] = true
+      } else {
+        columnsVisibilityObj[i.id] = !!tableSettings.visibleColumns.find((col) => col.key === i.id)
+      }
+    })
+    return columnsVisibilityObj
+  }, [tableSettings.visibleColumns])
 
   return {
-    data: data?.results,
+    tableRef,
+    data: data?.results ?? [],
+    total: data?.count ?? 0,
     columns,
     isLoading: isFetching,
     selectedRows: tableSettings.selectedRows,
     selectedTestCase,
-    paginationTable,
-    handleTableChange,
+    statePagination,
+    columnVisibility,
+    rowSelection,
+    handleTablePaginationChange,
     handleRowClick,
-    handleSelectRows,
+    setRowSelection,
   }
 }

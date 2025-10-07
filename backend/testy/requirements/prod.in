@@ -18,9 +18,11 @@ celery-progress==0.1.3
 django-celery-beat==2.5.0
 django-redis==5.2.0
 pytimeparse==1.1.8
-git+https://gitlab-pub.yadro.com/testy/allure-uploader-v2.git@release/2.0.14
+git+https://gitlab-pub.yadro.com/testy/allure-uploader-v2.git@release/2.1.2
 git+https://gitlab-pub.yadro.com/testy/plugin-example.git@release/0.2.0
 git+https://gitlab-pub.yadro.com/testy/testrail_migrator.git@release/0.3.0
+git+https://gitlab-pub.yadro.com/testy/defect-report.git@0.0.23
+git+https://gitlab-pub.yadro.com/testy/test-plan-exporter.git@0.0.68
 git+https://gitlab-pub.yadro.com/testy/django-mptt.git
 orjson==3.10.1
 Pillow==9.5.0

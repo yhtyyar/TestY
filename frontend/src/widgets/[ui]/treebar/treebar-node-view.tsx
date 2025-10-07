@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom"
 
 import { TestSuitePopoverInfo } from "entities/suite/ui"
 
-import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import ExpandIcon from "shared/assets/yi-icons/expand.svg?react"
 import InfoIcon from "shared/assets/yi-icons/info.svg?react"
 import { createConcatIdsFn } from "shared/libs"
@@ -118,7 +118,7 @@ export const TreebarNodeView = ({
               )}
               {node.props.isLoading && <Spin size="small" className={styles.loader} />}
               {!node.props.isLoading && node.props.canOpen && (
-                <ArrowIcon
+                <ChevronIcon
                   width={16}
                   height={16}
                   className={classNames(styles.arrowIcon, {
@@ -156,7 +156,7 @@ export const TreebarNodeView = ({
                     cases_count={(node.data as unknown as Suite).cases_count}
                     descendant_count={(node.data as unknown as Suite).descendant_count}
                     total_cases_count={(node.data as unknown as Suite).total_cases_count}
-                    estimate={(node.data as unknown as Suite).estimates}
+                    estimate={(node.data as unknown as Suite).total_estimates}
                   />
                 }
                 placement="right"

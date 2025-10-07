@@ -1,29 +1,27 @@
 import { SearchOutlined } from "@ant-design/icons"
 import { Badge, DatePicker, Flex, Form, Input } from "antd"
-import dayjs, { Dayjs } from "dayjs"
-import { useEffect, useState } from "react"
-import { Controller, SubmitHandler, useForm } from "react-hook-form"
+import { Dayjs } from "dayjs"
+import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
-import { useAppDispatch, useAppSelector } from "app/hooks"
+import { useAppSelector } from "app/hooks"
 
 import { LabelFilter, LabelFilterCondition, LabelFilterValue } from "entities/label/ui"
 
 import { useLazyGetDescendantsTreeQuery } from "entities/suite/api"
 
 import {
+  TestCaseDataFilters,
   clearFilter,
+  filterTestCaseSchema,
   resetFilterSettings,
   resetFormComplete,
   selectFilter,
   selectFilterCount,
   selectFilterSettings,
-  selectOrdering,
   selectShouldResetForm,
   testCasesEmptyFilter,
-  testCasesFilterSchema,
-  testCasesOrderingSchema,
   updateFilter,
   updateFilterSettings,
   updateOrdering,
@@ -33,8 +31,8 @@ import { FilterControl } from "features/filter"
 
 import { useProjectContext } from "pages/project"
 
-import FilterPlusIcon from "shared/assets/yi-icons/filter-plus.svg?react"
-import { useUrlSyncParams } from "shared/hooks"
+import FilterPlusIcon from "shared/assets/yi-icons/filter-plus-min.svg?react"
+import { useFilterDrawer } from "shared/hooks"
 import { Button, Drawer, EntityTreeFilter, Toggle } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -47,89 +45,55 @@ type DateFields =
 
 export const TestCasesButtonFilterDrawer = () => {
   const { t } = useTranslation()
-
   const project = useProjectContext()
   const { testSuiteId } = useParams<ParamTestSuiteId>()
 
-  const dispatch = useAppDispatch()
   const testCasesFilter = useAppSelector(selectFilter)
-  const testCasesOrdering = useAppSelector(selectOrdering)
   const testCasesFilterSettings = useAppSelector(selectFilterSettings)
   const testCasesFilterCount = useAppSelector(selectFilterCount)
   const testCasesShouldResetForm = useAppSelector(selectShouldResetForm)
-  const [isOpenFilter, setIsOpenFilter] = useState(false)
 
   const [getSuiteTree] = useLazyGetDescendantsTreeQuery()
 
-  const { control, handleSubmit, getValues, setValue, watch, reset } = useForm<TestCaseDataFilters>(
-    {
-      defaultValues: testCasesFilter,
-    }
-  )
-
-  const isArchive = watch("is_archive")
-
-  useEffect(() => {
-    if (testCasesShouldResetForm) {
-      reset(testCasesEmptyFilter)
-      dispatch(resetFormComplete())
-    }
-  }, [testCasesShouldResetForm])
-
-  const handleUpdateFilterData = (params: Partial<TestDataFilters>) => {
-    dispatch(updateFilter(params))
-  }
-
-  const handleUpdateFilterSettings = (params: Partial<FilterSettings>) => {
-    dispatch(updateFilterSettings(params))
-  }
-
-  const handleClearFilter = () => {
-    dispatch(clearFilter())
-  }
-
-  const objectOrdering = { ordering: testCasesOrdering }
-  useUrlSyncParams({
-    params: objectOrdering as unknown as Record<string, unknown>,
-    queryParamsSchema: testCasesOrderingSchema,
-    updateParams: (params) => {
-      dispatch(updateOrdering(params.ordering as string))
+  const {
+    isOpenFilter,
+    form: { control, setValue, watch, getValues },
+    triggerSubmit,
+    handleOpenFilter,
+    handleCloseFilter,
+    handleClearFilter,
+    getDateValue,
+    handleUpdateFilterData,
+    handleUpdateFilterSettings,
+  } = useFilterDrawer<TestCaseDataFilters>({
+    filter: testCasesFilter,
+    emptyFilter: testCasesEmptyFilter,
+    filterSettings: testCasesFilterSettings,
+    shouldResetForm: testCasesShouldResetForm,
+    actions: {
+      updateFilter,
+      clearFilter,
+      resetFormComplete,
+      updateOrdering,
+      updateFilterSettings,
+      resetFilterSettings,
     },
   })
 
-  useUrlSyncParams({
-    params: testCasesFilter as unknown as Record<string, unknown>,
-    queryParamsSchema: testCasesFilterSchema,
-    updateParams: handleUpdateFilterData,
-  })
-
-  const handleOpenFilter = () => {
-    setIsOpenFilter(true)
-  }
-
-  const handleCloseFilter = () => {
-    setIsOpenFilter(false)
-  }
-
-  const onSubmit: SubmitHandler<TestCaseDataFilters> = (data) => {
-    dispatch(updateFilter(data))
-  }
-
-  const triggerSubmit = () => {
-    handleSubmit(onSubmit)()
-  }
+  const isArchive = watch("is_archive")
 
   const handleSelectLabelCondition = (value: LabelCondition) => {
-    setValue("labels_condition", value)
+    setValue("labels_condition", value, { shouldDirty: true })
     triggerSubmit()
   }
 
   const handleLabelsChange = (value: LabelFilterValue) => {
-    setValue("labels", value.labels)
-    setValue("not_labels", value.not_labels)
+    setValue("labels", value.labels, { shouldDirty: true })
+    setValue("not_labels", value.not_labels, { shouldDirty: true })
     setValue(
       "labels_condition",
-      value.labels.length + value.not_labels.length < 2 ? undefined : value.labels_condition
+      value.labels.length + value.not_labels.length < 2 ? undefined : value.labels_condition,
+      { shouldDirty: true }
     )
     triggerSubmit()
   }
@@ -148,7 +112,7 @@ export const TestCasesButtonFilterDrawer = () => {
   }
 
   const handleShowArchiveChange = (toggle: boolean) => {
-    setValue("is_archive", toggle ? toggle : undefined)
+    setValue("is_archive", toggle ? toggle : undefined, { shouldDirty: true })
     triggerSubmit()
   }
 
@@ -163,25 +127,10 @@ export const TestCasesButtonFilterDrawer = () => {
     return getSuiteTree({ project: project.id, parent: null }, true).unwrap()
   }
 
-  const getDateValue = (key: DateFields) => (getValues(key) ? dayjs(getValues(key)) : undefined)
-
-  useEffect(() => {
-    if (
-      testCasesFilterSettings.filterProjectId !== null &&
-      testCasesFilterSettings.filterProjectId !== project.id
-    ) {
-      dispatch(clearFilter())
-      dispatch(resetFilterSettings())
-      return
-    }
-
-    dispatch(updateFilterSettings({ filterProjectId: project.id }))
-  }, [project.id, testCasesFilterSettings.filterProjectId])
-
   return (
     <>
       <Button
-        id="btn-filter-test-plan"
+        id="btn-filter-test-cases"
         icon={<FilterPlusIcon width={18} height={18} />}
         onClick={handleOpenFilter}
         style={{ gap: 4, width: "fit-content" }}
@@ -203,7 +152,7 @@ export const TestCasesButtonFilterDrawer = () => {
             type="suites"
             filterData={testCasesFilter as unknown as Record<string, unknown>}
             hasSomeFilter={!!testCasesFilterCount}
-            filterSchema={testCasesFilterSchema}
+            filterSchema={filterTestCaseSchema}
             filterSettings={testCasesFilterSettings}
             updateFilter={handleUpdateFilterData}
             updateSettings={handleUpdateFilterSettings}
@@ -215,7 +164,7 @@ export const TestCasesButtonFilterDrawer = () => {
         isLoading={false}
       >
         {isOpenFilter && (
-          <Form onFinish={handleSubmit(onSubmit)} layout="vertical">
+          <Form onFinish={triggerSubmit} layout="vertical">
             <Form.Item
               label={t("Name or ID")}
               data-testid="test-cases-button-filter-drawer-name-or-id-container"

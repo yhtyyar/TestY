@@ -1,42 +1,49 @@
-import { Table } from "antd"
 import { memo } from "react"
+import { DataTable } from "widgets"
 
 import { useTestCasesTable } from "./use-test-cases-table"
 
 export const TestCasesTable = memo(() => {
   const {
+    tableRef,
     data,
     columns,
     isLoading,
     selectedTestCase,
-    paginationTable,
-    selectedRows,
-    handleTableChange,
+    total,
+    statePagination,
+    columnVisibility,
+    rowSelection,
+    handleTablePaginationChange,
     handleRowClick,
-    handleSelectRows,
+    setRowSelection,
   } = useTestCasesTable()
 
   return (
-    <Table
-      loading={isLoading}
-      rowKey="id"
-      rowClassName={(record) => (record.id === selectedTestCase?.id ? "active" : "")}
-      style={{ cursor: "pointer" }}
+    <DataTable
+      tableRef={tableRef}
+      isLoading={isLoading}
+      data={data}
       columns={columns}
-      dataSource={data}
-      size="small"
-      pagination={paginationTable}
-      onChange={handleTableChange}
-      onRow={(record) => {
-        return {
-          onClick: () => handleRowClick(record),
-        }
+      rowCount={total}
+      onRowClick={handleRowClick}
+      onPaginationChange={handleTablePaginationChange}
+      onRowSelectionChange={setRowSelection}
+      state={{
+        pagination: statePagination,
+        rowActiveKey: selectedTestCase?.id,
+        rowSelection,
+        columnVisibility,
+        columnPinning: {
+          left: ["checkbox"],
+        },
       }}
-      rowSelection={{
-        selectedRowKeys: selectedRows,
-        onChange: handleSelectRows,
-        preserveSelectedRowKeys: true,
-      }}
+      manualPagination
+      manualFiltering
+      manualSorting
+      enableColumnDragging
+      draggingColumnCacheKey="test-cases-table"
+      resizeColumnCacheKey="test-cases-table"
       data-testid="test-cases-table"
     />
   )

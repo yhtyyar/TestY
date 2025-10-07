@@ -147,6 +147,7 @@ interface TestPlanActivityParams {
   page_size?: number
   page?: number
   search?: string
+  ordering?: string
 }
 
 interface TestPlanSuite {

@@ -15,7 +15,7 @@ import { useTestPlanStatisticsContext } from "entities/test-plan/model"
 
 import { UserAvatar, UserUsername } from "entities/user/ui"
 
-import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { colors } from "shared/config"
 import { LazyNodeProps, LazyTreeNodeApi } from "shared/libs/tree"
 import { ArchivedTag, Status, TreeTableLoadMore } from "shared/ui"
@@ -113,7 +113,7 @@ export const TestPlanTreeNodeView = ({ node, visibleColumns, projectId, testPlan
               {data.is_archive && <ArchivedTag />}
               {node.props.isLoading && <Spin size="small" className={styles.loader} />}
               {!node.props.isLoading && node.props.canOpen && (
-                <ArrowIcon
+                <ChevronIcon
                   width={24}
                   height={24}
                   className={classNames(styles.arrowIcon, {

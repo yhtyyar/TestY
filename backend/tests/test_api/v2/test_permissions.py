@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -124,6 +124,10 @@ class TestRolePermissions:
                 'test', 'test_factory',
                 [RequestType.PATCH, RequestType.PUT, RequestType.GET],
             ),
+            (
+                'projectintegration', 'plan_integration_factory',
+                [RequestType.PATCH, RequestType.PUT, RequestType.DELETE, RequestType.GET],
+            ),
         ],
         ids=[
             'suite permissions',
@@ -132,6 +136,7 @@ class TestRolePermissions:
             'label permissions',
             'customattribute permissions',
             'test permissions',
+            'project integration permissions',
         ],
     )
     def test_private_project_forbidden_actions(
@@ -197,6 +202,10 @@ class TestRolePermissions:
                 'test', 'test_factory',
                 [RequestType.PATCH, RequestType.PUT, RequestType.GET],
             ),
+            (
+                'projectintegration', 'plan_integration_factory',
+                [RequestType.PATCH, RequestType.PUT, RequestType.DELETE, RequestType.GET],
+            ),
         ],
         ids=[
             'Test suite permissions',
@@ -205,6 +214,7 @@ class TestRolePermissions:
             'Label permissions',
             'Custom attributes permissions',
             'Test permissions',
+            'Project integration permissions',
         ],
     )
     def test_private_project_allowed(
@@ -219,8 +229,8 @@ class TestRolePermissions:
             request_types,
             mock_tests_channel_layer,
     ):
-        view_name_detail = f'api:v1:{model_name}-detail'
-        view_name_list = f'api:v1:{model_name}-list'
+        view_name_detail = f'api:v2:{model_name}-detail'
+        view_name_list = f'api:v2:{model_name}-list'
         project = project_factory(is_private=True)
         factory = request.getfixturevalue(factory_name)
         instance = factory(is_private=True) if model_name == 'project' else factory(project=project)
@@ -306,6 +316,10 @@ class TestRolePermissions:
                 'customattribute', 'custom_attribute_factory',
                 [RequestType.PATCH, RequestType.PUT, RequestType.DELETE, RequestType.GET],
             ),
+            (
+                'projectintegration', 'plan_integration_factory',
+                [RequestType.PATCH, RequestType.PUT, RequestType.DELETE, RequestType.GET],
+            ),
         ],
         ids=[
             'suite permissions',
@@ -314,6 +328,7 @@ class TestRolePermissions:
             'result permissions',
             'label permissions',
             'custom attribute permissions',
+            'project integrations permissions',
         ],
     )
     def test_private_project_permissions_allowing_actions(
@@ -439,6 +454,7 @@ class TestRolePermissions:
             ('label', 'label_factory'),
             ('customattribute', 'custom_attribute_factory'),
             ('test', 'test_factory'),
+            ('projectintegration', 'plan_integration_factory'),
         ],
         ids=[
             'project permissions',
@@ -449,6 +465,7 @@ class TestRolePermissions:
             'label permissions',
             'customattribute permissions',
             'test permissions',
+            'project integrations permissions',
         ],
     )
     def test_public_project_allowed_actions(
@@ -485,8 +502,20 @@ class TestRolePermissions:
             ('testplan', 'test_plan_factory', [RequestType.PATCH, RequestType.PUT, RequestType.DELETE]),
             ('testresult', 'test_result_factory', [RequestType.PATCH, RequestType.PUT, RequestType.DELETE]),
             ('label', 'label_factory', [RequestType.PATCH, RequestType.PUT, RequestType.DELETE]),
+            (
+                'projectintegration',
+                'plan_integration_factory',
+                [RequestType.PATCH, RequestType.PUT, RequestType.DELETE],
+            ),
         ],
-        ids=['suite actions', 'case actions', 'plan actions', 'result actions', 'label actions'],
+        ids=[
+            'suite actions',
+            'case actions',
+            'plan actions',
+            'result actions',
+            'label actions',
+            'project integration actions',
+        ],
     )
     def test_public_project_actions_not_forbidden(
         self,
@@ -538,6 +567,7 @@ class TestRolePermissions:
             ('label', 'label_factory'),
             ('customattribute', 'custom_attribute_factory'),
             ('test', 'test_factory'),
+            ('projectintegration', 'plan_integration_factory'),
         ],
         ids=[
             'project permissions',
@@ -548,6 +578,7 @@ class TestRolePermissions:
             'label permissions',
             'custom attribute permissions',
             'test permissions',
+            'project integration permissions',
         ],
     )
     def test_public_project_external_user_permission(

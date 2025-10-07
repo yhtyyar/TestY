@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -30,17 +30,19 @@
 # <http://www.gnu.org/licenses/>.
 
 import logging
-import uuid
 import warnings
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, TypeVar
 
 from django.contrib.postgres.aggregates import ArrayAgg, StringAgg
+from django.contrib.postgres.expressions import ArraySubquery
+from django.db import connection
 from django.db.models import (
     Case,
     CharField,
     DateTimeField,
     Exists,
     F,
+    Func,
     Model,
     OuterRef,
     Q,
@@ -51,11 +53,10 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Concat
-from django.db.models.sql.constants import LOUTER
 from django.shortcuts import get_object_or_404
-from django_cte import With
 from mptt.querysets import TreeQuerySet
 
+from testy.fields import IntegerEstimateField
 from testy.root.querysets import SoftDeleteTreeQuerySet
 from testy.tests_description.selectors.suites import TestSuiteSelector
 from testy.tests_representation.models import Parameter, Test, TestPlan, TestResult
@@ -63,7 +64,7 @@ from testy.tests_representation.selectors.results import TestResultSelector
 from testy.tests_representation.selectors.tests import TestSelector
 from testy.tests_representation.services.statistics import HistogramProcessor, PieChartProcessor
 from testy.utilities.request import PeriodDateTime
-from testy.utilities.sql import ConcatSubquery, SubCount, get_max_level
+from testy.utilities.sql import SubCount, get_max_level
 from testy.utilities.string import parse_bool_from_str
 from testy.utilities.tree import (
     build_tree,
@@ -93,6 +94,7 @@ _OUTER_REF_PK = OuterRef('pk')
 _MT = TypeVar('_MT', bound=Model)
 _IS_LEAF = 'is_leaf'
 _PATH = 'path'
+_PARAMETERS_DATA = 'parameters__data'
 
 
 class TestPlanSelector:  # noqa: WPS214
@@ -149,7 +151,12 @@ class TestPlanSelector:  # noqa: WPS214
     @classmethod
     def testplan_list(cls) -> QuerySet[TestPlan]:
         plan_subq = TestPlan.objects.filter(parent=_OUTER_REF_PK)
-        qs = TestPlan.objects.all().prefetch_related(_PARAMETERS, 'attachments').select_related(_PARENT)
+        qs = (
+            TestPlan
+            .objects
+            .prefetch_related(_PARAMETERS, 'attachments', 'project__integrations')
+            .select_related(_PARENT, 'project')
+        )
         return cls.annotate_title(qs).annotate(
             has_children=Exists(plan_subq),
         ).order_by(_NAME)
@@ -200,7 +207,7 @@ class TestPlanSelector:  # noqa: WPS214
         return TestPlan.objects.filter(project=project_id, parent__isnull=True).order_by(_NAME)
 
     @classmethod
-    def testplan_get_by_pk(cls, pk) -> TestPlan | None:
+    def testplan_get_by_pk(cls, pk) -> TestPlan:
         return get_object_or_404(TestPlan, pk=pk)
 
     @classmethod
@@ -292,7 +299,9 @@ class TestPlanSelector:  # noqa: WPS214
         tests: QuerySet[Test],
         parent_id: int | None,
         plans: QuerySet[TestPlan],
+        estimate_map: dict[str, Any] | None = None,
     ) -> 'ValuesQuerySet[TestPlan, dict[str, Any]]':
+        estimate_map = estimate_map or {}
         fields = (
             _ID,
             'created_at',
@@ -302,13 +311,16 @@ class TestPlanSelector:  # noqa: WPS214
             _TYPE,
             'union_assignee_username',
             'union_suite_path',
+            'union_estimate',
         )
+
         if parent_id is None:
             plans_values = plans.annotate(
                 is_leaf=Value(False),
                 type=Value(_PLAN),
                 union_suite_path=Value(None, output_field=CharField()),
                 union_assignee_username=Value(None, output_field=CharField()),
+                union_estimate=cls._get_estimate_sum(estimate_map),
             ).values(*fields)
             return plans_values.order_by(_IS_LEAF, _NAME)
 
@@ -321,6 +333,7 @@ class TestPlanSelector:  # noqa: WPS214
             type=Value('test'),
             union_suite_path=F('suite_path'),
             union_assignee_username=F('assignee__username'),
+            union_estimate=F('case__estimate'),
         ).values(*fields)
 
         plans_values = plans.annotate(
@@ -328,22 +341,33 @@ class TestPlanSelector:  # noqa: WPS214
             type=Value(_PLAN),
             union_suite_path=Value(None, output_field=CharField()),
             union_assignee_username=Value(None, output_field=CharField()),
+            union_estimate=cls._get_estimate_sum(estimate_map),
         ).values(*fields)
         plans_values = plans_values.union(tests_for_display)
         return plans_values.order_by(_IS_LEAF, _NAME)
 
-    def plan_annotated_by_ids(self, ids: Iterable[int]) -> QuerySet[TestPlan]:
+    def plan_annotated_by_ids(
+        self,
+        ids: Iterable[int],
+        estimate_map: dict[str, Any] | None = None,
+    ) -> QuerySet[TestPlan]:
         child_subq = Subquery(TestPlan.objects.filter(parent_id=_OUTER_REF_PK))
         tests_subq = Subquery(Test.objects.filter(plan_id=_OUTER_REF_PK))
         case_condition = [
             When(Exists(child_subq), then=_DB_TRUE),
             When(Exists(tests_subq), then=_DB_TRUE),
         ]
-
-        qs = TestPlan.objects.filter(pk__in=ids).prefetch_related(_PARAMETERS).select_related(_PARENT)
+        qs = (
+            TestPlan
+            .objects
+            .filter(pk__in=ids)
+            .prefetch_related(_PARAMETERS, 'tests', 'tests__case')
+            .select_related(_PARENT)
+        )
         return self.annotate_title(qs).annotate(
             has_children=Case(*case_condition, default=Value(False)),
             is_leaf=Value(False),
+            estimate=self._get_estimate_sum(estimate_map),
         ).order_by(_CREATED_AT_DESC)
 
     @classmethod
@@ -391,7 +415,9 @@ class TestPlanSelector:  # noqa: WPS214
         qs: QuerySet,
         test_serializer: 'type[TestUnionSerializer]',
         plan_serializer: 'type[TestPlanUnionSerializer]',
+        estimate_map: dict[str, Any] | None = None,
     ) -> list[Mapping[str, Any]]:
+        estimate_map = estimate_map or {}
         plan_ids = []
         test_ids = []
 
@@ -401,11 +427,11 @@ class TestPlanSelector:  # noqa: WPS214
             else:
                 test_ids.append(elem[_ID])
 
-        plans = {plan.pk: plan for plan in self.plan_annotated_by_ids(plan_ids)}
+        plans = {plan.pk: plan for plan in self.plan_annotated_by_ids(plan_ids, estimate_map)}
         tests = TestSelector().test_list_with_last_status(
             filter_condition={'pk__in': test_ids},
         ).annotate(is_leaf=Value(True))
-        tests = TestSuiteSelector.annotate_suite_path(tests, 'case__suite')
+        tests = TestSuiteSelector.annotate_suite_path(tests, 'case__suite__path')
         tests = {test.pk: test for test in tests}
 
         result_data = []
@@ -423,25 +449,44 @@ class TestPlanSelector:  # noqa: WPS214
 
     @classmethod
     def annotate_plan_path(cls, qs: QuerySet[_MT], outer_ref_key: str = _ID) -> QuerySet[_MT]:
-        ancestor_paths = TestPlan.objects.filter(
-            Q(path__ancestor=OuterRef(_PATH)),
-        ).order_by(_PATH).values(_NAME)
-        ancestor_paths = cls.annotate_title(ancestor_paths).values('title')
-
-        plan_path_cte = With(
-            TestPlan.objects.all()
-            .annotate(plan_path=ConcatSubquery(ancestor_paths, separator='/'))
-            .values('plan_path', _ID),
-            name=uuid.uuid4().hex,
-        )
-        return (
-            plan_path_cte.join(
-                qs,
-                **{outer_ref_key: plan_path_cte.col.id},
-                _join_type=LOUTER,
+        sq = ArraySubquery(
+            TestPlan.objects.prefetch_related('parameters').filter(
+                path__ancestor=OuterRef(outer_ref_key),
             )
-            .with_cte(plan_path_cte)
-            .annotate(plan_path=plan_path_cte.col.plan_path)
+            .annotate(
+                parameter_ids=ArrayAgg('parameters__id'),
+                parameter_str=StringAgg(
+                    _PARAMETERS_DATA,
+                    delimiter=', ',
+                    output_field=TextField(),
+                    ordering=_PARAMETERS_DATA,
+                ),
+                title=Case(
+                    When(
+                        parameter_str__isnull=False,
+                        then=Concat(
+                            F(_NAME),
+                            Value(' '),
+                            Value('['),
+                            F('parameter_str'),
+                            Value(']'),
+                        ),
+                    ),
+                    default=F(_NAME),
+                    output_field=TextField(),
+                ),
+            )
+            .order_by(_PATH).values_list('title', flat=True),
+        )
+        return qs.alias(
+            plan_path_list=sq,
+        ).annotate(
+            plan_path=Func(
+                F('plan_path_list'),
+                Value('/'),
+                function='array_to_string',
+                output_field=CharField(),
+            ),
         )
 
     @classmethod
@@ -520,6 +565,49 @@ class TestPlanSelector:  # noqa: WPS214
             *testplan_prefetch_objects,
         )
         return self.annotate_title(qs)
+
+    @classmethod
+    def get_estimate_mapping(cls, plans_info: Iterable[dict[str, Any]], is_archive: bool):
+        query_template = """
+            WITH descendants AS (
+                SELECT tp.id, tp.path
+                FROM tests_representation_testplan tp
+                WHERE (tp.path <@ '{plan_path}'::LTREE
+                OR tp.id = {plan_id}) AND tp.is_deleted = FALSE {is_archive_plan_condition}
+            )
+            SELECT SUM(tc.estimate) as total_estimate
+            FROM tests_representation_test t
+            INNER JOIN tests_description_testcase tc ON t.case_id = tc.id
+            WHERE t.plan_id IN (SELECT id FROM descendants)
+            AND t.is_deleted = FALSE {is_archive_test_condition}
+        """
+
+        estimate_map = {}
+        for plan_info in plans_info:
+            with connection.cursor() as cursor:
+                query = query_template.format(
+                    plan_id=plan_info[_ID],
+                    plan_path=plan_info[_PATH],
+                    is_archive_plan_condition='' if is_archive else 'AND tp.is_archive = FALSE',
+                    is_archive_test_condition='' if is_archive else 'AND t.is_archive = FALSE',
+                )
+                cursor.execute(query)
+                row = cursor.fetchone()
+                estimate_map[plan_info[_ID]] = row[0] if row else 0
+        return estimate_map
+
+    @classmethod
+    def _get_estimate_sum(cls, estimate_map: dict[str, Any]):
+        return Case(
+            *[
+                When(
+                    pk=map_key,
+                    then=Value(map_value),
+                ) for map_key, map_value in estimate_map.items()
+            ],
+            default=Value(0),
+            output_field=IntegerEstimateField(),
+        )
 
     @classmethod
     def _get_tests_subquery(cls, last_status_subquery, descendants_lookup):

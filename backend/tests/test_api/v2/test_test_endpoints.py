@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -155,12 +155,21 @@ class TestTestEndpoints:
         )
         assert response.json()['detail'] == PERMISSION_ERR_MSG
 
-    @pytest.mark.parametrize('field_name', ['id', 'name', 'is_archive', 'last_status'])
+    @pytest.mark.parametrize('field_name', ['id', 'name', 'is_archive', 'last_status', 'estimate'])
     @pytest.mark.parametrize('descending', [True, False], ids=['desc', 'asc'])
     def test_ordering_pagination(
         self, api_client, authorized_superuser, test_factory, test_result_factory, field_name,
         descending, project, result_status_factory,
     ):
+        field_name_getter_map = {
+            'last_status': lambda instance: instance.last_status_id,
+            'estimate': lambda instance: (
+                instance.case.estimate
+                if hasattr(instance, 'case') and hasattr(instance.case, 'estimate')
+                else 0
+            ),
+        }
+
         number_of_pages = 2
         number_of_objects = constants.NUMBER_OF_OBJECTS_TO_CREATE_PAGE * number_of_pages
         tests = [test_factory(is_archive=idx % 2, project=project) for idx in range(number_of_objects)]
@@ -174,12 +183,16 @@ class TestTestEndpoints:
             expected_instance.last_status = status
             expected_instance.name = expected_instance.case.name
             test_result_factory(test=expected_instance, status=status)
-        if field_name == 'last_status':
-            field = 'last_status_id'
-        else:
-            field = field_name
+
         expected_instances = model_to_dict_via_serializer(
-            sorted(tests, key=lambda instance: getattr(instance, field), reverse=descending),
+            sorted(
+                tests,
+                key=field_name_getter_map.get(
+                    field_name,
+                    lambda instance: getattr(instance, field_name),
+                ),
+                reverse=descending,
+            ),
             TestMockSerializer,
             many=True,
             refresh_instances=True,
@@ -200,7 +213,7 @@ class TestTestEndpoints:
             assert len(response_dict) == constants.NUMBER_OF_OBJECTS_TO_CREATE_PAGE
             for expected_instance, actual_instance in zip(
                 expected_instances[:99] if page_number == 1 else expected_instances[100:],
-                response.json()['results'],
+                response_dict,
             ):
                 assert expected_instance[field_name] == actual_instance[field_name]
 

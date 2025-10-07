@@ -1,14 +1,16 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 
 import { RootState } from "app/store"
+import { paginationSchema } from "app/zod-common.schema"
 
-import { paginationSchema } from "shared/config/query-schemas"
-import { getVisibleColumns } from "shared/libs"
-import { queryParamsBySchema } from "shared/libs/query-params"
+import { DATA_VIEW_KEY } from "shared/constants"
+import { getDataFromUrlOrLocalStorage, getVisibleColumns } from "shared/libs"
+import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
+import { DATA_VIEW_TEST_CASE_LS_KEY } from "./constansts"
 import { updateFilter } from "./filter-slice"
 
-const baseTableColumns = [
+const baseTableColumns: ColumnParam[] = [
   {
     key: "id",
     title: "ID",
@@ -16,6 +18,7 @@ const baseTableColumns = [
   {
     key: "name",
     title: "Name",
+    canHide: false,
   },
   {
     key: "suite_path",
@@ -35,10 +38,11 @@ const baseTableColumns = [
   },
 ]
 
-const baseTreeColumns = [
+const baseTreeColumns: ColumnParam[] = [
   {
     key: "name",
     title: "Name",
+    canHide: false,
   },
   {
     key: "id",
@@ -58,12 +62,17 @@ const baseTreeColumns = [
   },
 ]
 
-const initPagination = queryParamsBySchema(paginationSchema)
+const initPagination = schemaFillBySearchParams(paginationSchema)
 
 const initialState: TestCaseState = {
   drawerTestCase: null,
   editingTestCase: null,
   test: null,
+  dataView: getDataFromUrlOrLocalStorage<EntityView>(
+    DATA_VIEW_KEY,
+    DATA_VIEW_TEST_CASE_LS_KEY,
+    "tree"
+  ),
   settings: {
     table: {
       columns: baseTableColumns,
@@ -71,11 +80,11 @@ const initialState: TestCaseState = {
       visibleColumns: getVisibleColumns("test-cases-visible-cols-table") ?? baseTableColumns,
       page: initPagination.page,
       page_size: initPagination.page_size,
-      hasBulk: false,
-      isAllSelectedTableBulk: false,
+      isAllSelected: false,
       selectedRows: [],
       excludedRows: [],
       count: 0,
+      isResetSelection: false,
       _n: 0,
     },
     tree: {
@@ -101,11 +110,13 @@ export const testCaseSlice = createSlice({
       state.drawerTestCase = null
     },
     updateSettings: (state, action: PayloadAction<UpdateTestCaseSettings>) => {
-      // @ts-ignore
-      state.settings[action.payload.key] = {
+      const newState = {
         ...state.settings[action.payload.key],
         ...action.payload.settings,
       }
+
+      // @ts-ignore
+      state.settings[action.payload.key] = newState
     },
     setPagination: (state, action: PayloadAction<SetPagination>) => {
       // @ts-ignore
@@ -125,6 +136,10 @@ export const testCaseSlice = createSlice({
         },
       }
     },
+    setDataView: (state, action: PayloadAction<EntityView>) => {
+      localStorage.setItem(DATA_VIEW_TEST_CASE_LS_KEY, action.payload)
+      state.dataView = action.payload
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(updateFilter, (state) => {
@@ -140,6 +155,7 @@ export const {
   updateSettings,
   clearSettings,
   setPagination,
+  setDataView,
 } = testCaseSlice.actions
 
 export const testCaseReducer = testCaseSlice.reducer
@@ -149,3 +165,4 @@ export const selectSettings =
   (state: RootState): T =>
     state.testCase.settings[settingsKey] as T
 export const selectDrawerTestCase = (state: RootState) => state.testCase.drawerTestCase
+export const selectDataView = (state: RootState) => state.testCase.dataView

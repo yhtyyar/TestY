@@ -1,0 +1,45 @@
+.tablePageChanger {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.arrow {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.arrow:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.currentInput {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--y-color-secondary);
+  color: var(--y-color-control-text);
+  outline: none;
+  border: none;
+  text-align: center;
+  line-height: 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.total {
+  color: var(--y-color-text-primary);
+}

@@ -1,10 +1,11 @@
 interface TestCaseState {
   drawerTestCase: TestCase | null
   editingTestCase: TestCase | null
+  dataView: EntityView
   test: Test | null
   settings: {
     table: TestCaseTableParams
-    tree: TestCaseTreeParams
+    tree: BaseTreeParams
   }
 }
 
@@ -32,25 +33,9 @@ interface TestCaseBulkUpdate {
   suite?: number
 }
 
-interface TestCaseTableParams {
-  page: number
-  page_size: number
+type TestCaseTableParams = BaseTableParams<{
   testSuiteId: number | null
-  visibleColumns: ColumnParam[]
-  columns: ColumnParam[]
-  sorter?: SorterResult<string>
-  hasBulk: boolean
-  isAllSelectedTableBulk: boolean
-  selectedRows: number[]
-  excludedRows: number[]
-  count: number
-  _n?: number
-}
-
-interface TestCaseTreeParams {
-  columns: ColumnParam[]
-  visibleColumns: ColumnParam[]
-}
+}>
 
 interface TestCase {
   id: Id
@@ -78,6 +63,7 @@ interface TestCase {
   test_suite_description?: string | null
   attributes: AttributesObject
   parent: Parent | null
+  created_at: string
 }
 
 interface TestCaseCreate {
@@ -153,6 +139,7 @@ interface TestCaseFormData {
   description?: string
   attachments?: number[]
   steps?: Step[]
+  expanded_steps?: number[]
   is_steps?: boolean
   labels?: LabelInForm[]
   attributes?: Attribute[]
@@ -184,7 +171,8 @@ interface TestCaseTestsList {
 
 interface GetTestCaseByIdParams {
   testCaseId: string
-  version?: string
+  ver?: string
+  nonce?: number
 }
 
 interface TestCaseGetFilters {

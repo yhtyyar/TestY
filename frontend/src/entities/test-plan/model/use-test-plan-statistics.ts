@@ -128,7 +128,7 @@ export const useTestPlanStatistics = ({ testPlanId, view }: UseTestPlanStatistic
           return Number((estimates / 60).toFixed(2))
         }
         if (period === "days") {
-          return Number((estimates / 60 / 24).toFixed(2))
+          return Number((estimates / 60 / 8).toFixed(2))
         }
         return estimates
       }

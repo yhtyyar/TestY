@@ -1,9 +1,7 @@
-import { Flex, Space, Tooltip, Typography } from "antd"
-import { TableProps } from "antd/es/table"
-import { ColumnsType, TablePaginationConfig } from "antd/lib/table"
-import { FilterValue } from "antd/lib/table/interface"
+import { ColumnDef, SortingState, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Tooltip, Typography } from "antd"
 import { useMeContext } from "processes"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
@@ -15,34 +13,44 @@ import { FolowProject, RequestProjectAccess } from "features/project"
 import DashboardIcon from "shared/assets/yi-icons/dashboard.svg?react"
 import TestPlansIcon from "shared/assets/yi-icons/test-plans.svg?react"
 import TestSuitesIcon from "shared/assets/yi-icons/test-suites.svg?react"
-import { config } from "shared/config"
-import { antdSorterToTestySort } from "shared/libs"
-import { ArchivedTag, HighLighterTesty } from "shared/ui"
+import { ArchivedTag, HighLighterTesty, TableSorting } from "shared/ui"
 import { CheckedIcon } from "shared/ui/icons"
+import { testySortRequestFormat } from "shared/ui/table/utils"
 
 import styles from "./styles.module.css"
 
 const { Link } = Typography
 
+const renderNumericValue = (value: number, record: Project) => {
+  if (record.is_visible) {
+    return Number(value).toLocaleString()
+  }
+  return "-"
+}
+
+const columnHelper = createColumnHelper<Project>()
 export const useProjectsDashboardTable = ({ searchName }: { searchName: string }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { userConfig } = useMeContext()
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
   const [paginationParams, setPaginationParams] = useState({
-    page: 1,
+    pageIndex: 0,
     pageSize: 10,
   })
-  const [ordering, setOrdering] = useState("is_private")
+  const [columnSorting, setColumnSorting] = useState<SortingState>([
+    { id: "is_private", desc: false },
+  ])
+
+  const ordering = useMemo(() => testySortRequestFormat(columnSorting), [columnSorting])
 
   const { data: projects, isFetching } = useGetProjectsQuery(
     {
       is_archive: userConfig?.projects?.is_show_archived,
       favorites: userConfig?.projects?.is_only_favorite ?? false,
-      page: paginationParams.page,
+      page: paginationParams.pageIndex + 1,
       page_size: paginationParams.pageSize,
       name: searchName,
-      ordering: ordering.length ? ordering : "is_private",
+      ordering,
     },
     {
       skip: !userConfig,
@@ -53,65 +61,54 @@ export const useProjectsDashboardTable = ({ searchName }: { searchName: string }
     navigate(`/projects/${projectId}/${type}`)
   }
 
-  const handleChange: TableProps<Project>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>,
-    sorter
-  ) => {
-    const isPrivate = antdSorterToTestySort<Project>(sorter)
-    setOrdering(isPrivate)
-    setFilteredInfo(filters)
-  }
-
-  const columns: ColumnsType<Project> = [
+  const columns = [
     {
-      key: "action_1",
-      width: 64,
-      render: (_, record) => (
+      id: "favorite_archive",
+      cell: ({ row }) => (
         <Flex>
-          <FolowProject project={record} />
-          {record.is_archive ? (
+          <FolowProject project={row.original} />
+          {row.original.is_archive ? (
             <Flex style={{ height: 30 }} align="center">
               <ArchivedTag />
             </Flex>
           ) : null}
         </Flex>
       ),
-    },
-    {
-      title: t("Icon"),
-      dataIndex: "icon",
-      key: "icon",
-      width: 50,
-      render: (text, record) => (
+      size: 64,
+    } as ColumnDef<Project>,
+    columnHelper.accessor("icon", {
+      id: "icon",
+      header: t("Icon"),
+      cell: ({ row }) => (
         <ProjectIcon
-          icon={record.icon}
-          name={record.name}
+          icon={row.original.icon}
+          name={row.original.name}
           dataTestId="dashboard-table-project-icon"
         />
       ),
-    },
-    {
-      title: t("Name"),
-      dataIndex: "name",
-      key: "name",
-      filteredValue: filteredInfo.name ?? null,
-      onFilter: (value, record) => record.name.toLowerCase().includes(String(value).toLowerCase()),
-      render: (text, record) => {
+      size: 50,
+    }),
+    columnHelper.accessor("name", {
+      id: "name",
+      header: () => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Name")}</span>
+        </Flex>
+      ),
+      cell: ({ getValue, row }) => {
         const handleLinkClick = () => {
-          if (!record.is_private || record.is_manageable) {
-            handleActionClick(record.id, "overview")
+          if (!row.original.is_private || row.original.is_manageable) {
+            handleActionClick(row.original.id, "overview")
           }
         }
 
         const linkEl = (
           <Link onClick={handleLinkClick}>
-            {/* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment*/}
-            <HighLighterTesty searchWords={searchName} textToHighlight={text} />
+            <HighLighterTesty searchWords={searchName} textToHighlight={getValue()} />
           </Link>
         )
 
-        if (record.is_private && !record.is_visible) {
+        if (row.original.is_private && !row.original.is_visible) {
           return (
             <Tooltip placement="topLeft" title={t("You are not able to view this project")} arrow>
               {linkEl}
@@ -121,81 +118,72 @@ export const useProjectsDashboardTable = ({ searchName }: { searchName: string }
 
         return linkEl
       },
-    },
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("suites_count", {
+      id: "suites_count",
+      header: t("Test Suites"),
+      cell: ({ row, getValue }) => renderNumericValue(getValue(), row.original),
+    }),
+    columnHelper.accessor("cases_count", {
+      id: "cases_count",
+      header: t("Test Cases"),
+      cell: ({ row, getValue }) => renderNumericValue(getValue(), row.original),
+    }),
+    columnHelper.accessor("plans_count", {
+      id: "plans_count",
+      header: t("Test Plans"),
+      cell: ({ row, getValue }) => renderNumericValue(getValue(), row.original),
+    }),
+    columnHelper.accessor("tests_count", {
+      id: "tests_count",
+      header: t("Tests"),
+      cell: ({ row, getValue }) => renderNumericValue(getValue(), row.original),
+    }),
+    columnHelper.accessor("is_private", {
+      id: "is_private",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Is Private")}</span>
+          <TableSorting column={column} />
+        </Flex>
+      ),
+      cell: ({ getValue }) => <CheckedIcon value={getValue()} />,
+      size: 120,
+    }),
     {
-      title: t("Test Suites"),
-      dataIndex: "suites_count",
-      key: "suites_count",
-      render: (value: string, record) => (record.is_visible ? value : "-"),
-    },
-    {
-      title: t("Test Cases"),
-      dataIndex: "cases_count",
-      key: "cases_count",
-      render: (value: string, record) => (record.is_visible ? value : "-"),
-    },
-    {
-      title: t("Test Plans"),
-      dataIndex: "plans_count",
-      key: "plans_count",
-      render: (value: string, record) => (record.is_visible ? value : "-"),
-    },
-    {
-      title: t("Tests"),
-      dataIndex: "tests_count",
-      key: "tests_count",
-      render: (value: string, record) => (record.is_visible ? value : "-"),
-    },
-    {
-      title: t("Is Private"),
-      dataIndex: "is_private",
-      key: "is_private",
-      width: 120,
-      render: (is_private: boolean) => <CheckedIcon value={is_private} />,
-      sorter: true,
-    },
-    {
-      key: "action",
-      width: 128,
-      render: (_, record) =>
-        record.is_visible ? (
-          <Space className={styles.action}>
+      id: "action",
+      cell: ({ row }) =>
+        row.original.is_visible ? (
+          <Flex className={styles.action} align="center" justify="flex-end" gap={4}>
             <Tooltip title={t("Overview")} placement="top">
-              <DashboardIcon onClick={() => handleActionClick(record.id, "overview")} />
+              <DashboardIcon onClick={() => handleActionClick(row.original.id, "overview")} />
             </Tooltip>
             <Tooltip title={t("Test Suites")} placement="top">
-              <TestSuitesIcon onClick={() => handleActionClick(record.id, "suites")} />
+              <TestSuitesIcon onClick={() => handleActionClick(row.original.id, "suites")} />
             </Tooltip>
             <Tooltip title={t("Test Plans")} placement="top">
-              <TestPlansIcon onClick={() => handleActionClick(record.id, "plans")} />
+              <TestPlansIcon onClick={() => handleActionClick(row.original.id, "plans")} />
             </Tooltip>
-          </Space>
+          </Flex>
         ) : (
-          <RequestProjectAccess project={record} type="min" />
+          <RequestProjectAccess project={row.original} type="min" />
         ),
-    },
+      size: 128,
+    } as ColumnDef<Project>,
   ]
-
-  const handlePaginationChange = (page: number, pageSize: number) => {
-    setPaginationParams({ page, pageSize })
-  }
-
-  const paginationTable: TablePaginationConfig = {
-    hideOnSinglePage: false,
-    pageSizeOptions: config.pageSizeOptions,
-    showLessItems: true,
-    showSizeChanger: true,
-    current: paginationParams.page,
-    pageSize: paginationParams.pageSize,
-    total: projects?.count ?? 0,
-    onChange: handlePaginationChange,
-  }
 
   return {
     columns,
-    projects,
+    data: projects?.results ?? [],
+    total: projects?.count ?? 0,
     isLoading: isFetching,
-    paginationTable,
-    handleChange,
+    paginationParams,
+    columnSorting,
+    setColumnSorting,
+    setPaginationParams,
   }
 }

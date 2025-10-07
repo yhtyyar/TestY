@@ -1,0 +1,11 @@
+{
+  "newNameNotBeEmpty": "New name should not be empty",
+  "filterNameNotBeEmpty": "Filter name should not be empty",
+  "appliedToAtLeastOneActive": "At least one 'Applied To' option should be active",
+  "zodErrors": {
+    "arrayOfNumbers": "Must be array of numbers",
+    "andOrOr": "Must be 'and' or 'or'",
+    "trueOrFalse": "Must be 'true' or 'false'",
+    "number": "Must be a number"
+  }
+}

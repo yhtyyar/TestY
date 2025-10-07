@@ -19,11 +19,10 @@ export const Copyright = withTranslation()((props: { className?: string }) => {
             <a
               target="_blank"
               rel="noreferrer"
-              href={config.bugReportUrl}
+              href={config.issueUrl}
               className={styles.underlined}
             ></a>
           ),
-          linkEmail: <a href="mailto:testy@yadro.com" className={styles.underlined}></a>,
           linkKns: <a target="_blank" href="https://yadro.com" rel="noreferrer"></a>,
         }}
       />

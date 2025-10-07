@@ -17,3 +17,7 @@
   line-height: 16px;
   color: var(--y-grey-40);
 }
+
+.integrationsDropdown {
+  margin-left: auto;
+}

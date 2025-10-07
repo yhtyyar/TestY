@@ -63,7 +63,7 @@ export const useStatuses = ({ project, plan, isActivity }: Props) => {
   const statusesOptions = statuses.map(convertToOption)
   const statusesOptionsWithUntested = [...statusesOptions, { label: UNTESTED_NAME, value: "null" }]
 
-  const statusesFilters = statuses.map(convertToFilter)
+  const statusesFilters = useMemo(() => statuses.map(convertToFilter), [statuses])
   const statusesFiltersWithUntested = useMemo(
     () => [...statusesFilters, { text: UNTESTED_NAME, value: "null" }],
     [statuses]

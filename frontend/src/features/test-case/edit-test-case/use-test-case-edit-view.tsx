@@ -74,6 +74,7 @@ export const useTestCaseEditView = () => {
       attributes: [],
       attachments: [],
       steps: [],
+      expanded_steps: [],
     },
   })
   const {
@@ -92,7 +93,7 @@ export const useTestCaseEditView = () => {
   const steps = watch("steps") ?? []
 
   const [selectedSuite, setSelectedSuite] = useState<SelectData | null>(null)
-  const [updateTestCase, { isLoading }] = useUpdateTestCaseMutation()
+  const [updateTestCase, { isLoading: isLoadingUpdateTestCase }] = useUpdateTestCaseMutation()
   const { onHandleError } = useErrors<ErrorData>(setErrors)
   const {
     attachments,
@@ -173,7 +174,8 @@ export const useTestCaseEditView = () => {
 
   const onSubmit = async (data: TestCaseFormData, asCurrent = true) => {
     if (!testCase) return
-    const dataForm = data as SubmitData
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { expanded_steps, ...dataForm } = data as SubmitData
 
     if (data.is_steps && !data.steps?.length) {
       setFormError("steps", { type: "required", message: t("Required field") })
@@ -216,7 +218,6 @@ export const useTestCaseEditView = () => {
         attributes: attributesJson,
       }).unwrap()
       setSearchParams({
-        version: String(newTestCase.versions[0]),
         test_case: String(testCase.id),
       })
       handleCloseModal()
@@ -248,7 +249,7 @@ export const useTestCaseEditView = () => {
   }
 
   const handleCancel = () => {
-    if (isLoading) return
+    if (isLoadingUpdateTestCase) return
 
     if (isDirty) {
       antdModalCloseConfirm(handleCloseModal)
@@ -313,8 +314,8 @@ export const useTestCaseEditView = () => {
   return {
     editForm,
     title,
-    isLoading:
-      isLoading || isLoadingTestCase || isLoadingAttachments || isLoadingAttributesTestCase,
+    isLoadingInitData: isLoadingTestCase || isLoadingAttributesTestCase,
+    isLoadingActionButton: isLoadingUpdateTestCase || isLoadingAttachments,
     errors,
     formErrors,
     control,

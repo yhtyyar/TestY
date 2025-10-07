@@ -1,0 +1,18 @@
+.wrapper {
+  background: var(--y-color-control-background);
+  border: 1px solid var(--y-color-border);
+  border-radius: 2px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.value {
+  margin-left: auto;
+}

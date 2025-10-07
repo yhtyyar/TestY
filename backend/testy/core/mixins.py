@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -73,7 +73,12 @@ class MediaViewMixin:
         is_attachment = 'image/' not in content_type
         path = cls._populate_resolution(file.path, request)
         # https://docs.djangoproject.com/en/5.0/ref/request-response/#fileresponse-objects
-        return FileResponse(open(path, 'rb'), as_attachment=is_attachment, content_type=content_type)  # noqa: WPS515
+        return FileResponse(
+            open(path, 'rb'),  # noqa: WPS515
+            as_attachment=is_attachment,
+            content_type=content_type,
+            filename=filename,
+        )
 
     @classmethod
     def _get_content_type(cls, filename: str) -> str:

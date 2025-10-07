@@ -134,7 +134,7 @@ export const {
   useUpdateProjectMutation,
   useUpdateProjectJsonMutation,
   useDeleteProjectMutation,
-  useLazyGetProjectProgressQuery,
+  useGetProjectProgressQuery,
   useGetProjectDeletePreviewQuery,
   useArchiveProjectMutation,
   useGetProjectArchivePreviewQuery,

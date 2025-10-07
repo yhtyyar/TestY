@@ -12,3 +12,36 @@
   left: 0;
   color: var(--y-grey-30);
 }
+
+.barWrapper {
+  width: 100%;
+  height: 288px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.barWrapper :global(.recharts-default-legend) {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.barWrapper :global(.recharts-legend-item) {
+  width: fit-content;
+}
+
+.barHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+}
+
+.barTitle {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 400;
+  height: 32px;
+}

@@ -9,13 +9,14 @@ import SorterIcon from "shared/assets/yi-icons/sort.svg?react"
 import { Button, SortBy } from "shared/ui"
 
 export const TestsSorter = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
 
   const SORTER_OPTIONS = [
     { value: "id", label: t("ID") },
     { value: "name", label: t("Name") },
     { value: "suite_path", label: t("Test Suite") },
-    { value: "assignee_username", label: t("Assignee") },
+    { value: "assignee_username", label: t("entities:user.Assignee") },
+    { value: "estimate", label: t("Estimate") },
     { value: "started_at", label: t("Start Date") },
     { value: "created_at", label: t("Created At") },
   ]

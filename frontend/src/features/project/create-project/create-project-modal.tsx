@@ -1,6 +1,6 @@
 import { Form, Input, Modal, Switch, Upload } from "antd"
 import { RcFile, UploadChangeParam, UploadFile } from "antd/lib/upload"
-import { useState } from "react"
+import { useContext, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -11,6 +11,8 @@ import { ErrorObj, useErrors } from "shared/hooks"
 import { fileReader } from "shared/libs"
 import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertError, AlertSuccessChange, Button } from "shared/ui"
+
+import { DashboardViewContext } from "../../../widgets/dashboard"
 
 const { TextArea } = Input
 
@@ -31,6 +33,7 @@ const TEST_ID = "create-project"
 export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
   const { t } = useTranslation()
   const [errors, setErrors] = useState<ErrorData | null>(null)
+  const dashboardContext = useContext(DashboardViewContext)
   const {
     handleSubmit,
     reset,
@@ -65,6 +68,7 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
       fmData.append("icon", data.icon ?? "")
       fmData.append("is_private", String(data.is_private))
       const newProject = await createProject(fmData).unwrap()
+      dashboardContext?.setNeedRefetchProjects(true)
 
       onCloseModal()
       antdNotification.success("create-project", {

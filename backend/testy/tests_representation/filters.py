@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -219,6 +219,7 @@ class PlanUnionOrderingFilter(filters.FilterSet):
             ('name', 'name'),
             ('union_assignee_username', 'assignee_username'),
             ('union_suite_path', 'suite_path'),
+            (('union_estimate', 'id'), 'estimate'),
         ),
     )
 
@@ -290,7 +291,24 @@ class UnionTestFilter(ArchiveFilterMixin, IsFilteredMixin, SearchFilterMixin, me
         fields = ('project', 'plan', 'assignee')
 
 
-class TestFilter(ArchiveFilterMixin, SearchFilterMixin, metaclass=LabelsFilterMetaclass):
+class TestOrderingFilter(filters.FilterSet):
+    ordering = ordering_filter(
+        fields=(
+            ('id', 'id'),
+            ('last_status', 'last_status'),
+            ('created_at', 'created_at'),
+            ('case__name', 'name'),
+            ('is_archive', 'is_archive'),
+            ('assignee', 'assignee'),
+            ('assignee__username', 'assignee_username'),
+            ('case__suite__path', 'suite_path'),
+            ('case__estimate', 'estimate'),
+            (('plan__started_at', 'id'), 'started_at'),
+        ),
+    )
+
+
+class TestFilter(ArchiveFilterMixin, SearchFilterMixin, TestOrderingFilter, metaclass=LabelsFilterMetaclass):
     project = project_filter()
     assignee = NumberInFilter(help_text=ID_FILTER_MSG)
     unassigned = filters.BooleanFilter(field_name='assignee', lookup_expr='isnull')
@@ -306,18 +324,6 @@ class TestFilter(ArchiveFilterMixin, SearchFilterMixin, metaclass=LabelsFilterMe
         help_text=SEARCH_FILTER_MSG.format('title, id'),
     )
     case = NumberInFilter(field_name='case', help_text='Filter by comma separated list of case ids')
-    ordering = ordering_filter(
-        fields=(
-            ('id', 'id'),
-            ('last_status', 'last_status'),
-            ('created_at', 'created_at'),
-            ('case__name', 'name'),
-            ('is_archive', 'is_archive'),
-            ('assignee', 'assignee'),
-            ('assignee__username', 'assignee_username'),
-            ('suite_path', 'suite_path'),
-        ),
-    )
 
     labels_outer_ref_prefix = 'case'
     search_fields = ['case__name', 'id']

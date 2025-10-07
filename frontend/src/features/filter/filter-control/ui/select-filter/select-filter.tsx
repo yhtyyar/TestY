@@ -1,16 +1,19 @@
 import { CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons"
-import { Flex, Input, InputRef, Popover } from "antd"
+import { Flex, Input, InputRef, Popover, notification } from "antd"
 import classNames from "classnames"
 import equal from "fast-deep-equal"
 import { useMeContext } from "processes"
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { ZodObject } from "zod"
+
+import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 
 import { useProjectContext } from "pages/project"
 
 import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
 import { antdNotification } from "shared/libs/antd-modals"
-import { QuryParamsSchema, queryParamsBySchema } from "shared/libs/query-params"
+import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
 import styles from "./styles.module.css"
 
@@ -19,7 +22,7 @@ interface Props {
   filterData: Record<string, unknown>
   filterSettings: FilterSettings
   configFilters: Record<string, string> | undefined
-  filterSchema: QuryParamsSchema
+  filterSchema: ZodObject
   onDelete: (name: string) => void
   onSelect: (name: string) => void
   updateSettings: (settings: Partial<FilterSettings>) => void
@@ -35,7 +38,7 @@ export const SelectFilter = ({
   onSelect,
   updateSettings,
 }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "errors"])
 
   const { userConfig, updateConfig } = useMeContext()
   const project = useProjectContext()
@@ -83,8 +86,9 @@ export const SelectFilter = ({
   const handleSaveItemValue = async (oldName: string) => {
     const newName = editingItems[oldName]
     if (!newName.length) {
-      antdNotification.error("select-filter", {
-        description: t("Name filter cant be empty!"),
+      notification.error({
+        message: t("Error!"),
+        description: t("errors:filterNameNotBeEmpty"),
       })
       return
     }
@@ -98,6 +102,7 @@ export const SelectFilter = ({
       [filtersKey]: {
         ...userConfig?.[filtersKey],
         filters: {
+          ...(userConfig?.[filtersKey]?.filters ?? {}),
           [project.id]: {
             ...filtersObject,
             [newName]: selectedFilterValue,
@@ -143,7 +148,7 @@ export const SelectFilter = ({
       return
     }
 
-    const parsedSavedFilterValue = queryParamsBySchema(filterSchema, {
+    const parsedSavedFilterValue = schemaFillBySearchParams(filterSchema, {
       url: savedFilterValue,
     })
 
@@ -181,7 +186,9 @@ export const SelectFilter = ({
   return (
     <Popover
       id="select-filter-popover"
-      overlayInnerStyle={{ padding: "8px 0" }}
+      styles={{
+        body: { padding: "8px 0" },
+      }}
       content={
         <ul className={styles.list} data-testid="select-filter-list">
           {configFiltersKeys.map((filterName, index) => {
@@ -278,11 +285,6 @@ export const SelectFilter = ({
           <ArrowIcon width={24} height={24} data-testid="select-filter-arrow" />
         )}
       </div>
-      {filterSettings.hasUnsavedChanges && (
-        <span className={styles.unsaved} data-testid="select-filter-unsaved-changes">
-          {t("Unsaved Changes")}
-        </span>
-      )}
     </Popover>
   )
 }

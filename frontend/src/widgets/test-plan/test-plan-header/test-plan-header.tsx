@@ -5,6 +5,7 @@ import { useContext } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
+import { IntegrationsDropdown } from "features/integration"
 import { ArchiveTestPlan, ChangeTestPlan, CopyTestPlan, DeleteTestPlan } from "features/test-plan"
 
 import { useTestPlanContext } from "pages/project"
@@ -126,6 +127,7 @@ export const TestPlanHeader = () => {
           <ArchiveTestPlan testPlan={testPlan} onSubmit={refetchParentAfterArchive} />
         )}
         <DeleteTestPlan testPlan={testPlan} onSubmit={refetchParentAfterDelete} />
+        <IntegrationsDropdown testPlanId={testPlan.id} className={styles.integrationsDropdown} />
       </Flex>
     </>
   )

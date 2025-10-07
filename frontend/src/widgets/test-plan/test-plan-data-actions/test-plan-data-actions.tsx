@@ -23,7 +23,7 @@ import { DeleteTests } from "features/test-plan/delete-tests/delete-tests"
 import { AssignTestsBulk } from "features/test-result"
 import { AddBulkResult } from "features/test-result/bulk-add-result/add-bulk-result"
 
-import { useProjectContext } from "pages/project"
+import { useProjectContext, useTestPlanContext } from "pages/project"
 
 import CollapseIcon from "shared/assets/icons/arrows-in-simple.svg?react"
 import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
@@ -42,14 +42,6 @@ import {
 import styles from "./styles.module.css"
 
 const MAX_SELECTED_TESTS_FOR_ASYNC_BULK_ACTION = 1000
-
-const getSelectedTestsCount = (tableSettings: TestTableParams) => {
-  if (!tableSettings.isAllSelectedTableBulk) {
-    return tableSettings.selectedRows.length
-  }
-
-  return tableSettings.count - tableSettings.excludedRows.length
-}
 
 const getObjectFromFormField = (fields?: AddBulkResultCommonFormField[]) => {
   if (!fields) {
@@ -98,21 +90,23 @@ const prepareSuiteSpecificFields = (
 
 interface Props {
   testPlanId?: number
-  dataView: "tree" | "list"
-  setDataView: (dataView: "tree" | "list") => void
 }
 
-export const TestPlanDataActions = memo(({ testPlanId, dataView, setDataView }: Props) => {
+export const TestPlanDataActions = memo(({ testPlanId }: Props) => {
   const { t } = useTranslation(["translation", "entities"])
   const project = useProjectContext()
   const { testsTree } = useContext(TestsTreeContext)!
 
+  const { dataView, updateDataView } = useTestPlanContext()
   const dispatch = useAppDispatch()
   const tableSettings = useAppSelector(selectSettings<TestTableParams>("table"))
-  const treeSettings = useAppSelector(selectSettings<TestTreeParams>("tree"))
+  const treeSettings = useAppSelector(selectSettings<BaseTreeParams>("tree"))
   const testsFilter = useAppSelector(selectFilter)
   const testsSelectedCount = useAppSelector(selectFilterCount)
-  const selectedCount = getSelectedTestsCount(tableSettings)
+  const selectedCount =
+    tableSettings.isAllSelected && !tableSettings.excludedRows.length
+      ? tableSettings.count
+      : tableSettings.selectedRows.length
 
   const [bulkUpdateTests, { isLoading }] = useBulkUpdateMutation()
   const [getPlans] = useLazyGetTestPlansQuery()
@@ -140,10 +134,7 @@ export const TestPlanDataActions = memo(({ testPlanId, dataView, setDataView }: 
       updateSettings({
         key: "table",
         settings: {
-          selectedRows: [],
-          excludedRows: [],
-          isAllSelectedTableBulk: false,
-          hasBulk: false,
+          isResetSelection: true,
         },
       })
     )
@@ -177,7 +168,7 @@ export const TestPlanDataActions = memo(({ testPlanId, dataView, setDataView }: 
       current_plan: testPlanId ? Number(testPlanId) : undefined,
       project: project.id,
     }
-    if (tableSettings.isAllSelectedTableBulk) {
+    if (tableSettings.isAllSelected) {
       reqData.excluded_tests = tableSettings.excludedRows
     } else {
       reqData.included_tests = tableSettings.selectedRows
@@ -316,7 +307,7 @@ export const TestPlanDataActions = memo(({ testPlanId, dataView, setDataView }: 
           <Typography.Title level={2} style={{ marginBottom: 0, textWrap: "nowrap" }}>
             {t("Tests")}
           </Typography.Title>
-          {tableSettings.hasBulk && dataView === "list" && (
+          {(tableSettings.isAllSelected || !!tableSettings.selectedRows.length) && (
             <Flex gap={8} align="center">
               <Dropdown
                 menu={{ items: actionItems }}
@@ -361,7 +352,7 @@ export const TestPlanDataActions = memo(({ testPlanId, dataView, setDataView }: 
           onChange={handleChangeVisibleColumns}
         />
         <Divider type="vertical" style={{ height: "1.5em" }} />
-        <DataViewSelect value={dataView} onChange={setDataView} />
+        <DataViewSelect value={dataView} onChange={updateDataView} />
       </Flex>
     </Flex>
   )

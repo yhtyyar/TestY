@@ -2,6 +2,7 @@ import dayjs from "dayjs"
 import isToday from "dayjs/plugin/isToday"
 import updateLocale from "dayjs/plugin/updateLocale"
 import { useNotificationWS } from "entities/notifications/model/use-notification-ws"
+import { UrlWatcherProvider } from "processes"
 import "react-image-crop/dist/ReactCrop.css"
 import {
   Navigate,
@@ -31,6 +32,7 @@ import {
 import {
   ProjectAccessManagementTabPage,
   ProjectCustomAttributesTabPage,
+  ProjectIntegrationsTabPage,
   ProjectLabelsTabPage,
   ProjectMainPage,
   ProjectOverviewTabPage,
@@ -54,6 +56,7 @@ import { config } from "shared/config"
 import { getLang } from "shared/libs"
 import "shared/styles/antd-override.css"
 import "shared/styles/colors.css"
+import "shared/styles/common-variables.css"
 import "shared/styles/global.css"
 import "shared/styles/variables-dark.css"
 import "shared/styles/variables.css"
@@ -80,7 +83,7 @@ const OldUrlProjectRedirect = () => {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route>
+    <Route element={<UrlWatcherProvider />}>
       {/* protected routes */}
       <Route element={<RequireAuth />}>
         <Route path="/" element={<Main />}>
@@ -111,6 +114,7 @@ const router = createBrowserRouter(
                   path={ProjectTab.ACCESS_MANAGEMENT}
                   element={<ProjectAccessManagementTabPage />}
                 />
+                <Route path={ProjectTab.INTEGRATIONS} element={<ProjectIntegrationsTabPage />} />
               </Route>
 
               <Route element={<ProjectMainPage />}>

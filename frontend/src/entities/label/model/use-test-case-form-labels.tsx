@@ -56,6 +56,8 @@ export const useTestCaseFormLabels = ({
 
   const handleClearLabels = () => {
     setLabels([])
+    setValue("labels", [], { shouldDirty: true })
+    setSearchValue("")
   }
 
   const handleSubmitInput = (e: React.KeyboardEvent<HTMLInputElement>, label: string) => {

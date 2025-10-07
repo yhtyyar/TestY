@@ -40,7 +40,7 @@ export const TestDetail = () => {
     tab,
     results,
     isFetchingList,
-    selectedResult,
+    resultView,
     handleCloseDetails,
     handleOrderingClick,
     handleTabChange,
@@ -165,11 +165,11 @@ export const TestDetail = () => {
                   }}
                 />
               )}
-              {selectedResult && (drawerView === "editResult" || drawerView === "cloneResult") && (
+              {resultView && (drawerView === "editResult" || drawerView === "cloneResult") && (
                 <TestResultEditCloneView
                   onCancel={handleCancelAction}
-                  testResult={selectedResult}
-                  testCase={testCase}
+                  testResult={resultView.result}
+                  testCase={resultView.testCase}
                   isClone={drawerView === "cloneResult"}
                   onDirtyChange={(dirty: boolean) => {
                     setIsDirty(dirty)
@@ -185,7 +185,7 @@ export const TestDetail = () => {
             <>
               <Link
                 className={styles.versionLink}
-                to={`/projects/${drawerTest.project}/suites/${testCase.suite.id}/?test_case=${testCase.id}&version=${testCase.current_version}`}
+                to={`/projects/${drawerTest.project}/suites/${testCase.suite.id}/?test_case=${testCase.id}&ver=${testCase.current_version}`}
                 data-testid="test-detail-version"
               >
                 {t("Actual ver.")} {testCase.current_version}

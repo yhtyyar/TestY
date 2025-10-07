@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -306,3 +306,17 @@ class NotificationSetting(BaseModel):
 
     class Meta:
         default_related_name = 'notification_settings'
+
+
+class ProjectIntegration(BaseModel):
+    name = models.CharField(max_length=settings.CHAR_FIELD_MAX_LEN)
+    description = models.TextField(blank=True, null=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='integrations')
+    service_url = models.URLField()
+    is_new_tab = models.BooleanField(default=False)
+    page_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = _('Project integration')
+        verbose_name_plural = _('Project integrations')
+        constraints = [unique_soft_delete_constraint([_PROJECT, _NAME], 'project_integration')]

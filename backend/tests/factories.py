@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -47,6 +47,7 @@ from testy.core.models import (
     LabeledItem,
     NotificationSetting,
     Project,
+    ProjectIntegration,
     SystemMessage,
 )
 from testy.tests_description.models import TestCase, TestCaseStep, TestSuite
@@ -161,7 +162,7 @@ class TestCaseFactory(DjangoModelFactory):
     setup = constants.SETUP
     scenario = constants.SCENARIO
     teardown = constants.TEARDOWN
-    estimate = constants.ESTIMATE
+    estimate = Sequence(lambda n: n + 1)
     description = constants.DESCRIPTION
     expected = constants.EXPECTED
 
@@ -424,3 +425,21 @@ class NotificationSettingFactory(DjangoModelFactory):
 class NotificationFactory(DjangoModelFactory):
     class Meta:
         model = Notification
+
+
+class BaseProjectIntegrationFactory(DjangoModelFactory):
+    project = SubFactory(ProjectFactory)
+    name = Sequence(lambda n: f'{constants.PROJECT_INTEGRATION_NAME}{n}')
+    service_url = Sequence(lambda n: f'http://example{n}.com')
+    is_new_tab = False
+    page_type = factory.LazyAttribute(
+        lambda factory_obj: ContentType.objects.get_for_model(factory_obj.linked_object),
+    )
+
+    class Meta:
+        model = ProjectIntegration
+        exclude = ('linked_object',)
+
+
+class PlanIntegrationFactory(BaseProjectIntegrationFactory):
+    linked_object = SubFactory(TestPlanFactory)

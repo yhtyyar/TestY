@@ -16,6 +16,7 @@ export const TestCasesSorter = () => {
   const SORTER_OPTIONS = [
     { value: "id", label: t("ID") },
     { value: "name", label: t("Name") },
+    { value: "estimate", label: t("Estimate") },
     { value: "created_at", label: t("Created At") },
   ]
 

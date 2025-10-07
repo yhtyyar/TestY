@@ -1,0 +1,8 @@
+.checkboxBox {
+  width: 100%;
+  padding: 4px;
+}
+
+.checkboxBox:hover {
+  background-color: var(--y-color-control-background-hover);
+}

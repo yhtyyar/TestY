@@ -108,7 +108,7 @@ export class TreeApi<TData, TProps extends BaseTreeNodeProps = BaseTreeNodeProps
     }
   }
 
-  protected *preOrderTraversal(nodes = this.nodes): Generator<TreeNodeApi<TData, TProps>> {
+  public *preOrderTraversal(nodes = this.nodes): Generator<TreeNodeApi<TData, TProps>> {
     for (const node of nodes) {
       yield node
       if (node.children.length) {

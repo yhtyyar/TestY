@@ -1,5 +1,5 @@
 import { useMeContext } from "processes"
-import { useState } from "react"
+import React, { useState } from "react"
 
 import { useCacheState, useDebounce } from "shared/hooks"
 
@@ -9,11 +9,19 @@ import { DashboardHeader } from "../dashboard-header/dashboard-header"
 
 type ProjectViewType = "table" | "cards"
 
+interface DashboardViewContextType {
+  needRefetchProjects: boolean
+  setNeedRefetchProjects: (needRefetch: boolean) => void
+}
+
+export const DashboardViewContext = React.createContext<DashboardViewContextType | null>(null)
+
 export const DashboardView = () => {
   const { userConfig, updateConfig } = useMeContext()
   const [searchByNameValue, setSearchByNameValue] = useState<string | undefined>(undefined)
   const searchByNameDebounce = useDebounce(searchByNameValue, 250, true)
   const [view, setView] = useCacheState<ProjectViewType>("dashboard-view", "cards")
+  const [needRefetchProjects, setNeedRefetchProjects] = useState(false)
 
   const onShowArchived = async () => {
     await updateConfig({
@@ -36,7 +44,7 @@ export const DashboardView = () => {
   }
 
   return (
-    <>
+    <DashboardViewContext.Provider value={{ needRefetchProjects, setNeedRefetchProjects }}>
       <DashboardHeader
         onChangeSearch={(value) => setSearchByNameValue(value)}
         searchText={searchByNameValue ?? ""}
@@ -47,6 +55,6 @@ export const DashboardView = () => {
       />
       {view === "cards" && <ProjectsDashboardCards searchName={searchByNameDebounce ?? ""} />}
       {view === "table" && <ProjectsDashboardTable searchName={searchByNameDebounce ?? ""} />}
-    </>
+    </DashboardViewContext.Provider>
   )
 }

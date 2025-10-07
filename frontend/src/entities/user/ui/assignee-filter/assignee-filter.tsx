@@ -1,10 +1,12 @@
 import { Select, Spin } from "antd"
 import { useMeContext } from "processes"
+import { SelectHandler } from "rc-select/lib/Select"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useInView } from "react-intersection-observer"
 
 import { useLazyGetUserByIdQuery, useLazyGetUsersQuery } from "entities/user/api"
+import { useRecentlyUsers } from "entities/user/model"
 
 import { NOT_ASSIGNED_FILTER_VALUE } from "shared/constants"
 
@@ -29,7 +31,7 @@ export const AssigneeFilter = ({
   onClear,
   onClose,
 }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
   const { me } = useMeContext()
 
   const [search, setSearch] = useState<string>("")
@@ -46,6 +48,7 @@ export const AssigneeFilter = ({
 
   const { ref, inView } = useInView()
   const [currentPage, setCurrentPage] = useState(1)
+  const { recentlyUsers, handleAddRecentlyUser } = useRecentlyUsers()
 
   const filterUsersSearch = (result: User[]) => {
     const selectedIds = new Set(selectedUsers.map((user) => user.id))
@@ -90,6 +93,12 @@ export const AssigneeFilter = ({
     }
 
     onChange(dataValue)
+  }
+
+  const handleSelect: SelectHandler<string, { children: { props: { user: User } } }> = (_, opt) => {
+    if (opt.children?.props?.user) {
+      handleAddRecentlyUser(opt.children.props.user)
+    }
   }
 
   const handleDropdownVisibleChange = (toggle: boolean) => {
@@ -176,6 +185,7 @@ export const AssigneeFilter = ({
       filterOption={false}
       onSearch={handleSearch}
       onChange={handleChange}
+      onSelect={handleSelect}
       onClear={onClear}
       open={isOpen}
       onDropdownVisibleChange={handleDropdownVisibleChange}
@@ -186,33 +196,39 @@ export const AssigneeFilter = ({
       style={{ width: "100%" }}
     >
       <Select.Option value={NOT_ASSIGNED_FILTER_VALUE} data-testid="assignee-filter-not-assigned">
-        {t("Not Assigned")}
+        {t("entities:user.NotAssigned")}
       </Select.Option>
       {me && (
         <Select.Option value={String(me.id)} data-testid="assignee-filter-me">
           <UserSearchOption user={me} />
         </Select.Option>
       )}
-      {!isLoadingInitUsers &&
-        selectedUsers.map((user) => (
-          <Select.Option
-            key={user.id}
-            value={String(user.id)}
-            data-testid={`assignee-filter-user-${user.username}`}
-          >
-            <UserSearchOption user={user} />
-          </Select.Option>
-        ))}
-      {!isLoading &&
-        searchUsers.map((user) => (
-          <Select.Option
-            key={user.id}
-            value={String(user.id)}
-            data-testid={`assignee-filter-user-${user.username}`}
-          >
-            <UserSearchOption user={user} />
-          </Select.Option>
-        ))}
+      {!!recentlyUsers.length && (
+        <Select.OptGroup label={t("entities:user.RecentUsers")}>
+          {recentlyUsers.map((user) => (
+            <Select.Option
+              key={`${user.id}-recently`}
+              value={String(user.id)}
+              data-testid={`assignee-filter-recently-user-${user.username}`}
+            >
+              <UserSearchOption user={user} />
+            </Select.Option>
+          ))}
+        </Select.OptGroup>
+      )}
+      {!isLoading && !!searchUsers.length && (
+        <Select.OptGroup label={t("entities:user.SearchUsers")}>
+          {searchUsers.map((user) => (
+            <Select.Option
+              key={`${user.id}-search`}
+              value={String(user.id)}
+              data-testid={`assignee-filter-user-${user.username}`}
+            >
+              <UserSearchOption user={user} />
+            </Select.Option>
+          ))}
+        </Select.OptGroup>
+      )}
       {!!searchUsers.length && !isLastPage && !isLoadingMore && (
         <Select.Option value="" data-testid="assignee-filter-load-more-ref">
           <div ref={ref} />

@@ -1,4 +1,5 @@
 import { Flex } from "antd"
+import { useFieldArray, useFormContext } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import CollapseIcon from "shared/assets/yi-icons/collapse-3.svg?react"
@@ -23,6 +24,29 @@ export const ScenarioFormLabel = ({
   onIsStepsChange,
 }: Props) => {
   const { t } = useTranslation()
+  const { control, setValue } = useFormContext<TestCaseFormData>()
+  const { append, fields } = useFieldArray({
+    name: "steps",
+    control,
+    keyName: "extraId",
+  })
+
+  const handleIsStepsChange = (toggle: boolean) => {
+    if (!fields.length) {
+      const itemId = new Date().getTime()
+      append({
+        id: itemId,
+        name: "",
+        scenario: "",
+        expected: "",
+        sort_order: 1,
+        attachments: [],
+        isNew: true,
+      })
+      setValue("expanded_steps", [itemId])
+    }
+    onIsStepsChange(toggle)
+  }
 
   return (
     <Flex
@@ -62,7 +86,7 @@ export const ScenarioFormLabel = ({
         id="edit-steps-toggle"
         label={t("Steps")}
         checked={isSteps}
-        onChange={onIsStepsChange}
+        onChange={handleIsStepsChange}
         size="sm"
       />
     </Flex>

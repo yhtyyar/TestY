@@ -1,0 +1,2 @@
+export const PLAN_PLACEHOLDER = "{{TESTY_PLAN_ID}}"
+export const PROJECT_PLACEHOLDER = "{{TESTY_PROJECT_ID}}"

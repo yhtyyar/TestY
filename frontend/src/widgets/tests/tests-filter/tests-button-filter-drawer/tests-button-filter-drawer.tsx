@@ -1,29 +1,27 @@
 import { SearchOutlined } from "@ant-design/icons"
 import { Badge, DatePicker, Flex, Form, Input } from "antd"
-import dayjs, { Dayjs } from "dayjs"
+import { Dayjs } from "dayjs"
 import { StatusFilter } from "entities/status/ui"
 import { useMeContext } from "processes"
-import { useEffect, useState } from "react"
-import { Controller, SubmitHandler, useForm } from "react-hook-form"
+import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
-import { useAppDispatch, useAppSelector } from "app/hooks"
+import { useAppSelector } from "app/hooks"
 
 import { LabelFilter, LabelFilterCondition, LabelFilterValue } from "entities/label/ui"
 
 import {
+  TestDataFilters,
   clearFilter,
-  reinitializeFilter,
+  filterTestsSchema,
   resetFilterSettings,
   resetFormComplete,
   selectFilter,
   selectFilterCount,
   selectFilterSettings,
-  selectOrdering,
   selectShouldResetForm,
   testEmptyFilter,
-  testFilterSchema,
   updateFilter,
   updateFilterSettings,
   updateOrdering,
@@ -40,9 +38,8 @@ import { FilterControl } from "features/filter"
 
 import { useProjectContext } from "pages/project"
 
-import FilterPlusIcon from "shared/assets/yi-icons/filter-plus.svg?react"
-import { orderingSchema } from "shared/config/query-schemas"
-import { useUrlSyncParams } from "shared/hooks"
+import FilterPlusIcon from "shared/assets/yi-icons/filter-plus-min.svg?react"
+import { useFilterDrawer } from "shared/hooks"
 import { Button, Drawer, EntityTreeFilter, Toggle } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -60,98 +57,67 @@ interface Props {
 }
 
 export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
 
   const project = useProjectContext()
   const { me } = useMeContext()
   const { testPlanId } = useParams<ParamTestPlanId & ParamTestSuiteId>()
 
-  const dispatch = useAppDispatch()
   const testsFilter = useAppSelector(selectFilter)
-  const testsOrdering = useAppSelector(selectOrdering)
   const testsFilterSettings = useAppSelector(selectFilterSettings)
   const testsFilterCount = useAppSelector(selectFilterCount)
   const testsShouldResetForm = useAppSelector(selectShouldResetForm)
-  const [isOpenFilter, setIsOpenFilter] = useState(false)
 
   const [getSuiteTree] = useLazyGetTestPlanSuitesQuery()
   const [getTestPlanTree] = useLazyGetDescendantsTreeQuery()
 
-  const { control, handleSubmit, setValue, getValues, watch, reset } = useForm<TestDataFilters>({
-    defaultValues: testsFilter,
+  const {
+    isOpenFilter,
+    form: { control, setValue, watch, getValues },
+    triggerSubmit,
+    handleOpenFilter,
+    handleCloseFilter,
+    handleClearFilter,
+    getDateValue,
+    handleUpdateFilterData,
+    handleUpdateFilterSettings,
+  } = useFilterDrawer<TestDataFilters>({
+    filter: testsFilter,
+    emptyFilter: testEmptyFilter,
+    filterSettings: testsFilterSettings,
+    shouldResetForm: testsShouldResetForm,
+    onSubmitExtra: resetSelectedRows,
+    actions: {
+      updateFilter,
+      clearFilter,
+      resetFormComplete,
+      updateOrdering,
+      updateFilterSettings,
+      resetFilterSettings,
+    },
   })
 
   const isArchive = watch("is_archive")
 
-  useEffect(() => {
-    if (testsShouldResetForm) {
-      reset(testEmptyFilter)
-      dispatch(resetFormComplete())
-    }
-  }, [testsShouldResetForm])
-
-  const handleUpdateFilterData = (params: Partial<TestDataFilters>) => {
-    dispatch(updateFilter(params))
-  }
-
-  const syncOrdering = { ordering: testsOrdering }
-  useUrlSyncParams({
-    params: syncOrdering as unknown as Record<string, unknown>,
-    queryParamsSchema: orderingSchema(),
-    updateParams: (params) => {
-      dispatch(updateOrdering(params.ordering as string))
-    },
-  })
-
-  useUrlSyncParams({
-    params: testsFilter as unknown as Record<string, unknown>,
-    queryParamsSchema: testFilterSchema,
-    updateParams: handleUpdateFilterData,
-  })
-
-  const handleUpdateFilterSettings = (params: Partial<FilterSettings>) => {
-    dispatch(updateFilterSettings(params))
-  }
-
-  const handleClearFilter = () => {
-    dispatch(clearFilter())
-  }
-
-  const handleOpenFilter = () => {
-    setIsOpenFilter(true)
-  }
-
-  const handleCloseFilter = () => {
-    setIsOpenFilter(false)
-  }
-
-  const onSubmit: SubmitHandler<TestDataFilters> = (data) => {
-    resetSelectedRows()
-    dispatch(updateFilter(data))
-  }
-
-  const triggerSubmit = () => {
-    handleSubmit(onSubmit)()
-  }
-
   const handleSelectLabelCondition = (value: LabelCondition) => {
-    setValue("labels_condition", value)
+    setValue("labels_condition", value, { shouldDirty: true })
     triggerSubmit()
   }
 
   const handleAssigneeToMe = () => {
     if (!me) return
     const stateAssignee = getValues("assignee").filter((i) => i !== String(me.id))
-    setValue("assignee", [String(me.id), ...stateAssignee])
+    setValue("assignee", [String(me.id), ...stateAssignee], { shouldDirty: true })
     triggerSubmit()
   }
 
   const handleLabelsChange = (value: LabelFilterValue) => {
-    setValue("labels", value.labels)
-    setValue("not_labels", value.not_labels)
+    setValue("labels", value.labels, { shouldDirty: true })
+    setValue("not_labels", value.not_labels, { shouldDirty: true })
     setValue(
       "labels_condition",
-      value.labels.length + value.not_labels.length < 2 ? undefined : value.labels_condition
+      value.labels.length + value.not_labels.length < 2 ? undefined : value.labels_condition,
+      { shouldDirty: true }
     )
     triggerSubmit()
   }
@@ -170,7 +136,7 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
   }
 
   const handleShowArchiveChange = (toggle: boolean) => {
-    setValue("is_archive", toggle ? toggle : undefined)
+    setValue("is_archive", toggle ? toggle : undefined, { shouldDirty: true })
     triggerSubmit()
   }
 
@@ -196,29 +162,10 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
     return getTestPlanTree({ project: project.id, parent: null }).unwrap()
   }
 
-  const getDateValue = (key: DateFields) => (getValues(key) ? dayjs(getValues(key)) : undefined)
-
-  useEffect(() => {
-    if (
-      testsFilterSettings.filterProjectId !== null &&
-      testsFilterSettings.filterProjectId !== project.id
-    ) {
-      dispatch(clearFilter())
-      dispatch(resetFilterSettings())
-      return
-    }
-
-    dispatch(updateFilterSettings({ filterProjectId: project.id }))
-  }, [project.id, testsFilterSettings.filterProjectId])
-
-  useEffect(() => {
-    dispatch(reinitializeFilter())
-  }, [])
-
   return (
     <>
       <Button
-        id="btn-filter-test-plan"
+        id="btn-filter-tests"
         icon={<FilterPlusIcon width={18} height={18} />}
         onClick={handleOpenFilter}
         style={{ gap: 4, width: "fit-content" }}
@@ -240,7 +187,7 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
             type="plans"
             hasSomeFilter={!!testsFilterCount}
             filterData={testsFilter as unknown as Record<string, unknown>}
-            filterSchema={testFilterSchema}
+            filterSchema={filterTestsSchema}
             filterSettings={testsFilterSettings}
             updateFilter={handleUpdateFilterData}
             updateSettings={handleUpdateFilterSettings}
@@ -252,7 +199,7 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
         isLoading={false}
       >
         {isOpenFilter && (
-          <Form onFinish={handleSubmit(onSubmit)} layout="vertical">
+          <Form onFinish={triggerSubmit} layout="vertical">
             <Form.Item
               label={t("Name or ID")}
               data-testid="tests-button-filter-drawer-name-or-id-label"
@@ -355,14 +302,14 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
               className={styles.formBetween}
               label={
                 <div className={styles.formLabel}>
-                  <span>{t("Assignee")}</span>
+                  <span>{t("entities:user.Assignee")}</span>
                   <button
                     type="button"
                     className={styles.assigneeToMe}
                     onClick={handleAssigneeToMe}
                     data-testid="tests-button-filter-drawer-assignee-to-me"
                   >
-                    {t("Assigned to me")}
+                    {t("entities:user.AssignToMe")}
                   </button>
                 </div>
               }

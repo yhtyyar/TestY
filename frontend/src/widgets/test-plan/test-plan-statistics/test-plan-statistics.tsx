@@ -15,8 +15,8 @@ import { DEFAULT_ESTIMATE_PERIOD, NOT_ASSIGNED_FILTER_VALUE } from "shared/const
 import styles from "./styles.module.css"
 import { TestPlanChildStatistic } from "./test-plan-child-statistic/test-plan-child-statistic"
 import { TestPlanHistogram } from "./test-plan-histogram/test-plan-histogram"
-import { TestPlanPieCount } from "./test-plan-pie-count"
-import { TestPlanPieEstimates } from "./test-plan-pie-estimates/test-plan-pie-estimates"
+import { TestPlanPieCount } from "./test-plan-pie/ui/test-plan-pie-count"
+import { TestPlanPieEstimates } from "./test-plan-pie/ui/test-plan-pie-estimates/test-plan-pie-estimates"
 
 interface Props {
   testPlanId?: number

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -58,7 +58,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 
 loaded_hosts = os.environ.get('ALLOWED_HOSTS', [])
 csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', [])
@@ -107,6 +107,8 @@ TESTY_PLUGINS = [
     'testrail_migrator',
     'allure_uploader',
     'plugin_example',
+    'defect_report',
+    'test-plan-exporter',
 ]
 # Defines if response should be served as nginx redirection
 TESTY_ALLOW_FILE_RESPONSE = parse_bool_from_str(os.getenv('TESTY_ALLOW_FILE_RESPONSE', 'True'))
@@ -146,6 +148,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'testy.utilities.context_processor.settings_context',
             ],
         },
     },

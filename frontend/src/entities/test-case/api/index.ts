@@ -1,4 +1,5 @@
 import { createApi } from "@reduxjs/toolkit/dist/query/react"
+import { FetchBaseQueryMeta } from "@reduxjs/toolkit/query"
 
 import { baseQueryWithLogout } from "app/apiSlice"
 
@@ -8,8 +9,11 @@ import { suiteInvalidate } from "entities/suite/api"
 
 import { systemStatsInvalidate } from "entities/system/api"
 
-import { testPlanLabelsInvalidate } from "entities/test-plan/api"
+import { testInvalidate } from "entities/test/api"
 
+import { testPlanLabelsInvalidate, testPlanTestsInvalidate } from "entities/test-plan/api"
+
+import { updateVersionEvent } from "shared/events/update-version-event"
 import { providesList } from "shared/libs"
 
 import { setDrawerTestCase, setDrawerTestCaseIsArchive } from "../model"
@@ -53,8 +57,13 @@ export const testCaseApi = createApi({
         dispatch(testPlanLabelsInvalidate)
         dispatch(suiteInvalidate())
         dispatch(systemStatsInvalidate)
+        dispatch(testPlanTestsInvalidate)
+        dispatch(testInvalidate)
       },
-      invalidatesTags: [{ type: "TestCase", id: "LIST" }],
+      invalidatesTags: [
+        { type: "TestCase", id: "LIST" },
+        { type: "TestPlanTestCases", id: "LIST" },
+      ],
     }),
     updateTestCase: builder.mutation<TestCase, TestCaseUpdate>({
       query: (body) => ({
@@ -122,7 +131,23 @@ export const testCaseApi = createApi({
       query: ({ testCaseId, ...params }) => ({
         url: `${rootPath}/${testCaseId}/`,
         params,
+        redirect: "follow",
       }),
+      transformResponse(response: TestCase, meta: FetchBaseQueryMeta) {
+        if (meta?.response?.redirected) {
+          try {
+            const redirectUrl = new URL(meta.response.url)
+            const ver = redirectUrl.searchParams.get("ver")
+
+            if (ver) {
+              updateVersionEvent.dispatch({ ver: ver })
+            }
+          } catch (error) {
+            console.error("Error handling redirect:", error)
+          }
+        }
+        return response
+      },
       providesTags: (_, __, { testCaseId }) => [{ type: "TestCase", id: testCaseId }],
     }),
     getTestCaseDeletePreview: builder.query<DeletePreviewResponse[], string>({

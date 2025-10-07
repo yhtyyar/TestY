@@ -57,6 +57,7 @@ const getDefaultValues = (projectId: number) => ({
   description: "",
   attachments: [],
   steps: [],
+  expanded_steps: [],
   is_steps: false,
   labels: [],
   attributes: [],
@@ -162,7 +163,8 @@ export const useTestCaseCreateView = () => {
   }
 
   const onSubmit: SubmitHandler<TestCaseFormData> = async (data) => {
-    const dataForm = data as SubmitData
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { expanded_steps, ...dataForm } = data as SubmitData
 
     const { isSuccess, attributesJson, errors: attributesErrors } = makeAttributesJson(attributes)
     if (!isSuccess) {

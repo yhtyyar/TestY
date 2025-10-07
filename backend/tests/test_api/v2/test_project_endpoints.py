@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -43,7 +43,7 @@ from django.utils import timezone
 
 from tests import constants
 from tests.commons import RequestType, model_to_dict_via_serializer
-from tests.error_messages import PERMISSION_ERR_MSG
+from tests.error_messages import PERMISSION_ERR_MSG, WRONG_ESTIMATE_FORMAT
 from tests.mock_serializers.v2 import ProjectRetrieveMockSerializer, ProjectStatisticsMockSerializer
 from tests.test_api.v2.test_role_endpoints import TestRoleEndpoints
 from testy.core.choices import AccessRequestStatus
@@ -261,7 +261,7 @@ class TestProjectEndpoints:
             projects.extend(project_factory() for _ in range(expected_number_of_objects))
         for filter_value in ('name', 'is_archive'):
             with allure.step(f'Validate {filter_value}'):
-                projects.sort(key=attrgetter(filter_value))
+                projects.sort(key=attrgetter(filter_value, 'id'))
             content = superuser_client.send_request(
                 self.view_name_list,
                 query_params={'ordering': filter_value, 'is_archive': 'true'},
@@ -352,7 +352,7 @@ class TestProjectEndpoints:
 
     @allure.title('Test default settings values')
     def test_settings_default_values(self, superuser_client, project_factory):
-        with allure.step('Create project with empty settinsg'):
+        with allure.step('Create project with empty settings'):
             project = project_factory(settings={})
         response = superuser_client.send_request(self.view_name_detail, reverse_kwargs={'pk': project.pk})
         actual_dict = response.json()
@@ -367,6 +367,22 @@ class TestProjectEndpoints:
             )
         with allure.step('Validate project default status set correctly'):
             assert actual_dict['settings']['default_status'] == project_settings.default_status
+
+    @pytest.mark.parametrize('invalid_estimate', ['-123', '-8h', 'qwerty', '-8h 5m'])
+    def test_invalid_settings_values(self, superuser_client, project_factory, invalid_estimate):
+        allure.dynamic.title(f'Test invalid settings time with value {invalid_estimate}')
+        with allure.step('Create project with empty settings'):
+            project = project_factory(settings={})
+        invalid_settings = {'is_result_editable': True, 'result_edit_limit': invalid_estimate}
+        response = superuser_client.send_request(
+            self.view_name_detail,
+            request_type=RequestType.PATCH,
+            data={'settings': invalid_settings},
+            expected_status=HTTPStatus.BAD_REQUEST,
+            reverse_kwargs={'pk': project.pk},
+        ).json()
+        with allure.step('Check response error message'):
+            assert response['settings']['result_edit_limit'][0] == WRONG_ESTIMATE_FORMAT
 
     @allure.title('Test default status from foreign project cannot be selected')
     def test_default_from_foreign_project_forbidden(

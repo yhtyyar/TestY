@@ -1,7 +1,6 @@
-import { Space, TablePaginationConfig } from "antd"
-import { ColumnsType, TableProps } from "antd/es/table"
-import { FilterValue } from "antd/lib/table/interface"
-import { useState } from "react"
+import { ColumnDef, ColumnFiltersState, Table, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Space } from "antd"
+import { useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useAppSelector } from "app/hooks"
@@ -13,159 +12,169 @@ import { UserAvatar } from "entities/user/ui/user-avatar/user-avatar"
 
 import { DeleteUser, EditUser } from "features/user"
 
-import { config } from "shared/config"
-import { useTableSearch } from "shared/hooks"
+import { TableFilterSearch, TableFilterSelect } from "shared/ui"
 import { CheckedIcon } from "shared/ui/icons"
 
+const columnHelper = createColumnHelper<User>()
 export const useUsersTable = () => {
   const { t } = useTranslation()
-  const [paginationParams, setPaginationParams] = useState({
-    page: 1,
-    page_size: 10,
-  })
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
-  const [filterInfoRequest, setFilteredInfoRequest] = useState<GetUsersQuery>({})
   const user = useAppSelector(selectUser)
+  const tableRef = useRef<Table<User> | null>(null)
+  const [paginationParams, setPaginationParams] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
+  const filterRequest = useMemo(() => {
+    const filters: Record<string, unknown> = {}
+    columnFilters.forEach((filter) => {
+      filters[filter.id] = filter.value
+    })
+    return filters
+  }, [columnFilters])
 
   const { data: users, isLoading } = useGetUsersQuery({
-    ...paginationParams,
-    ...filterInfoRequest,
+    page: paginationParams.pageIndex + 1,
+    page_size: paginationParams.pageSize,
+    ...filterRequest,
   })
 
-  const { setSearchText, getColumnSearch } = useTableSearch()
-
-  const handleChange: TableProps<User>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>
-  ) => {
-    setFilteredInfo(filters)
-    setFilteredInfoRequest((prevState) => ({
-      ...prevState,
-      username: filters?.username ? String(filters.username[0]) : undefined,
-      email: filters?.email ? String(filters.email[0]) : undefined,
-      first_name: filters?.first_name ? String(filters.first_name[0]) : undefined,
-      last_name: filters?.last_name ? String(filters.last_name[0]) : undefined,
-      is_active: filters?.is_active ? Boolean(filters.is_active[0]) : undefined,
-      is_superuser: filters?.is_superuser ? Boolean(filters.is_superuser[0]) : undefined,
-    }))
-  }
-
   const clearAll = () => {
-    setFilteredInfo({})
-    setFilteredInfoRequest({})
-    setSearchText("")
+    tableRef.current?.resetColumnFilters()
+    tableRef.current?.resetSorting()
   }
 
-  const columns: ColumnsType<User> = [
+  const columns = [
     {
-      key: "avatar",
-      width: "32px",
-      align: "right",
-      render: (_, record) => <UserAvatar avatar_link={record.avatar_link} size={32} />,
-    },
+      id: "avatar",
+      cell: ({ row }) => <UserAvatar avatar_link={row.original.avatar_link} size={32} />,
+      size: 32,
+    } as ColumnDef<User>,
+    columnHelper.accessor("username", {
+      id: "username",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Username")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("email", {
+      id: "email",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Email")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("first_name", {
+      id: "first_name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("First Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("last_name", {
+      id: "last_name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Last Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("is_active", {
+      id: "is_active",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Active")}</span>
+          <Flex align="center" gap={4} style={{ marginLeft: 4 }}>
+            <TableFilterSelect
+              column={column}
+              options={[{ label: "Active", key: "active", value: true }]}
+            />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ getValue }) => <CheckedIcon value={getValue()} />,
+      filterFn: (row, _, filterValue: number[]) => {
+        if (!filterValue || filterValue.length === 0) return true
+        return filterValue.includes(row.getValue("type"))
+      },
+      size: 100,
+    }),
+    columnHelper.accessor("is_superuser", {
+      id: "is_superuser",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Admin")}</span>
+          <Flex align="center" gap={4} style={{ marginLeft: 4 }}>
+            <TableFilterSelect
+              column={column}
+              options={[{ label: "Admin", key: "admin", value: true }]}
+            />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ getValue }) => <CheckedIcon value={getValue()} />,
+      filterFn: (row, _, filterValue: number[]) => {
+        if (!filterValue || filterValue.length === 0) return true
+        return filterValue.includes(row.getValue("type"))
+      },
+      size: 100,
+    }),
     {
-      title: t("Username"),
-      dataIndex: "username",
-      key: "username",
-      filteredValue: filteredInfo.username ?? null,
-      ...getColumnSearch("username"),
-      onFilter: (value, record) =>
-        record.username.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Email"),
-      dataIndex: "email",
-      key: "email",
-      filteredValue: filteredInfo.email ?? null,
-      ...getColumnSearch("email"),
-      onFilter: (value, record) => record.email.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("First Name"),
-      dataIndex: "first_name",
-      key: "first_name",
-      filteredValue: filteredInfo.first_name ?? null,
-      ...getColumnSearch("first_name"),
-      onFilter: (value, record) =>
-        record.first_name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Last Name"),
-      dataIndex: "last_name",
-      key: "last_name",
-      filteredValue: filteredInfo.last_name ?? null,
-      ...getColumnSearch("last_name"),
-      onFilter: (value, record) =>
-        record.last_name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Active"),
-      dataIndex: "is_active",
-      key: "is_active",
-      width: 100,
-      filters: [
-        {
-          text: "Active",
-          value: true,
-        },
-      ],
-      filteredValue: filteredInfo.is_active ?? null,
-      onFilter: (_, record) => record.is_active,
-      render: (is_active: boolean) => <CheckedIcon value={is_active} />,
-    },
-    {
-      title: t("Admin"),
-      dataIndex: "is_superuser",
-      key: "is_superuser",
-      width: 100,
-      filters: [
-        {
-          text: "Admin",
-          value: true,
-        },
-      ],
-      filteredValue: filteredInfo.is_superuser ?? null,
-      onFilter: (_, record) => record.is_superuser,
-      render: (is_superuser: boolean) => <CheckedIcon value={is_superuser} />,
-    },
-    {
-      key: "action",
-      width: 110,
-      render: (_, record) => {
+      id: "actions",
+      header: t("Actions"),
+      cell: ({ row }) => {
         return user?.is_superuser ? (
           <Space>
-            <EditUser user={record} />
-            <DeleteUser user={record} />
+            <EditUser user={row.original} />
+            <DeleteUser user={row.original} />
           </Space>
         ) : null
       },
-    },
+      size: 110,
+    } as ColumnDef<User>,
   ]
 
-  const handlePaginationChange = (page: number, page_size: number) => {
-    setPaginationParams({
-      page,
-      page_size,
-    })
-  }
-
-  const paginationTable: TablePaginationConfig = {
-    total: users?.pages.total ?? 0,
-    hideOnSinglePage: false,
-    pageSizeOptions: config.pageSizeOptions,
-    showLessItems: true,
-    showSizeChanger: true,
-    current: paginationParams.page,
-    pageSize: paginationParams.page_size,
-    onChange: handlePaginationChange,
-  }
-
   return {
+    tableRef,
     users: users?.results ?? [],
+    total: users?.pages.total ?? 0,
     isLoading,
     columns,
-    paginationTable,
-    handleChange,
+    paginationParams,
+    columnFilters,
+    setColumnFilters,
+    setPaginationParams,
     clearAll,
   }
 }

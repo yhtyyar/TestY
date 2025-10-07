@@ -49,7 +49,7 @@ export const useTestCasesFilter = ({
           style={{ width: 40, margin: 0 }}
           data-testid="test-cases-filter-switcher-archived"
         />
-        <Typography.Text style={{ width: 94 }}>{t("Show Archived")}</Typography.Text>
+        <Typography.Text>{t("Show Archived")}</Typography.Text>
       </div>
       <div className={styles.row}>
         <LabelWrapper labelProps={labelProps} noAdding />

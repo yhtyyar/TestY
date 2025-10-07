@@ -1,0 +1,9 @@
+.tableFooter {
+  border-top: 1px solid var(--y-color-divider);
+  font-weight: 500;
+  background-color: var(--y-color-background-alternative);
+}
+
+.tableFooter tr:last-child {
+  border-bottom: 0;
+}

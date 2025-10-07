@@ -18,7 +18,7 @@ interface Props {
 }
 
 export const AssignTo = ({ onSuccess, canChange = true }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
   const {
     activeTest,
     isDirty,
@@ -40,14 +40,14 @@ export const AssignTo = ({ onSuccess, canChange = true }: Props) => {
   return (
     <>
       <div>
-        <span className={styles.label}>{t("Assignee")}</span>
+        <span className={styles.label}>{t("entities:user.Assignee")}</span>
         {!isAssigneMe && canChange && (
           <span
             data-testid="test-detail-assign-to-me"
             onClick={handleAssignToMe}
             className={styles.assignToMe}
           >
-            {t("Assign To Me")}
+            {t("entities:user.AssignToMe")}
           </span>
         )}
       </div>

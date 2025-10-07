@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -168,6 +168,9 @@ class Command(BaseCommand):
                     UserAllowedPermissionCodenames.ADD_ATTRIBUTE,
                     UserAllowedPermissionCodenames.CHANGE_ATTRIBUTE,
                     UserAllowedPermissionCodenames.DELETE_ATTRIBUTE,
+                    UserAllowedPermissionCodenames.ADD_PROJECT_INTEGRATION,
+                    UserAllowedPermissionCodenames.CHANGE_PROJECT_INTEGRATION,
+                    UserAllowedPermissionCodenames.DELETE_PROJECT_INTEGRATION,
                 ],
             ),
             (
@@ -204,6 +207,9 @@ class Command(BaseCommand):
                     UserAllowedPermissionCodenames.ADD_ATTRIBUTE,
                     UserAllowedPermissionCodenames.CHANGE_ATTRIBUTE,
                     UserAllowedPermissionCodenames.DELETE_ATTRIBUTE,
+                    UserAllowedPermissionCodenames.ADD_PROJECT_INTEGRATION,
+                    UserAllowedPermissionCodenames.CHANGE_PROJECT_INTEGRATION,
+                    UserAllowedPermissionCodenames.DELETE_PROJECT_INTEGRATION,
                 ],
             ),
             (

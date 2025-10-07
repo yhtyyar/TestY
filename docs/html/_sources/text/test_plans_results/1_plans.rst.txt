@@ -143,11 +143,26 @@
 - Кнопки действий, доступных для тест-плана;
 - Вкладки **Overview**, **Activity**, **Custom Attributes**,
   **Attachments**.
+- Интеграционное меню **Integrations**
 
 Все действия также доступны пользователю в меню, открывающемся при
 нажатии правой кнопки мыши на название тестового плана в боковой панели:
 
 |image64|
+
+Интеграционное меню
+~~~~~~~~~~~~~~~~~~~~
+
+Интеграционное меню доступно в виде выпадающего списка, который расположен справа от кнопок действий.
+
+|integrationMenu|
+
+Интеграцаионное меню отображается только в том случае, если к проекту добавлена хоть одна интеграция на вкладке Администрирования.
+
+По нажатию на меню, отображается выпадающий выпадающий список, который содержит в себе все добавленные интеграции.
+При наведении курсора на ссылку отображается tooltip с дополнительной информацией.
+
+|integrationMenuTooltip|
 
 
 .. |image55| image:: ../../static/image79.png
@@ -180,3 +195,9 @@
 .. |image64| image:: ../../static/image64.png
    :class: confluence-embedded-image
    :width: 400px
+.. |integrationMenu| image:: ../../static/integrationMenu.png
+   :class: confluence-embedded-image
+   :width: 1000px
+.. |integrationMenuTooltip| image:: ../../static/integrationMenuTooltip.png
+   :class: confluence-embedded-image
+   :width: 1000px

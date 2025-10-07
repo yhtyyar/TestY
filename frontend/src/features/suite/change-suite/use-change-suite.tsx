@@ -270,14 +270,14 @@ export const useChangeTestSuite = ({ type }: Props) => {
   }, [parameters])
 
   useEffect(() => {
-    const parentTestSuiteId = searchParams.get("parentTestSuite")
-    if (!parentTestSuiteId || (parentTestSuiteId && stateTestSuite)) {
+    const parentId = searchParams.get("parent")
+    if (!parentId || (parentId && stateTestSuite)) {
       return
     }
 
     const fetchParentSuite = async () => {
       const suite = await getTestSuite({
-        suiteId: parentTestSuiteId,
+        suiteId: parentId,
       }).unwrap()
       setStateTestSuite(suite)
       setValue("parent", suite.id)
@@ -285,7 +285,7 @@ export const useChangeTestSuite = ({ type }: Props) => {
     }
 
     fetchParentSuite()
-  }, [stateTestSuite, searchParams.get("parentTestSuite")])
+  }, [stateTestSuite, searchParams.get("parent")])
 
   useEffect(() => {
     if (!stateTestSuite || isLoadingAttributes) return

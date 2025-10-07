@@ -1,84 +1,91 @@
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons"
-import { Space, Table, TableProps } from "antd"
-import { ColumnsType } from "antd/es/table"
-import type { FilterValue, TablePaginationConfig } from "antd/es/table/interface"
-import { useState } from "react"
+import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Space } from "antd"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useDispatch } from "react-redux"
-import { useParams } from "react-router-dom"
+import { DataTable } from "widgets"
 
 import { useDeleteParameterMutation, useGetParametersQuery } from "entities/parameter/api"
 import { setParameter, showEditParameterModal } from "entities/parameter/model"
 
-import { useTableSearch } from "shared/hooks"
+import { useProjectContext } from "pages/project"
+
 import { initInternalError } from "shared/libs"
 import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
 import { Button } from "shared/ui"
+import { TableFilterSearch, TableSorting } from "shared/ui"
 
+const columnHelper = createColumnHelper<IParameter>()
 export const ParametersTable = () => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const { projectId } = useParams<ParamProjectId>()
-  const { data: parameters, isFetching } = useGetParametersQuery(Number(projectId), {
-    skip: !projectId,
-  })
+  const project = useProjectContext()
+  const { data: parameters = [], isFetching } = useGetParametersQuery(project.id)
   const [deleteParameter] = useDeleteParameterMutation()
-
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
-  const { setSearchText, getColumnSearch } = useTableSearch()
 
   const showParameterDetail = (parameter: IParameter) => {
     dispatch(setParameter(parameter))
     dispatch(showEditParameterModal())
   }
 
-  const handleChange: TableProps<IParameter>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>
-  ) => {
-    setFilteredInfo(filters)
-  }
+  const tableRef = useRef<Table<IParameter> | null>(null)
 
   const clearAll = () => {
-    setFilteredInfo({})
-    setSearchText("")
+    tableRef.current?.resetColumnFilters()
+    tableRef.current?.resetSorting()
   }
 
-  const columns: ColumnsType<IParameter> = [
+  const columns = [
+    columnHelper.accessor("data", {
+      id: "name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Name")}</span>
+          <Flex gap={4}>
+            <TableSorting column={column} />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ getValue }) => <span data-testid={`${getValue()}-name`}>{getValue()}</span>,
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("group_name", {
+      id: "group_name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Group")}</span>
+          <Flex gap={4}>
+            <TableSorting column={column} />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ getValue, row }) => (
+        <span data-testid={`${row.original.data}-group-name`}>{getValue()}</span>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
     {
-      title: t("Name"),
-      dataIndex: "data",
-      key: "data",
-      filteredValue: filteredInfo.data ?? null,
-      ...getColumnSearch("data"),
-      onFilter: (value, record) => record.data.toLowerCase().includes(String(value).toLowerCase()),
-      render: (value, record) => <span data-testid={`${record.data}-name`}>{value}</span>,
-    },
-    {
-      title: t("Group"),
-      dataIndex: "group_name",
-      key: "group_name",
-      filteredValue: filteredInfo.group_name ?? null,
-      ...getColumnSearch("group_name"),
-      onFilter: (value, record) =>
-        record.group_name.toLowerCase().includes(String(value).toLowerCase()),
-      render: (value, record) => <span data-testid={`${record.data}-group-name`}>{value}</span>,
-    },
-    {
-      title: t("Action"),
-      key: "action",
-      width: 100,
-      render: (_, record) => (
+      id: "actions",
+      header: t("Actions"),
+      cell: ({ row }) => (
         <Space>
           <Button
-            id={`${record.data}-edit`}
+            id={`${row.original.data}-edit`}
             icon={<EditOutlined />}
             shape="circle"
-            onClick={() => showParameterDetail(record)}
+            onClick={() => showParameterDetail(row.original)}
             color="secondary-linear"
           />
           <Button
-            id={`${record.data}-delete`}
+            id={`${row.original.data}-delete`}
             icon={<DeleteOutlined />}
             shape="circle"
             danger
@@ -89,7 +96,7 @@ export const ParametersTable = () => {
                 okText: t("Delete"),
                 onOk: async () => {
                   try {
-                    await deleteParameter(record.id).unwrap()
+                    await deleteParameter(row.original.id).unwrap()
                     antdNotification.success("delete-parameter", {
                       description: t("Parameter deleted successfully"),
                     })
@@ -102,7 +109,8 @@ export const ParametersTable = () => {
           />
         </Space>
       ),
-    },
+      size: 100,
+    } as ColumnDef<IParameter>,
   ]
 
   return (
@@ -112,15 +120,11 @@ export const ParametersTable = () => {
           {t("Clear filters and sorters")}
         </Button>
       </Space>
-      <Table
-        loading={isFetching}
-        dataSource={parameters}
+      <DataTable
+        tableRef={tableRef}
+        isLoading={isFetching}
+        data={parameters}
         columns={columns}
-        rowKey="data"
-        style={{ marginTop: 12 }}
-        onChange={handleChange}
-        id="administration-projects-parameters"
-        rowClassName="administration-projects-parameters-row"
         data-testid="parameters-table"
       />
     </>

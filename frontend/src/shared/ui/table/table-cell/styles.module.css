@@ -1,0 +1,26 @@
+.tableCell {
+  vertical-align: middle;
+  word-break: break-all;
+  padding: 16px;
+  position: relative;
+}
+
+.isPinnedLeft::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}
+
+.isPinnedRight::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}

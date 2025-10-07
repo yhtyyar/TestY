@@ -1,0 +1,30 @@
+.graphsTitle {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 400;
+  height: 32px;
+}
+
+.pieWrapper {
+  display: flex;
+  flex-direction: column;
+  row-gap: 16px;
+  position: relative;
+  width: 100%;
+}
+
+.pieHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+}
+
+.notEstimatedBlock {
+  display: flex;
+  font-size: 15px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}

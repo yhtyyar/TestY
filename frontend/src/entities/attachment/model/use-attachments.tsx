@@ -74,7 +74,7 @@ export const useAttachments = <T, >(
   }
 
   const onChange = (info: UploadChangeParam<UploadFileExtend<IAttachmentWithUid[]>>) => {
-    const fileList = info.fileList as IAttachmentWithUid[]
+    const fileList = (info.fileList as IAttachmentWithUid[]).map((f) => ({ ...f, filename: f.name }))
     setAttachments(fileList)
   }
 

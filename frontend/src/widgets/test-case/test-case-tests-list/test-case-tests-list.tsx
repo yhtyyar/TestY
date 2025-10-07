@@ -1,11 +1,10 @@
-import { Table } from "antd"
-import { TableProps } from "antd/es/table"
-import { ColumnsType, TablePaginationConfig } from "antd/lib/table"
-import { FilterValue } from "antd/lib/table/interface"
+import { ColumnFiltersState, SortingState, createColumnHelper } from "@tanstack/react-table"
+import { Flex } from "antd"
 import { useStatuses } from "entities/status/model/use-statuses"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link, useParams } from "react-router-dom"
+import { Link } from "react-router-dom"
+import { DataTable } from "widgets"
 
 import { useGetTestCaseTestsListQuery } from "entities/test-case/api"
 
@@ -13,135 +12,166 @@ import { useTestPlanActivityBreadcrumbs } from "entities/test-plan/model"
 
 import { UserAvatar, UserUsername } from "entities/user/ui"
 
-import { antdSorterToTestySort } from "shared/libs"
-import { Status } from "shared/ui"
-import { UntestedStatus } from "shared/ui/status"
+import { useProjectContext } from "pages/project"
 
-interface TableParams {
-  sorter: string
-  filters: Record<string, FilterValue | null>
-}
+import { Status, TableFilterSelect, TableSorting } from "shared/ui"
+import { UntestedStatus } from "shared/ui/status"
+import { testySortRequestFormat } from "shared/ui/table/utils"
 
 interface Props {
   testCase: TestCase
   isShowArchive: boolean
 }
 
+const columnHelper = createColumnHelper<TestsWithPlanBreadcrumbs>()
 export const TestCaseTestsList = ({ testCase, isShowArchive }: Props) => {
-  const { t } = useTranslation()
-  const { projectId } = useParams<ParamProjectId>()
+  const { t } = useTranslation(["translation", "entities"])
+  const project = useProjectContext()
   const { renderBreadCrumbs } = useTestPlanActivityBreadcrumbs()
-  const [tableParams, setTableParams] = useState<TableParams>({ sorter: "", filters: {} })
-  const [pagination, setPagination] = useState({
-    page: 1,
-    page_size: 5,
+  const [paginationParams, setPaginationParams] = useState({
+    pageIndex: 0,
+    pageSize: 10,
   })
 
-  const { statusesFiltersWithUntested } = useStatuses({ project: projectId })
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [columnSorting, setColumnSorting] = useState<SortingState>([])
+
+  const filterRequest = useMemo(() => {
+    const filters: Record<string, unknown> = {}
+    columnFilters.forEach((filter) => {
+      filters[filter.id] = filter.value
+    })
+    return filters
+  }, [columnFilters])
+
+  const ordering = useMemo(() => testySortRequestFormat(columnSorting), [columnSorting])
+
+  const { statusesFiltersWithUntested } = useStatuses({ project: project.id })
 
   const { data, isFetching } = useGetTestCaseTestsListQuery(
     {
       testCaseId: testCase.id,
-      page: pagination.page,
-      page_size: pagination.page_size,
-      ordering: tableParams.sorter ? tableParams.sorter : "",
-      last_status: tableParams.filters?.last_status?.join(",") ?? undefined,
+      page: paginationParams.pageIndex + 1,
+      page_size: paginationParams.pageSize,
       is_archive: isShowArchive,
+      ordering,
+      ...filterRequest,
     },
     {
       refetchOnMountOrArgChange: true,
     }
   )
 
-  const handlePaginationChange = (page: number, page_size: number) => {
-    setPagination({ page, page_size })
-  }
-
-  const columns: ColumnsType<TestsWithPlanBreadcrumbs> = [
-    {
-      title: t("ID"),
-      dataIndex: "id",
-      key: "id",
-      width: "70px",
-      sorter: true,
-      render: (_, record) => (
-        <Link to={`/projects/${record.project}/plans/${record.plan}?test=${record.id}`}>
-          {record.id}
+  const columns = [
+    columnHelper.accessor("id", {
+      id: "id",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("ID")}</span>
+          <Flex align="center" gap={4}>
+            <TableSorting column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ row }) => (
+        <Link
+          to={`/projects/${row.original.project}/plans/${row.original.plan}?test=${row.original.id}`}
+        >
+          {row.original.id}
         </Link>
       ),
-    },
-    {
-      title: t("Test Plan"),
-      dataIndex: "breadcrumbs",
-      key: "breadcrumbs",
-      render: (value: BreadCrumbsActivityResult) => renderBreadCrumbs(value),
-    },
-    {
-      title: t("Last status"),
-      dataIndex: "last_status",
-      key: "last_status",
-      width: "150px",
-      filters: statusesFiltersWithUntested,
-      render: (last_status, record) => {
-        if (!last_status) {
+      size: 70,
+      meta: {
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("breadcrumbs", {
+      id: "breadcrumbs",
+      header: t("Test Plan"),
+      cell: ({ getValue }) => renderBreadCrumbs(getValue()),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("last_status", {
+      id: "last_status",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Last status")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSelect
+              column={column}
+              options={statusesFiltersWithUntested.map((i) => ({
+                label: i.text,
+                key: i.value,
+                value: i.value,
+              }))}
+            />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ row }) => {
+        if (!row.original.last_status) {
           return <UntestedStatus />
         }
         return (
           <Status
-            id={record.last_status}
-            name={record.last_status_name}
-            color={record.last_status_color}
+            id={row.original.last_status}
+            name={row.original.last_status_name}
+            color={row.original.last_status_color}
           />
         )
       },
-    },
-    {
-      title: t("Assignee"),
-      dataIndex: "assignee_username",
-      key: "assignee_username",
-      sorter: true,
-      render: (_, record) => {
-        if (!record.assignee_username) {
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("assignee_username", {
+      id: "assignee",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("entities:user.Assignee")}</span>
+          <Flex align="center" gap={4}>
+            <TableSorting column={column} />
+          </Flex>
+        </Flex>
+      ),
+      cell: ({ row }) => {
+        if (!row.original.assignee_username) {
           return <span style={{ opacity: 0.7 }}>{t("Nobody")}</span>
         }
 
         return (
           <div style={{ display: "flex", alignItems: "center", flexDirection: "row", gap: 8 }}>
-            <UserAvatar size={32} avatar_link={record.avatar_link} />
-            <UserUsername username={record.assignee_username} />
+            <UserAvatar size={32} avatar_link={row.original.avatar_link} />
+            <UserUsername username={row.original.assignee_username} />
           </div>
         )
       },
-    },
+      meta: {
+        responsiveSize: true,
+      },
+    }),
   ]
 
-  const handleChange: TableProps<TestsWithPlanBreadcrumbs>["onChange"] = (
-    _: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>,
-    sorter
-  ) => {
-    const testySorting = antdSorterToTestySort(sorter, "tests")
-    setTableParams({ sorter: testySorting, filters })
-  }
-
   return (
-    <>
-      <Table
-        dataSource={data?.results ?? []}
-        style={{ cursor: "pointer" }}
-        columns={columns}
-        pagination={{
-          onChange: handlePaginationChange,
-          pageSize: pagination.page_size,
-          current: pagination.page,
-          total: data?.count ?? 0,
-        }}
-        size="small"
-        onChange={handleChange}
-        rowKey="id"
-        loading={isFetching}
-        data-testid="test-case-tests-list"
-      />
-    </>
+    <DataTable
+      isLoading={isFetching}
+      data={data?.results ?? []}
+      columns={columns}
+      rowCount={data?.count ?? 0}
+      onPaginationChange={setPaginationParams}
+      onColumnFiltersChange={setColumnFilters}
+      onSortingChange={setColumnSorting}
+      state={{
+        pagination: paginationParams,
+        columnFilters,
+        sorting: columnSorting,
+      }}
+      manualPagination
+      manualSorting
+      manualFiltering
+      data-testid="test-case-tests-table"
+    />
   )
 }

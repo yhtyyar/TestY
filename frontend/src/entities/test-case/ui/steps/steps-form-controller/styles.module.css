@@ -18,12 +18,14 @@
 
 .item {
   display: flex;
+  align-items: stretch;
   flex-direction: row;
-  align-items: flex-start;
   list-style: none;
   position: relative;
   margin-bottom: 16px;
   user-select: none;
+  width: 100%;
+  gap: 12px;
 }
 
 .item.expanded {

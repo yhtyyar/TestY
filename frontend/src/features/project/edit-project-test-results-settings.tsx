@@ -8,7 +8,7 @@ import { useUpdateProjectJsonMutation } from "entities/project/api"
 
 import { config } from "shared/config"
 import { ErrorObj, useErrors } from "shared/hooks"
-import { AlertError, AlertSuccessChange, Button } from "shared/ui"
+import { AlertError, AlertSuccessChange, Button, InfoTooltipBtn } from "shared/ui"
 
 interface Props {
   project: Project
@@ -50,6 +50,12 @@ export const EditProjectTestResultsSettings = ({ project }: Props) => {
     result_edit_limit,
   }) => {
     setErrors(null)
+
+    if (result_edit_limit === "0") {
+      setErrors({ result_edit_limit: "Result edit limit must be greater than 0" })
+      return
+    }
+
     try {
       const settings: ProjectSettings = {
         is_result_editable,
@@ -152,7 +158,13 @@ export const EditProjectTestResultsSettings = ({ project }: Props) => {
                 <Controller
                   name="result_edit_limit"
                   control={control}
-                  render={({ field }) => <Input {...field} value={field.value ?? ""} />}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      suffix={<InfoTooltipBtn title={config.estimateTooltip} />}
+                    />
+                  )}
                 />
               </Form.Item>
             )}

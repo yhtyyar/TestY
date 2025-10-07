@@ -1,10 +1,12 @@
 import { QueryStatus } from "@reduxjs/toolkit/dist/query"
-import { Modal, Table, Typography } from "antd"
-import { ColumnsType } from "antd/lib/table"
+import { ColumnDef } from "@tanstack/react-table"
+import { Modal, Typography } from "antd"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "shared/ui"
+
+import { DataTable } from "widgets/data-table/data-table"
 
 interface Props<T> {
   status: QueryStatus
@@ -28,7 +30,6 @@ interface DataType {
 
 // eslint-disable-next-line comma-spacing
 export const ModalConfirmDeleteArchive = <T extends DataType>({
-  status,
   isShow,
   name,
   handleClose,
@@ -42,19 +43,28 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
 }: Props<T>) => {
   const { t } = useTranslation()
 
-  const columns: ColumnsType<T> = [
+  const columns: ColumnDef<T>[] = [
     {
-      title: t("Verbose Name"),
-      dataIndex: "verbose_name",
+      accessorKey: "verbose_name",
+      header: t("Name"),
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
+      },
     },
     {
-      title: t("Verbose Name Related Model"),
-      dataIndex: "verbose_name_related_model",
+      accessorKey: "verbose_name_related_model",
+      header: t("Verbose Name Related Model"),
+      meta: {
+        responsiveSize: true,
+      },
     },
     {
-      title: t("Count"),
-      dataIndex: "count",
-      align: "right",
+      accessorKey: "count",
+      header: () => <span style={{ textAlign: "right" }}>{t("Count")}</span>,
+      meta: {
+        responsiveSize: true,
+      },
     },
   ]
 
@@ -64,9 +74,7 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
 
   return (
     <Modal
-      data-testid={`${type}-${action}-modal`}
-      bodyProps={{ "data-testid": `${type}-${action}-modal-body` }}
-      wrapProps={{ "data-testid": `${type}-${action}-modal-wrapper` }}
+      className={`${type}-${action}-modal`}
       open={isShow}
       title={`${action === "archive" ? t("Archive") : t("Delete")} ${typeTitle} '${name}'`}
       onCancel={handleClose}
@@ -96,13 +104,12 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
         {t("Attention")}: {action === "archive" ? t("Archiving") : t("Deleting")}{" "}
         {t("the selected data in this table will remove it from view")}
       </Typography.Paragraph>
-      <Table
-        rowKey="id"
+      <DataTable
+        isLoading={isLoading}
+        data={dataClear}
         columns={columns}
-        dataSource={dataClear}
-        size="small"
-        pagination={false}
-        loading={status === "pending"}
+        paginationVisible={false}
+        manualPagination
         data-testid={`${type}-${action}-modal-table`}
       />
     </Modal>

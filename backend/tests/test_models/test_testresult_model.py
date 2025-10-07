@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -41,10 +41,11 @@ from testy.tests_representation.models import TestResult
 class TestResultModel:
     relation_name = TestResult._meta.label_lower.replace('.', '_')
 
-    @pytest.mark.parametrize('parameter_name', ['test', 'is_archive'])
+    @pytest.mark.parametrize('parameter_name', ['test', 'is_archive', 'test_case_version'])
     def test_not_null_constraint(self, parameter_name, test_result_factory):
+        param_dict = {'test_case_version': 1, parameter_name: None}
         with pytest.raises(IntegrityError) as err:
-            test_result_factory(**{parameter_name: None})
+            test_result_factory(**param_dict)
         parameter_name = 'test_id' if parameter_name == 'test' else parameter_name
         assert NOT_NULL_ERR_MSG.format(relation=self.relation_name, column=parameter_name) in str(err.value), \
             'Expected error message was not found.'

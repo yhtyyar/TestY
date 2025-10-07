@@ -33,7 +33,8 @@ export const EditTestCaseView = () => {
   const {
     editForm,
     title,
-    isLoading,
+    isLoadingInitData,
+    isLoadingActionButton,
     errors,
     formErrors,
     control,
@@ -93,7 +94,7 @@ export const EditTestCaseView = () => {
         <Button
           id="modal-update-test-case-btn"
           key="submit"
-          loading={isLoading}
+          loading={isLoadingActionButton}
           onClick={handleSubmitFormAsCurrent}
           color="accent"
           disabled={!isDirty}
@@ -104,7 +105,7 @@ export const EditTestCaseView = () => {
     },
   ]
 
-  if (isLoading) {
+  if (isLoadingInitData) {
     return <ContainerLoader />
   }
 
@@ -116,13 +117,14 @@ export const EditTestCaseView = () => {
           type="edit"
           title={title}
           onClose={handleCancel}
+          isLoadingSubmit={isLoadingActionButton}
           submitNode={
             <DropdownButton
               key="update"
               className="edit-test-case"
               menu={{ items }}
               color={isDirty ? "accent" : "secondary-linear"}
-              loading={isLoading}
+              loading={isLoadingActionButton}
               disabled={!isDirty}
               style={{ width: "fit-content", display: "inline-flex" }}
               onClick={handleSubmitFormAsNew}

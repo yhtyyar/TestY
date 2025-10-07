@@ -1,4 +1,4 @@
-import { PayloadAction, createSlice } from "@reduxjs/toolkit"
+import { PayloadAction, createAction, createSlice } from "@reduxjs/toolkit"
 
 import { RootState } from "app/store"
 
@@ -20,3 +20,6 @@ export const { handleError } = appSlice.actions
 
 export const appReducer = appSlice.reducer
 export const selectAppError = (state: RootState) => state.app.error
+
+export const urlChangedByBrowser = createAction("app/urlChangedByBrowser")
+export const initUrl = createAction("app/initUrl")

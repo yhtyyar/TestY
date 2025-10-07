@@ -1,0 +1,4 @@
+.tableWrapper {
+  display: flex;
+  flex-direction: column;
+}

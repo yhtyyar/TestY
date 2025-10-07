@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom"
 
 import { useTestPlanActivity } from "entities/test-plan/model"
-import { TestPlanActivityFilers, TestPlanActivityTable } from "entities/test-plan/ui"
+import { TestPlanActivityFilters, TestPlanActivityTable } from "entities/test-plan/ui"
 
 import { ContainerLoader } from "shared/ui"
 
@@ -16,7 +16,7 @@ export const TestPlanActivityTab = () => {
 
   return (
     <>
-      <TestPlanActivityFilers testPlanActivity={testPlanActivity} />
+      <TestPlanActivityFilters testPlanActivity={testPlanActivity} />
       <TestPlanActivityTable testPlanActivity={testPlanActivity} />
     </>
   )

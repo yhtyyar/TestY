@@ -1,10 +1,8 @@
-import { Space, TablePaginationConfig } from "antd"
-import { ColumnsType, TableProps } from "antd/es/table"
-import { FilterValue } from "antd/lib/table/interface"
+import { ColumnDef, ColumnFiltersState, Table, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Space } from "antd"
 import { resetOnSuccess, setOnSuccess } from "entities/roles/model"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useParams } from "react-router-dom"
 
 import { useAppDispatch } from "app/hooks"
 
@@ -12,31 +10,41 @@ import { useGetMembersQuery } from "entities/project/api"
 
 import { UserAvatar } from "entities/user/ui/user-avatar/user-avatar"
 
-import { config } from "shared/config"
-import { useTableSearch } from "shared/hooks"
+import { useProjectContext } from "pages/project"
+
+import { TableFilterSearch } from "shared/ui"
 
 import { DeleteUsetProjectAccess } from "../user-project-access-modal/delete-user-project-access"
 import { EditUserProjectAccess } from "../user-project-access-modal/edit-user-project-access"
 
+const columnHelper = createColumnHelper<UserWithRoles>()
 export const useUsersProjectAccessTable = (isManageable: boolean) => {
   const { t } = useTranslation()
+  const project = useProjectContext()
   const dispatch = useAppDispatch()
   const [paginationParams, setPaginationParams] = useState({
-    page: 1,
-    page_size: 10,
+    pageIndex: 0,
+    pageSize: 10,
   })
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
-  const [filterInfoRequest, setFilteredInfoRequest] = useState<GetUsersQuery>({})
-  const { projectId } = useParams<ParamProjectId>()
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
+  const filterRequest = useMemo(() => {
+    const filters: Record<string, unknown> = {}
+    columnFilters.forEach((filter) => {
+      filters[filter.id] = filter.value
+    })
+    return filters
+  }, [columnFilters])
 
   const {
     data: users,
     isLoading,
     refetch,
   } = useGetMembersQuery({
-    ...paginationParams,
-    ...filterInfoRequest,
-    id: Number(projectId),
+    id: project.id,
+    page: paginationParams.pageIndex + 1,
+    page_size: paginationParams.pageSize,
+    ...filterRequest,
   })
 
   const handleRefetch = async () => {
@@ -52,117 +60,114 @@ export const useUsersProjectAccessTable = (isManageable: boolean) => {
     }
   }, [dispatch, refetch])
 
-  const { setSearchText, getColumnSearch } = useTableSearch()
-
-  const handleChange: TableProps<UserWithRoles>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>
-  ) => {
-    setFilteredInfo(filters)
-    setFilteredInfoRequest((prevState) => ({
-      ...prevState,
-      username: filters?.username ? String(filters.username[0]) : undefined,
-      email: filters?.email ? String(filters.email[0]) : undefined,
-      first_name: filters?.first_name ? String(filters.first_name[0]) : undefined,
-      last_name: filters?.last_name ? String(filters.last_name[0]) : undefined,
-    }))
-  }
+  const tableRef = useRef<Table<UserWithRoles> | null>(null)
 
   const clearAll = () => {
-    setFilteredInfo({})
-    setFilteredInfoRequest({})
-    setSearchText("")
+    tableRef.current?.resetColumnFilters()
+    tableRef.current?.resetSorting()
   }
 
-  const columns: ColumnsType<UserWithRoles> = [
+  const columns = [
     {
-      key: "avatar",
-      width: "32px",
-      align: "right",
-      render: (_, record) => <UserAvatar avatar_link={record.avatar_link} size={32} />,
-    },
-    {
-      title: t("Username"),
-      dataIndex: "username",
-      key: "username",
-      filteredValue: filteredInfo.username ?? null,
-      ...getColumnSearch("username"),
-      onFilter: (value, record) =>
-        record.username.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Email"),
-      dataIndex: "email",
-      key: "email",
-      filteredValue: filteredInfo.email ?? null,
-      ...getColumnSearch("email"),
-      onFilter: (value, record) => record.email.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("First Name"),
-      dataIndex: "first_name",
-      key: "first_name",
-      filteredValue: filteredInfo.first_name ?? null,
-      ...getColumnSearch("first_name"),
-      onFilter: (value, record) =>
-        record.first_name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Last Name"),
-      dataIndex: "last_name",
-      key: "last_name",
-      filteredValue: filteredInfo.last_name ?? null,
-      ...getColumnSearch("last_name"),
-      onFilter: (value, record) =>
-        record.last_name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Roles"),
-      key: "roles",
-      render: (_, record) => {
-        if (record.roles.length === 0) {
+      id: "avatar",
+      cell: ({ row }) => <UserAvatar avatar_link={row.original.avatar_link} size={32} />,
+      size: 32,
+    } as ColumnDef<UserWithRoles>,
+    columnHelper.accessor("username", {
+      id: "username",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Username")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("email", {
+      id: "email",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Email")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("first_name", {
+      id: "first_name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("First Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("last_name", {
+      id: "last_name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Last Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("roles", {
+      id: "roles",
+      header: t("Roles"),
+      cell: ({ getValue }) => {
+        if (getValue().length === 0) {
           return "-"
         }
-        return record.roles.map((role) => role.name).join(", ")
+        return getValue()
+          .map((role) => role.name)
+          .join(", ")
       },
-    },
+      meta: {
+        responsiveSize: true,
+      },
+    }),
     {
-      title: t("Actions"),
-      key: "action",
-      width: 110,
-      render: (_, record) => (
+      id: "actions",
+      header: t("Actions"),
+      cell: ({ row }) => (
         <Space>
-          {isManageable && <EditUserProjectAccess user={record} />}
-          {isManageable && <DeleteUsetProjectAccess user={record} />}
+          {isManageable && <EditUserProjectAccess user={row.original} />}
+          {isManageable && <DeleteUsetProjectAccess user={row.original} />}
         </Space>
       ),
-    },
+      size: 110,
+    } as ColumnDef<UserWithRoles>,
   ]
 
-  const handlePaginationChange = (page: number, page_size: number) => {
-    setPaginationParams({
-      page,
-      page_size,
-    })
-  }
-
-  const paginationTable: TablePaginationConfig = {
-    total: users?.pages.total ?? 0,
-    hideOnSinglePage: false,
-    pageSizeOptions: config.pageSizeOptions,
-    showLessItems: true,
-    showSizeChanger: true,
-    current: paginationParams.page,
-    pageSize: paginationParams.page_size,
-    onChange: handlePaginationChange,
-  }
-
   return {
+    tableRef,
     users: users?.results ?? [],
+    total: users?.pages.total ?? 0,
     isLoading,
     columns,
-    paginationTable,
-    handleChange,
+    paginationParams,
+    columnFilters,
+    setColumnFilters,
+    setPaginationParams,
     clearAll,
   }
 }

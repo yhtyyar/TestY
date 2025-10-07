@@ -2,7 +2,7 @@ import classNames from "classnames"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
-import ArrowDown from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 
 import styles from "./styles.module.css"
 
@@ -34,7 +34,7 @@ export const BtnToTop = () => {
       className={classNames(styles.btn, { [styles.hide]: !isShow })}
       onClick={handleScrollUp}
     >
-      <ArrowDown style={{ transform: "rotate(180deg)" }} />
+      <ChevronIcon style={{ transform: "rotate(180deg)" }} />
     </button>
   )
 }

@@ -40,14 +40,14 @@ export const AssingToModal = ({
   handleAssignToMe,
   isAssignToMe,
 }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
   const project = useProjectContext()
 
   return (
     <Modal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
-      title={<span data-testid={`${TEST_ID}-modal-title`}>{t("Assign To")}</span>}
+      title={<span data-testid={`${TEST_ID}-modal-title`}>{t("entities:user.AssignTo")}</span>}
       open={isOpenModal}
       onCancel={handleClose}
       footer={[
@@ -85,7 +85,7 @@ export const AssingToModal = ({
           />
           {!isAssignToMe && (
             <button className={styles.assignToMeModal} onClick={handleAssignToMe} type="button">
-              {t("Assign To Me")}
+              {t("entities:user.AssignToMe")}
             </button>
           )}
           <button
@@ -96,7 +96,7 @@ export const AssingToModal = ({
             }}
             type="button"
           >
-            {t("Unassign")}
+            {t("entities:user.Unassign")}
           </button>
         </Form.Item>
       </Form>

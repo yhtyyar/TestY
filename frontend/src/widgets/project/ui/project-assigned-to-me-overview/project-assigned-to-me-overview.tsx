@@ -13,7 +13,7 @@ import { ProjectAssignedToMeOverviewStatistic } from "./ui/project-assigned-to-m
 import { ProjectAssignedToMeOverviewTree } from "./ui/project-assigned-to-me-overview-tree"
 
 export const ProjectAssignedToMeOverview = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "entities"])
   const { me } = useMeContext()
   const project = useProjectContext()
   const { data = [], isFetching } = useGetTestPlanStatisticsQuery(
@@ -32,7 +32,7 @@ export const ProjectAssignedToMeOverview = () => {
   return (
     <Flex vertical style={{ flex: "1 1" }}>
       <Typography.Title level={3} style={{ marginBottom: 24 }}>
-        {t("Assigned to me")}
+        {t("entities:user.AssignedToMe")}
       </Typography.Title>
       {isFetching && (
         <Flex align="center" justify="center" flex={1}>

@@ -61,6 +61,7 @@ interface GetProjectsQuery {
   is_archive?: boolean
   name?: string
   ordering?: string
+  nonce?: number
 }
 
 interface EntityBreadcrumbs {

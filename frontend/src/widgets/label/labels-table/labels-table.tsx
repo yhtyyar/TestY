@@ -1,89 +1,101 @@
-import { Space, Table, TableProps } from "antd"
-import { ColumnsType } from "antd/es/table"
-import type { FilterValue, TablePaginationConfig } from "antd/es/table/interface"
-import { useState } from "react"
+import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Space } from "antd"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { useParams } from "react-router-dom"
+import { DataTable } from "widgets"
 
 import { useGetLabelsQuery } from "entities/label/api"
 import { getLabelTypeTextByNumber } from "entities/label/lib"
 
 import { DeleteLabelButton, EditLabelButton } from "features/label"
 
-import { useTableSearch } from "shared/hooks"
-import { Button } from "shared/ui"
+import { useProjectContext } from "pages/project"
 
+import { Button } from "shared/ui"
+import { TableFilterSearch, TableFilterSelect, TableSorting } from "shared/ui"
+
+const columnHelper = createColumnHelper<Label>()
 export const LabelsTable = () => {
   const { t } = useTranslation()
-  const { projectId } = useParams<ParamProjectId>()
+  const project = useProjectContext()
 
-  const { data: labels, isFetching } = useGetLabelsQuery(
-    { project: projectId ?? "" },
-    { skip: !projectId }
-  )
+  const { data: labels = [], isFetching } = useGetLabelsQuery({ project: project.id.toString() })
 
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
-  const { setSearchText, getColumnSearch } = useTableSearch()
-
-  const handleChange: TableProps<Label>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>
-  ) => {
-    setFilteredInfo(filters)
-  }
-
-  const clearAll = () => {
-    setFilteredInfo({})
-    setSearchText("")
-  }
-
-  const columns: ColumnsType<Label> = [
+  const tableRef = useRef<Table<Label> | null>(null)
+  const columns = [
+    columnHelper.accessor("id", {
+      id: "id",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("ID")}</span>
+          <Flex align="center" gap={4}>
+            <TableSorting column={column} />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      size: 70,
+      meta: {
+        useInDataTestId: true,
+      },
+    }),
+    columnHelper.accessor("name", {
+      id: "name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableSorting column={column} />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("type", {
+      id: "type",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Type")}</span>
+          <TableFilterSelect
+            column={column}
+            options={[
+              { label: "System", key: "system", value: 0 },
+              { label: "Custom", key: "custom", value: 1 },
+            ]}
+          />
+        </Flex>
+      ),
+      filterFn: (row, _, filterValue: number[]) => {
+        if (!filterValue || filterValue.length === 0) return true
+        return filterValue.includes(row.getValue("type"))
+      },
+      cell: ({ getValue }) => {
+        return getLabelTypeTextByNumber(getValue())
+      },
+      meta: {
+        responsiveSize: true,
+      },
+    }),
     {
-      title: t("ID"),
-      dataIndex: "id",
-      key: "id",
-      width: "70px",
-      sorter: (a, b) => Number(a.id) - Number(b.id),
-    },
-    {
-      title: t("Name"),
-      dataIndex: "name",
-      key: "name",
-      filteredValue: filteredInfo.name ?? null,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      ...getColumnSearch("name"),
-      onFilter: (value, record) => record.name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Type"),
-      dataIndex: "type",
-      key: "type",
-      filteredValue: filteredInfo.type ?? null,
-      filters: [
-        {
-          value: "0",
-          text: "System",
-        },
-        {
-          value: "1",
-          text: "Custom",
-        },
-      ],
-      onFilter: (value, record) => Number(record.type) === Number(value),
-      render: (_, record) => getLabelTypeTextByNumber(record.type),
-    },
-    {
-      title: t("Action"),
-      key: "action",
-      width: 100,
-      render: (_, record) => (
+      id: "actions",
+      header: t("Actions"),
+      cell: ({ row }) => (
         <Space>
-          <EditLabelButton label={record} />
-          <DeleteLabelButton label={record} />
+          <EditLabelButton label={row.original} />
+          <DeleteLabelButton label={row.original} />
         </Space>
       ),
-    },
+      size: 100,
+    } as ColumnDef<Label>,
   ]
+
+  const clearAll = () => {
+    tableRef.current?.resetColumnFilters()
+    tableRef.current?.resetSorting()
+  }
 
   return (
     <>
@@ -92,15 +104,11 @@ export const LabelsTable = () => {
           {t("Clear filters and sorters")}
         </Button>
       </Space>
-      <Table
-        loading={isFetching}
-        dataSource={labels}
+      <DataTable
+        tableRef={tableRef}
+        data={labels}
         columns={columns}
-        rowKey="id"
-        style={{ marginTop: 12 }}
-        onChange={handleChange}
-        id="administration-projects-labels"
-        rowClassName="administration-projects-labels-row"
+        isLoading={isFetching}
         data-testid="labels-table"
       />
     </>

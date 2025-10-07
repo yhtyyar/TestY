@@ -1,0 +1,25 @@
+.link {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content {
+  padding: 0;
+  width: 200px;
+}
+
+.noData {
+  padding: 12px;
+  display: block;
+}
+
+.loading {
+  padding: 12px;
+}
+
+.button {
+  flex-direction: row-reverse;
+}

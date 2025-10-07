@@ -1,6 +1,6 @@
 .resultBody {
   padding: 8px 8px 8px 16px;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--y-color-border);
   margin-left: 12px;
   display: flex;
   flex-direction: column;

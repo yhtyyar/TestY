@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -42,7 +42,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from testy.core.views import AttachmentView
 from testy.plugins.url import plugin_urls
 from testy.root.auth.views import LoginView, LogoutView, TTLTokenViewSet
-from testy.root.views import sql_log_query
+from testy.root.views import healthcheck, sql_log_query, trigger_error
 from testy.swagger.custom_schema_generation import SchemaGenerator
 from testy.users.views import AvatarView
 
@@ -97,6 +97,7 @@ urlpatterns = [
     re_path('^celery-progress/', include('celery_progress.urls')),
     # SQL Debug
     path('debug/sql-long-query/', sql_log_query),
+    path('healthcheck/', healthcheck),
 ]
 
 if settings.DEBUG:

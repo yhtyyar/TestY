@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -110,7 +110,7 @@ class Command(BaseCommand):
         plan_to_copy = get_object_or_404(TestPlan, pk=src_plan_id)
 
         tests_to_copy = TestSelector().test_list_with_last_status()
-        tests_to_copy = TestSuiteSelector.annotate_suite_path(tests_to_copy, 'case__suite')
+        tests_to_copy = TestSuiteSelector.annotate_suite_path(tests_to_copy, 'case__suite__path')
 
         plans_to_copy = plan_to_copy.get_descendants(
             include_self=True,

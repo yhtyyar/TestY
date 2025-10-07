@@ -33,6 +33,7 @@ export const TestPlanStatisticPopover = ({ statistics }: Props) => {
     value: type === "count" ? item.value : item.estimates,
     color: item.color,
     id: item.id,
+    type,
   }))
 
   const shouldShowEstimates = statistics.total.estimates.all !== 0
@@ -43,7 +44,7 @@ export const TestPlanStatisticPopover = ({ statistics }: Props) => {
         <div className={styles.popover} data-testid="test-plan-statistic-popover">
           <div>
             <Row align="middle" justify="space-between">
-              <h3 className={styles.title}>Tests</h3>
+              <h3 className={styles.title}>{t("Tests")}</h3>
               <Button
                 type={type === "count" ? "default" : "text"}
                 onClick={() => setType("count")}

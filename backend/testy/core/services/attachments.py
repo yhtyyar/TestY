@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -34,23 +34,36 @@ from pathlib import Path
 from typing import Any
 
 from django.db.models import Model
+from rest_framework.exceptions import ValidationError
 
 from testy.core.models import Attachment
 from testy.core.selectors.attachments import AttachmentSelector
 from testy.core.services.media import MediaService
 
 logger = logging.getLogger(__name__)
+_FILE = 'file'
 
 
 class AttachmentService(MediaService):
     non_side_effect_fields = [
-        'project', 'name', 'filename', 'comment', 'file_extension', 'content_type', 'size', 'object_id', 'user', 'file',
+        'project',
+        'name',
+        'filename',
+        'comment',
+        'file_extension',
+        'content_type',
+        'size',
+        'object_id',
+        'user',
+        _FILE,
         'url',
     ]
 
     def attachment_create(self, data: dict[str, Any], request) -> list[Attachment] | str:
         attachments_instances = []
-        for file in request.data.getlist('file'):
+        for file in request.data.getlist(_FILE):
+            if not file.content_type:
+                raise ValidationError({_FILE: 'Content type not specified.'})
             name, extension = os.path.splitext(file.name)
             data.update(
                 {
@@ -59,7 +72,7 @@ class AttachmentService(MediaService):
                     'file_extension': file.content_type,
                     'size': file.size,
                     'user': request.user,
-                    'file': file,
+                    _FILE: file,
                 },
             )
             attachment = Attachment.model_create(fields=self.non_side_effect_fields, data=data)

@@ -1,14 +1,16 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit"
 
 import { RootState } from "app/store"
+import { paginationSchema } from "app/zod-common.schema"
 
-import { paginationSchema } from "shared/config/query-schemas"
-import { getVisibleColumns } from "shared/libs"
-import { queryParamsBySchema } from "shared/libs/query-params"
+import { DATA_VIEW_KEY } from "shared/constants"
+import { getDataFromUrlOrLocalStorage, getVisibleColumns } from "shared/libs"
+import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
+import { DATA_VIEW_TESTS_LS_KEY } from "./constansts"
 import { updateFilter } from "./filter-slice"
 
-const baseTableColumns = [
+const baseTableColumns: ColumnParam[] = [
   {
     key: "id",
     title: "ID",
@@ -16,6 +18,7 @@ const baseTableColumns = [
   {
     key: "name",
     title: "Name",
+    canHide: false,
   },
   {
     key: "plan_path",
@@ -47,10 +50,11 @@ const baseTableColumns = [
   },
 ]
 
-const baseTreeColumns = [
+const baseTreeColumns: ColumnParam[] = [
   {
     key: "name",
     title: "Name",
+    canHide: false,
   },
   {
     key: "last_status",
@@ -86,25 +90,27 @@ const baseTreeColumns = [
   },
 ]
 
-const initPagination = queryParamsBySchema(paginationSchema)
+const initPagination = schemaFillBySearchParams(paginationSchema)
 
 const initialState: TestState = {
   test: null,
+  dataView: getDataFromUrlOrLocalStorage<EntityView>(DATA_VIEW_KEY, DATA_VIEW_TESTS_LS_KEY, "tree"),
   drawer: {
     view: "test",
     shouldClose: false,
   },
   settings: {
     table: {
+      testPlanId: null,
       columns: baseTableColumns,
       visibleColumns: getVisibleColumns("tests-visible-cols-table") ?? baseTableColumns,
       page: initPagination.page,
       page_size: initPagination.page_size,
-      hasBulk: false,
-      isAllSelectedTableBulk: false,
+      isAllSelected: false,
       selectedRows: [],
       excludedRows: [],
       count: 0,
+      isResetSelection: false,
       _n: 0,
     },
     tree: {
@@ -153,6 +159,10 @@ export const testSlice = createSlice({
         },
       }
     },
+    setDataView: (state, action: PayloadAction<EntityView>) => {
+      localStorage.setItem(DATA_VIEW_TESTS_LS_KEY, action.payload)
+      state.dataView = action.payload
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(updateFilter, (state) => {
@@ -168,9 +178,11 @@ export const {
   setSettings,
   setPagination,
   clearSettings,
+  setDataView,
 } = testSlice.actions
 
 export const selectDrawerTest = (state: RootState) => state.test.test
+export const selectDataView = (state: RootState) => state.test.dataView
 export const selectDrawerData = (state: RootState) => state.test.drawer
 export const selectSettings =
   <T>(settingsKey: keyof TestState["settings"]) =>

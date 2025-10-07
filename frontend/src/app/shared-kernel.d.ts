@@ -131,6 +131,7 @@ interface ErrorState {
 interface ColumnParam {
   key: string
   title: string
+  canHide?: boolean
 }
 
 interface BaseEntity {
@@ -139,3 +140,22 @@ interface BaseEntity {
 }
 
 type HTMLDataAttribute = Record<`data-${string}`, string>
+
+type BaseTableParams<T> = T & {
+  page: number
+  page_size: number
+  visibleColumns: ColumnParam[]
+  columns: ColumnParam[]
+  sorter?: SorterResult<string>
+  isAllSelected: boolean
+  selectedRows: number[]
+  excludedRows: number[]
+  count: number
+  isResetSelection: boolean
+  _n?: number
+}
+
+type BaseTreeParams<T = object> = T & {
+  columns: ColumnParam[]
+  visibleColumns: ColumnParam[]
+}

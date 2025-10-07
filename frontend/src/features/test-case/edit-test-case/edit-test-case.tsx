@@ -10,9 +10,10 @@ import { Button } from "shared/ui"
 
 interface Props {
   testCase: TestCase
+  disabled?: boolean
 }
 
-export const EditTestCase = ({ testCase }: Props) => {
+export const EditTestCase = ({ testCase, disabled = false }: Props) => {
   const { t } = useTranslation()
   const { projectId } = useParams<ParamProjectId | ParamTestSuiteId>()
   const dispatch = useAppDispatch()
@@ -25,11 +26,13 @@ export const EditTestCase = ({ testCase }: Props) => {
       `${window.location.origin}/projects/${projectId}/suites/edit-test-case?test_case=${testCase.id}`
     )
     const currentSearchParams = new URLSearchParams(window.location.search)
+    const currentUrl = new URL(window.location.href)
+    currentUrl.searchParams.delete("ver")
 
     url.searchParams.append(
       "prevUrl",
       !currentSearchParams.get("prevUrl")
-        ? `${window.location.pathname}${window.location.search}`
+        ? `${window.location.pathname}${currentUrl.search}`
         : (currentSearchParams.get("prevUrl") ?? "")
     )
 
@@ -42,6 +45,7 @@ export const EditTestCase = ({ testCase }: Props) => {
       icon={<EditOutlined />}
       onClick={handleEdit}
       color="secondary-linear"
+      disabled={disabled}
     >
       {t("Edit")}
     </Button>

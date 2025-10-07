@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -261,7 +261,7 @@ class TestProjectEndpoints:
             projects.extend(project_factory() for _ in range(expected_number_of_objects))
         for filter_value in ('name', 'is_archive'):
             with allure.step(f'Validate {filter_value}'):
-                projects.sort(key=attrgetter(filter_value))
+                projects.sort(key=attrgetter(filter_value, 'id'))
             content = superuser_client.send_request(
                 self.view_name_list,
                 query_params={'ordering': filter_value, 'is_archive': 'true'},

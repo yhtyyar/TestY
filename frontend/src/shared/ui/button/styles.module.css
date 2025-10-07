@@ -1,7 +1,6 @@
 .button {
   min-width: fit-content;
   border-width: 1px;
-  border-radius: 2px;
 }
 
 .button:global(.y-button.-y-accent > .ant-btn-icon, .anticon) {

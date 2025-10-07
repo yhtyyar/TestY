@@ -1,4 +1,5 @@
-import { Pagination } from "antd"
+import { createColumnHelper } from "@tanstack/react-table"
+import { Flex } from "antd"
 import dayjs from "dayjs"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -8,10 +9,9 @@ import { useGetTestCaseHistoryChangesQuery } from "entities/test-case/api"
 
 import { UserAvatar, UserUsername } from "entities/user/ui"
 
-import { ContainerLoader } from "shared/ui"
+import { DataTable } from "widgets/data-table/data-table"
 
-import styles from "./styles.module.css"
-
+const columnHelper = createColumnHelper<TestCaseHistoryChange>()
 export const TestCaseHistoryChanges = ({
   testCase,
   onChangeVersion,
@@ -21,56 +21,80 @@ export const TestCaseHistoryChanges = ({
 }) => {
   const { t } = useTranslation()
   const [pagination, setPagination] = useState({
-    page: 1,
-    page_size: 5,
+    pageIndex: 0,
+    pageSize: 5,
   })
 
   const { data, isLoading } = useGetTestCaseHistoryChangesQuery({
     testCaseId: testCase.id,
-    page: pagination.page,
-    page_size: pagination.page_size,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
   })
 
-  const handlePaginationChange = (page: number, page_size: number) => {
-    setPagination({ page, page_size })
-  }
-
-  if (isLoading || !data) return <ContainerLoader />
+  const columns = [
+    columnHelper.accessor("user", {
+      id: "user",
+      cell: ({ getValue }) => (
+        <Flex align="center" gap={4}>
+          <UserAvatar size={32} avatar_link={getValue()?.avatar_link ?? null} />
+          <UserUsername username={getValue()?.username ?? "unknown"} />
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("action", {
+      id: "action",
+      cell: ({ getValue, row }) => (
+        <span data-testid={`${row.original.user?.username}-action`}>{getValue()}</span>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("history_date", {
+      id: "history_date",
+      cell: ({ getValue, row }) => (
+        <span data-testid={`${row.original.user?.username}-history-date`}>
+          {dayjs(getValue()).format("DD MMM YYYY HH:mm")}
+        </span>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("version", {
+      id: "version",
+      cell: ({ getValue, row }) => (
+        <Link
+          id={`${getValue()}-${row.index}`}
+          to={`/projects/${testCase.project}/suites/${testCase.suite.id}?ver=${getValue()}&test_case=${testCase.id}`}
+          onClick={() => onChangeVersion(getValue())}
+          data-testid={`test-case-history-change-version-${getValue()}`}
+        >
+          {t("ver.")} {getValue()}
+        </Link>
+      ),
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+  ]
 
   return (
-    <>
-      <ul style={{ paddingLeft: 8 }}>
-        {data.results.map((history, index) => (
-          <li className={styles.item} key={index}>
-            <div className={styles.userInfo}>
-              <div style={{ display: "flex", marginRight: 4 }}>
-                <UserAvatar size={32} avatar_link={history.user?.avatar_link ?? null} />
-              </div>
-              <UserUsername username={history.user?.username ?? "unknown"} />
-              <div className={styles.info}>
-                <span style={{ fontWeight: 500 }}>{history.action.toLowerCase()}</span> a test case
-                <span>at {dayjs(history.history_date).format("DD MMM YYYY HH:mm")}</span>|
-                <Link
-                  to={`/projects/${testCase.project}/suites/${testCase.suite.id}?version=${history.version}&test_case=${testCase.id}`}
-                  id={`${history.version}-${index}`}
-                  onClick={() => onChangeVersion(history.version)}
-                  data-testid={`test-case-history-change-version-${history.version}`}
-                >
-                  {t("ver.")} {history.version}
-                </Link>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <Pagination
-        defaultCurrent={1}
-        pageSize={pagination.page_size}
-        size="small"
-        total={data.count}
-        style={{ width: "fit-content", marginLeft: "auto" }}
-        onChange={handlePaginationChange}
-      />
-    </>
+    <DataTable
+      isLoading={isLoading}
+      data={data?.results ?? []}
+      rowCount={data?.count ?? 0}
+      columns={columns}
+      tableHeadVisible={false}
+      manualPagination
+      onPaginationChange={setPagination}
+      state={{
+        pagination,
+      }}
+      data-testid="history-tests-table"
+    />
   )
 }

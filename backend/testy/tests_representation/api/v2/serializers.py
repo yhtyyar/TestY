@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -42,7 +42,7 @@ from testy.core.selectors.attachments import AttachmentSelector
 from testy.core.validators import BulkUpdateExcludeIncludeValidator, RecursionValidator
 from testy.serializer_fields import EstimateField
 from testy.tests_description.api.v2.serializers import TestCaseLabelOutputSerializer
-from testy.tests_description.selectors.cases import TestCaseStepSelector
+from testy.tests_description.selectors.cases import TestCaseSelector, TestCaseStepSelector
 from testy.tests_representation.models import Parameter, ResultStatus, Test, TestPlan, TestResult, TestStepResult
 from testy.tests_representation.selectors.parameters import ParameterSelector
 from testy.tests_representation.selectors.testplan import TestPlanSelector
@@ -206,6 +206,7 @@ class TestResultSerializer(ModelSerializer):
     attachments = AttachmentSerializer(many=True, read_only=True)
     steps_results = TestStepResultSerializer(many=True, required=False)
     avatar_link = SerializerMethodField(read_only=True)
+    test_case_version = SerializerMethodField(read_only=True)
     latest = SerializerMethodField()
 
     class Meta:
@@ -216,7 +217,7 @@ class TestResultSerializer(ModelSerializer):
             'attachments', 'attributes', 'steps_results', 'latest',
         )
 
-        read_only_fields = ('test_case_version', 'project', 'user', 'id')
+        read_only_fields = ('project', 'user', 'id')
         validators = [TestResultArchiveTestValidator()]
         extra_kwargs = {
             'status': {
@@ -237,6 +238,9 @@ class TestResultSerializer(ModelSerializer):
     def get_user_full_name(self, instance):
         if instance.user:
             return instance.user.get_full_name()
+
+    def get_test_case_version(self, instance):
+        return TestCaseSelector.get_display_version_by_version(instance.test.case_id, instance.test_case_version)
 
     def get_latest(self, instance):
         if not hasattr(instance, 'latest_result_id'):
@@ -370,6 +374,7 @@ class TestPlanUnionSerializer(TestPlanOutputSerializer):
     has_children = BooleanField(read_only=True)
     is_leaf = BooleanField(read_only=True)
     total_tests = IntegerField(read_only=True)
+    estimate = EstimateField(read_only=True, allow_null=True, allow_blank=True)
     tests_progress_total = IntegerField(read_only=True)
 
     class Meta:
@@ -391,6 +396,7 @@ class TestPlanUnionSerializer(TestPlanOutputSerializer):
             'created_at',
             'total_tests',
             'tests_progress_total',
+            'estimate',
         )
 
 
@@ -458,6 +464,16 @@ class TestPlanDetailSerializer(Serializer):
     new_name = CharField(required=False)
     started_at = DateTimeField(required=False)
     due_date = DateTimeField(required=False)
+
+    class Meta:
+        validators = [
+            partial(
+                validator_launcher,
+                validator_instance=DateRangeValidator(),
+                fields_to_validate=['started_at', 'due_date', 'plan'],
+                none_valid_fields=['started_at', 'due_date'],
+            ),
+        ]
 
 
 class TestPlanCopySerializer(Serializer):

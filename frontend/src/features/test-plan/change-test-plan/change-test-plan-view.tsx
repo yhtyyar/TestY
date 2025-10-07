@@ -14,6 +14,7 @@ import stylesViewForm from "shared/styles/view-form.module.css"
 import {
   AlertError,
   Attachment,
+  ContainerLoader,
   FormViewHeader,
   InputFormItem,
   LineDivider,
@@ -37,7 +38,8 @@ export const ChangeTestPlanView = ({ type }: Props) => {
     errors,
     tab,
     isDirty,
-    isLoadingSubmit,
+    isLoadingInitData,
+    isLoadingActionButton,
     selectedParent,
     attachments,
     attachmentsIds,
@@ -86,6 +88,10 @@ export const ChangeTestPlanView = ({ type }: Props) => {
       ? `${t("Create")} ${t("Test Plan")}`
       : `${t("Edit")} ${t("Test Plan")} '${stateTestPlan?.name}'`
 
+  if (isLoadingInitData) {
+    return <ContainerLoader />
+  }
+
   return (
     <>
       <FormViewHeader
@@ -95,7 +101,7 @@ export const ChangeTestPlanView = ({ type }: Props) => {
         onClose={handleCancel}
         onSubmit={handleSubmitForm}
         isDisabledSubmit={!isDirty}
-        isLoadingSubmit={isLoadingSubmit}
+        isLoadingSubmit={isLoadingActionButton}
       />
 
       {errors ? (

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -80,3 +80,12 @@ def get_max_level(model: type[Model]) -> int:
         )
     ).get('max_level')
     return max_level if max_level else 0
+
+
+class SumSubquery(Subquery):
+    template = '(SELECT SUM(%(sum_field)s) FROM (%(subquery)s) _sum)'
+    output_field = IntegerField()
+
+    def __init__(self, queryset, output_field=None, *, sum_field, **extra):
+        extra['sum_field'] = sum_field
+        super().__init__(queryset, output_field, **extra)

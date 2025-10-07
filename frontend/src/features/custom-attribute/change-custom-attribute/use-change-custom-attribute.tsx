@@ -37,7 +37,7 @@ const defaultFormValue = {
 }
 
 export const useChangeCustomAttribute = ({ formType, attribute }: PropsChangeCustomAttribute) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "errors"])
   const project = useProjectContext()
   const { statuses } = useStatuses({ project: project.id })
   const { handleClose: handleCloseModal, handleShow, isShow } = useModal()
@@ -86,7 +86,7 @@ export const useChangeCustomAttribute = ({ formType, attribute }: PropsChangeCus
     )
 
     if (!countActiveApplied) {
-      setErrors({ applied_to: t("At least one applied to must be active") })
+      setErrors({ applied_to: t("errors:appliedToAtLeastOneActive") })
       return
     }
 
@@ -116,7 +116,7 @@ export const useChangeCustomAttribute = ({ formType, attribute }: PropsChangeCus
     )
 
     if (!countActiveApplied) {
-      setErrors({ applied_to: t("At least one applied to must be active") })
+      setErrors({ applied_to: t("errors:appliedToAtLeastOneActive") })
       return
     }
 

@@ -1,6 +1,5 @@
 import { TableOutlined } from "@ant-design/icons"
-import { Checkbox, Divider, Popover, Tooltip, Typography } from "antd"
-import { CheckboxOptionType } from "antd/lib"
+import { Checkbox, Divider, Flex, Popover, Tooltip, Typography } from "antd"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -16,6 +15,7 @@ interface Props {
 interface CheckboxOption {
   label: string
   value: string
+  canHide: boolean
 }
 
 const SettingsColumnVisibilityComponent = ({ columns, id, visibilityColumns, onChange }: Props) => {
@@ -30,17 +30,35 @@ const SettingsColumnVisibilityComponent = ({ columns, id, visibilityColumns, onC
     // @ts-ignore
     label: t(i.title),
     value: i.key,
+    canHide: i.canHide ?? true,
   }))
 
   return (
     <Popover
       content={
-        <Checkbox.Group
-          options={options as unknown as CheckboxOptionType<string>[]}
-          value={visibilityColumns.map((i) => i.key)}
-          onChange={handleChange}
-          data-testid="settings-column-visibility-popover"
-        />
+        <Flex vertical gap={16}>
+          <Checkbox.Group
+            value={visibilityColumns.map((i) => i.key)}
+            onChange={handleChange}
+            data-testid="settings-column-visibility-popover"
+          >
+            <Flex gap={8} vertical>
+              {options.map((option) => (
+                <Checkbox key={option.value} value={option.value} disabled={!option.canHide}>
+                  {option.label}
+                </Checkbox>
+              ))}
+            </Flex>
+          </Checkbox.Group>
+          <Button
+            type="button"
+            size="s"
+            color="secondary-linear"
+            onClick={() => handleChange(options.map((i) => i.value))}
+          >
+            {t("Select all")}
+          </Button>
+        </Flex>
       }
       title={
         <Divider orientation="left" style={{ margin: 0 }} orientationMargin={0}>

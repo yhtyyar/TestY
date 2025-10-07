@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -70,3 +70,6 @@ class UserAllowedPermissionCodenames(TextChoices):
     ADD_STATUS = 'add_resultstatus', 'User can add status'
     CHANGE_STATUS = 'change_resultstatus', 'User can change status'
     DELETE_STATUS = 'delete_resultstatus', 'User can delete status'
+    ADD_PROJECT_INTEGRATION = 'add_projectintegration', 'User can add status'
+    CHANGE_PROJECT_INTEGRATION = 'change_projectintegration', 'User can change status'
+    DELETE_PROJECT_INTEGRATION = 'delete_projectintegration', 'User can delete status'

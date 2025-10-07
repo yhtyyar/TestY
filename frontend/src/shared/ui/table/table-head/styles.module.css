@@ -1,0 +1,50 @@
+.tableHead {
+  font-weight: 500;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+  position: relative;
+  padding: 16px;
+}
+
+.thContent {
+  display: flex;
+  height: 100%;
+}
+
+.tableHead:hover .moveBtn {
+  opacity: 1;
+}
+
+.moveBtn {
+  background-color: transparent;
+  outline: none;
+  border: none;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease-in-out;
+}
+
+.isPinnedLeft::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}
+
+.isPinnedRight::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}

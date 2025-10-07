@@ -1,5 +1,4 @@
 import { Form } from "antd"
-import { useState } from "react"
 import { Controller, useFieldArray, useFormContext } from "react-hook-form"
 
 import { ScenarioFormLabel, StepsFormController } from "entities/test-case/ui"
@@ -13,8 +12,8 @@ interface Props {
 }
 
 export const StepsFormItem = ({ type, isSteps, scenarioFormErrors }: Props) => {
-  const { control, setValue } = useFormContext<TestCaseFormData>()
-  const [expandedSteps, setExpandedSteps] = useState<number[]>([])
+  const { control, setValue, watch } = useFormContext<TestCaseFormData>()
+  const expandedSteps = watch("expanded_steps") ?? []
   const fieldArray = useFieldArray({
     name: "steps",
     control,
@@ -22,16 +21,22 @@ export const StepsFormItem = ({ type, isSteps, scenarioFormErrors }: Props) => {
   })
 
   const handleCollapse = () => {
-    setExpandedSteps([])
+    setValue("expanded_steps", [])
   }
 
   const handleExpand = () => {
-    setExpandedSteps(fieldArray.fields.map(({ id }) => id))
+    setValue(
+      "expanded_steps",
+      fieldArray.fields.map(({ id }) => id)
+    )
   }
 
   const handleToggleExpanded = (id: number) => {
-    setExpandedSteps((prev) =>
-      prev.includes(id) ? prev.filter((stepId) => stepId !== id) : [id, ...prev]
+    setValue(
+      "expanded_steps",
+      expandedSteps.includes(id)
+        ? expandedSteps.filter((stepId) => stepId !== id)
+        : [id, ...expandedSteps]
     )
   }
 

@@ -9,14 +9,12 @@ import { Label } from "entities/label/ui"
 
 import { setDrawerTestCase } from "entities/test-case/model"
 
-import { icons } from "shared/assets/inner-icons"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { colors } from "shared/config"
 import { LazyNodeProps, LazyTreeNodeApi } from "shared/libs/tree"
 import { ArchivedTag, TreeTableLoadMore } from "shared/ui"
 
 import styles from "./styles.module.css"
-
-const { ArrowIcon } = icons
 
 const getLink = (
   node: LazyTreeNodeApi<Suite | TestCase, LazyNodeProps>,
@@ -38,6 +36,10 @@ interface Props {
   projectId: number
   visibleColumns: ColumnParam[]
   testSuiteId?: string | null
+}
+
+const isSuite = (node: Suite | TestCase): node is Suite => {
+  return !node.is_leaf
 }
 
 export const TestSuiteTreeNode = ({ node, visibleColumns, projectId, testSuiteId }: Props) => {
@@ -67,7 +69,7 @@ export const TestSuiteTreeNode = ({ node, visibleColumns, projectId, testSuiteId
               {node.props.isLeaf && (node.data as TestCase).is_archive && <ArchivedTag />}
               {node.props.isLoading && <Spin size="small" className={styles.loader} />}
               {!node.props.isLoading && node.props.canOpen && (
-                <ArrowIcon
+                <ChevronIcon
                   width={24}
                   height={24}
                   className={classNames(styles.arrowIcon, {
@@ -113,7 +115,7 @@ export const TestSuiteTreeNode = ({ node, visibleColumns, projectId, testSuiteId
         )}
         {isVisible("estimate") && (
           <td className={styles.containerItem}>
-            {data.estimates ?? (node.data as TestCase).estimate ?? "-"}
+            {(isSuite(node.data) ? node.data.total_estimates : node.data.estimate) ?? "-"}
           </td>
         )}
         {isVisible("created_at") && (

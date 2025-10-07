@@ -1,4 +1,5 @@
 import cn from "classnames"
+import { useMeContext } from "processes"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -13,7 +14,9 @@ interface LineStatisticLegendItemProps {
 }
 
 export const LineStatisticLegendItem = ({ item, total }: LineStatisticLegendItemProps) => {
+  const { userConfig } = useMeContext()
   const percentage = total > 0 ? ((item.value / total) * 100).toFixed(2) : "0"
+  const period: EstimatePeriod = userConfig?.ui?.test_plan_estimate_everywhere_period ?? "minutes"
 
   return (
     <div data-testid={`statistic-line-legend-item-${item.label}`}>
@@ -23,7 +26,11 @@ export const LineStatisticLegendItem = ({ item, total }: LineStatisticLegendItem
           <span className={styles.label}>{item.label}</span>
         </div>
         <span className={styles.value}>
-          <strong>{item.value}</strong> <span className={styles.percentage}>({percentage}%)</span>
+          <strong>
+            {item.value}
+            {item.type === "estimates" && period[0]}
+          </strong>
+          <span className={styles.percentage}>({percentage}%)</span>
         </span>
       </div>
     </div>

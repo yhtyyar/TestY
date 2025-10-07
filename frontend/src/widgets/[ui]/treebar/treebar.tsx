@@ -36,6 +36,9 @@ export const Treebar = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { testSuiteId, testPlanId } = useParams<ParamTestSuiteId & ParamTestPlanId>()
+  const entityId = searchParams.get("parent")
+    ? String(searchParams.get("parent"))
+    : (testPlanId ?? testSuiteId)
 
   const {
     treebar,
@@ -165,11 +168,7 @@ export const Treebar = () => {
             </div>
             <span className={styles.activeTab}>{activeTab ? TREE_TITLES[activeTab] : ""}</span>
             {!IS_MINIFY && (
-              <TreebarBreadcrumbs
-                activeTab={activeTab}
-                entityId={testSuiteId ?? testPlanId}
-                rootId={initParent}
-              />
+              <TreebarBreadcrumbs activeTab={activeTab} entityId={entityId} rootId={initParent} />
             )}
             <div
               className={classNames(styles.actionBlock, {

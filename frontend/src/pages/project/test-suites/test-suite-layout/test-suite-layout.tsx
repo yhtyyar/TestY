@@ -3,13 +3,17 @@ import { QueryDefinition } from "@reduxjs/toolkit/query"
 import { BaseQueryFn } from "@reduxjs/toolkit/query"
 import { FetchArgs } from "@reduxjs/toolkit/query"
 import { Tabs, TabsProps } from "antd"
-import React, { useContext, useEffect, useState } from "react"
+import React, { useContext, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom"
 import { TestSuiteHeader } from "widgets"
 import { FooterView } from "widgets"
 
+import { useAppDispatch, useAppSelector } from "app/hooks"
+
 import { useGetSuiteQuery } from "entities/suite/api"
+
+import { selectDataView, setDataView } from "entities/test-case/model"
 
 import { TestCasesTreeProvider } from "widgets/test-case"
 
@@ -30,6 +34,8 @@ export interface TestSuiteContextType {
     >
   >
   hasTestSuite: boolean
+  dataView: EntityView
+  updateDataView: (view: EntityView) => void
 }
 
 export const TestSuiteContext = React.createContext<TestSuiteContextType | null>(null)
@@ -43,6 +49,8 @@ export const TestSuiteLayout = () => {
   const { testSuiteId } = useParams<ParamTestSuiteId>()
   const navigate = useNavigate()
   const location = useLocation()
+  const dataView = useAppSelector(selectDataView)
+  const dispatch = useAppDispatch()
   const [tab, setTab] = useState<TestSuiteTabs>("overview")
 
   const {
@@ -75,6 +83,10 @@ export const TestSuiteLayout = () => {
     navigate(`/projects/${project.id}/suites/${testSuiteId}/${newTab}`)
   }
 
+  const updateDataView = (view: EntityView) => {
+    dispatch(setDataView(view))
+  }
+
   const tabItems: TabsProps["items"] = [
     {
       key: "overview",
@@ -90,10 +102,20 @@ export const TestSuiteLayout = () => {
     },
   ]
 
+  const value = useMemo(
+    () => ({
+      suite,
+      isFetching,
+      refetch,
+      hasTestSuite: !!testSuiteId && !!suite,
+      dataView,
+      updateDataView,
+    }),
+    [suite, isFetching, refetch, testSuiteId, dataView, updateDataView]
+  )
+
   return (
-    <TestSuiteContext.Provider
-      value={{ suite, isFetching, refetch, hasTestSuite: !!testSuiteId && !!suite }}
-    >
+    <TestSuiteContext.Provider value={value}>
       <TestCasesTreeProvider>
         <div className={styles.wrapper}>
           <TestSuiteHeader />

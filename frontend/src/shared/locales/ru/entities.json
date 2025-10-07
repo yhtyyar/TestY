@@ -4,5 +4,15 @@
   },
   "test": {
     "MoveSuccess": "Тесты успешно перемещены"
+  },
+  "user": {
+    "RecentUsers": "Недавние пользователи",
+    "SearchUsers": "Поиск пользователей",
+    "Assignee": "Ответственный",
+    "AssignTo": "Назначить",
+    "AssignToMe": "Назначить меня",
+    "AssignedToMe": "Назначено мне",
+    "Unassing": "Снять ответственного",
+    "NotAssigned": "Не назначено"
   }
 }

@@ -1,76 +1,91 @@
-import { Space, Table, TableProps } from "antd"
-import { ColumnsType } from "antd/es/table"
-import type { FilterValue, TablePaginationConfig } from "antd/es/table/interface"
+import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
+import { Flex, Space } from "antd"
 import { useGetCustomAttributesQuery } from "entities/custom-attribute/api"
-import { useState } from "react"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { useParams } from "react-router-dom"
+import { DataTable } from "widgets"
 
 import { ChangeCustomAttribute, DeleteCustomAttribute } from "features/custom-attribute"
 
-import { customAttributeTypes, customAttributesObject } from "shared/config/custom-attribute-types"
-import { useTableSearch } from "shared/hooks"
-import { Button } from "shared/ui"
+import { useProjectContext } from "pages/project"
 
+import { customAttributeTypes, customAttributesObject } from "shared/config/custom-attribute-types"
+import { Button, TableFilterSearch, TableFilterSelect, TableSorting } from "shared/ui"
+
+const columnHelper = createColumnHelper<CustomAttribute>()
 export const CustomAttributesTable = () => {
   const { t } = useTranslation()
-  const { projectId } = useParams<ParamProjectId>()
+  const project = useProjectContext()
 
-  const { data, isFetching } = useGetCustomAttributesQuery({ project: projectId ?? "" })
+  const { data = [], isFetching } = useGetCustomAttributesQuery({ project: project.id.toString() })
 
-  const [filteredInfo, setFilteredInfo] = useState<Record<string, FilterValue | null>>({})
-  const { setSearchText, getColumnSearch } = useTableSearch()
-
-  const handleChange: TableProps<CustomAttribute>["onChange"] = (
-    pagination: TablePaginationConfig,
-    filters: Record<string, FilterValue | null>
-  ) => {
-    setFilteredInfo(filters)
-  }
+  const tableRef = useRef<Table<CustomAttribute> | null>(null)
 
   const clearAll = () => {
-    setFilteredInfo({})
-    setSearchText("")
+    tableRef.current?.resetColumnFilters()
+    tableRef.current?.resetSorting()
   }
 
-  const columns: ColumnsType<CustomAttribute> = [
-    {
-      title: t("Name"),
-      dataIndex: "name",
-      key: "name",
-      filteredValue: filteredInfo.name ?? null,
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      ...getColumnSearch("name"),
-      onFilter: (value, record) => record.name.toLowerCase().includes(String(value).toLowerCase()),
-    },
-    {
-      title: t("Type"),
-      dataIndex: "type",
-      key: "type",
-      filteredValue: filteredInfo.type ?? null,
-      filters: customAttributeTypes.map(({ value, label }) => ({ value, text: label })),
-      onFilter: (value, record) => record.type === value,
-      render: (_, record) => <Space>{customAttributesObject[record.type]}</Space>,
-    },
-    {
-      title: t("Applied To"),
-      dataIndex: "applied_to",
-      key: "applied_to",
-      render: (value) => {
-        return <Space>{Object.keys(value as object).join(", ")}</Space>
+  const columns = [
+    columnHelper.accessor("name", {
+      id: "name",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Name")}</span>
+          <Flex align="center" gap={4}>
+            <TableSorting column={column} />
+            <TableFilterSearch column={column} />
+          </Flex>
+        </Flex>
+      ),
+      meta: {
+        responsiveSize: true,
+        useInDataTestId: true,
       },
-    },
+    }),
+    columnHelper.accessor("type", {
+      id: "type",
+      header: ({ column }) => (
+        <Flex align="center" justify="space-between" gap={6}>
+          <span>{t("Type")}</span>
+          <TableFilterSelect
+            column={column}
+            options={customAttributeTypes.map((i) => ({
+              label: i.label,
+              key: i.label,
+              value: i.value,
+            }))}
+          />
+        </Flex>
+      ),
+      filterFn: (row, _, filterValue: number[]) => {
+        if (!filterValue || filterValue.length === 0) return true
+        return filterValue.includes(row.getValue("type"))
+      },
+      cell: ({ getValue }) => <Space>{customAttributesObject[getValue()]}</Space>,
+      meta: {
+        responsiveSize: true,
+      },
+    }),
+    columnHelper.accessor("applied_to", {
+      id: "applied_to",
+      header: t("Applied To"),
+      cell: ({ getValue }) => <Space>{Object.keys(getValue()).join(", ")}</Space>,
+      meta: {
+        responsiveSize: true,
+      },
+    }),
     {
-      title: t("Action"),
-      key: "action",
-      width: 100,
-      render: (_, record) => (
+      id: "actions",
+      header: t("Actions"),
+      cell: ({ row }) => (
         <Space>
-          <ChangeCustomAttribute formType="edit" attribute={record} />
-          <DeleteCustomAttribute attributeId={record.id} />
+          <ChangeCustomAttribute formType="edit" attribute={row.original} />
+          <DeleteCustomAttribute attributeId={row.original.id} />
         </Space>
       ),
-    },
+      size: 100,
+    } as ColumnDef<CustomAttribute>,
   ]
 
   return (
@@ -80,15 +95,11 @@ export const CustomAttributesTable = () => {
           {t("Clear filters and sorters")}
         </Button>
       </Space>
-      <Table
-        loading={isFetching}
-        dataSource={data}
+      <DataTable
+        tableRef={tableRef}
+        isLoading={isFetching}
+        data={data}
         columns={columns}
-        rowKey="id"
-        style={{ marginTop: 12 }}
-        onChange={handleChange}
-        id="administration-projects-attributes"
-        rowClassName="administration-projects-attributes-row"
         data-testid="custom-attributes-table"
       />
     </>

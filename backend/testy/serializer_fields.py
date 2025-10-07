@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -29,6 +29,7 @@
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
 import pytimeparse
+from rest_framework.exceptions import ValidationError
 from rest_framework.fields import CharField
 
 from testy.utilities.time import WorkTimeProcessor
@@ -63,4 +64,7 @@ class EstimateField(CharField):
         data = str(data)
         if data.isnumeric():
             data = f'{data}m'
-        return pytimeparse.parse(data)
+        parsed_time = pytimeparse.parse(data)
+        if parsed_time is None or parsed_time < 0:
+            raise ValidationError('Wrong estimate format')
+        return parsed_time

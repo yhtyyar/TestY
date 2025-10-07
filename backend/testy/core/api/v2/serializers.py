@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -48,10 +48,18 @@ from rest_framework.fields import (
     ListField,
     SerializerMethodField,
 )
-from rest_framework.relations import PrimaryKeyRelatedField
+from rest_framework.relations import PrimaryKeyRelatedField, SlugRelatedField
 from rest_framework.serializers import HyperlinkedIdentityField, ModelSerializer, Serializer
 
-from testy.core.models import Attachment, CustomAttribute, Label, NotificationSetting, Project, SystemMessage
+from testy.core.models import (
+    Attachment,
+    CustomAttribute,
+    Label,
+    NotificationSetting,
+    Project,
+    ProjectIntegration,
+    SystemMessage,
+)
 from testy.core.selectors.notifications import NotificationSelector
 from testy.core.selectors.project_settings import ProjectSettings
 from testy.core.validators import (
@@ -420,3 +428,16 @@ class InputLabelSerializer(LabelSerializer):
 
     class Meta(LabelSerializer.Meta):
         fields = ('id', 'name')
+
+
+class ProjectIntegrationSerializer(ModelSerializer):
+    page_type = SlugRelatedField(
+        queryset=ContentType.objects.all(),
+        slug_field='model',
+        required=True,
+        allow_null=False,
+    )
+
+    class Meta:
+        model = ProjectIntegration
+        fields = ('id', 'name', 'description', 'service_url', 'is_new_tab', 'project', 'page_type')

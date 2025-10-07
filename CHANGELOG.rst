@@ -1,3 +1,80 @@
+Version 2.1.1
+--------------
+*Status: General availability*
+
+Release overview:
+
+Tables:
+
+* The ability to change the display order and resize columns has been added.
+* Pagination has been reworked
+
+Test plan integration menu:
+
+* The project administrator can add the URLs for project that will be provided as drop down list in "Integrations" button on the test plan page. Also the URL can contain the placeholders for project and testplans ids. This feature is useful to intergate TestY and other IT system like CI/CD.
+
+JIRA Defect report plugin:
+
+* The plugin allows you to get the list of JIRA issues for chosed project and test plan(s)
+
+Test Plan Exporter plugin:
+
+* The plugin allows you to export a test plan to PDF file
+
+Test case versions:
+
+* Use and show the test case version starting from 1 instead of internal version ID.
+
+
+*Released: 10-10-2025*
+
+- Added input hint in the project settings for result time editing (TMS-1656)
+- Fixed slow query of pagination (TMS-1668)
+- Added support for allure reports in tar.gz format (TMS-1671)
+- Added integration menu (TMS-1681)
+- Improving the test case version presentation (TMS-924)
+- Added sorting by estimate (TMS-1273)
+- Added separator for large numbers (TMS-1660)
+- Locale and theme have been moved to profile settings (TMS-1752)
+- Added project search to the project selection step (TMS-1832)
+- Added "Test Plan exporter" plugin (TMS-1753)
+- Added "JIRA Defect report" plugin (TMS-1675)
+
+Bug fixes:
+
+- Breadcrumbs are hidden in the tree on the left side of the suite/plan edit pages (TMS-1676)
+- The file name is incorrect when downloading. (TMS-1784)
+- You can set negative and zero values for "Edit time" in project settings. (TMS-1159)
+- The filter value is not reset if switch between saved filters. (TMS-1650)
+- Selected suites/plans in the filter are loading slowly (TMS-1651)
+- Information cannot be copied from the test results. (TMS-1666)
+- Markdown is not displayed. (TMS-1672)
+- Filter is not applied for all items of bulk operation. (TMS-1677)
+- Clear filters button disappears in case of switch between plans/suites (TMS-1690)
+- Misalignment of assignee column's content (TMS-1692)
+- Error occurred while trying to save an attachment with an invalid extension. (TMS-1695)
+- Incorrect SUM estimate in child plan statistics (TMS-1696)
+- Numbers for md format incorrectly presented (TMS-1715)
+- User-saved settings are lost (TMS-1716)
+- The project does not appear on the page after creation (TMS-1718)
+- Test plan page crashes when using browser translator (TMS-1722)
+- Duplicate search results  (TMS-1741)
+- The step fields are moving apart when the attachment name is long (TMS-1751)
+- Incorrect test case steps number when the version is changed (TMS-1754)
+- Private projects are visible in the project list for test suite copying (TMS-1755)
+- Error 404 for test case archiving (TMS-1761)
+- Incorrect test case editing results (TMS-1763)
+- Error 400 for sorting by Start Date in the table view of a test plan (TMS-1770)
+- Saved filter remains active when it is modified (TMS-1771)
+- File extension is not displayed when editing an object (TMS-1783)
+- Unexpected Application Error if try to open a test result (TMS-1789)
+- Incorrect behavior of the project selector (TMS-1792)
+- Incomplete Frontend validation of mandatory fields (TMS-1814)
+- Dark theme resets on page refresh (TMS-1819)
+- The status popup on the histogram is overlapped (TMS-1829)
+- The file name is not displayed in the scenario with steps (TMS-1844)
+- Race condition can occur due to state and URL synchronization (TMS-1872)
+
 Version 2.1.0
 --------------
 *Status: General availability*

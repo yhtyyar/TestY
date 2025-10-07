@@ -1,22 +1,3 @@
-.actionBtn {
-  width: 32px;
-  height: 32px;
-  color: var(--y-color-link);
-  border: none;
-  background: none;
-  cursor: pointer;
-  outline: none;
-}
-
-.actionBtn svg {
-  color: var(--y-color-secondary-inline);
-  cursor: pointer;
-}
-
-.actionBtn:hover svg {
-  color: var(--y-color-secondary-inline-hover);
-}
-
 .filterMenuList {
   display: flex;
   flex-direction: column;
@@ -31,7 +12,7 @@
   flex-direction: row;
   height: 32px;
   cursor: pointer;
-  padding: 0 12px;
+  padding: 0;
   gap: 4px;
 }
 
@@ -39,42 +20,8 @@
   background-color: var(--y-color-background-alternative);
 }
 
-.btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: transparent;
-  border: none;
-  height: 24px;
-  width: 24px;
-  color: var(--y-color-text-primary);
-}
-
-.delete {
-  color: var(--y-error-block);
-}
-
-.delete button {
-  color: var(--y-error-block);
-}
-
-.renameBtn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 100%;
-  border: 1px solid var(--y-color-control-border);
-  background: transparent;
-  color: var(--y-color-text-primary);
-  cursor: pointer;
-}
-
-.saveRename {
-  color: var(--y-success-block);
-}
-
-.renameBtn:hover {
-  border-color: var(--y-color-control-border-hover);
+.filterMenuListItemBtn {
+  width: 100%;
+  justify-content: flex-start;
+  text-transform: inherit;
 }

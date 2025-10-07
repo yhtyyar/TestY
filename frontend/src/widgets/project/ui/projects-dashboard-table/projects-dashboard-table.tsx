@@ -1,4 +1,4 @@
-import { Table } from "antd"
+import { DataTable } from "widgets"
 
 import { useProjectsDashboardTable } from "widgets/project/model"
 
@@ -7,18 +7,33 @@ interface Props {
 }
 
 export const ProjectsDashboardTable = ({ searchName }: Props) => {
-  const { isLoading, columns, projects, paginationTable, handleChange } = useProjectsDashboardTable(
-    { searchName }
-  )
+  const {
+    isLoading,
+    columns,
+    data,
+    total,
+    paginationParams,
+    columnSorting,
+    setPaginationParams,
+    setColumnSorting,
+  } = useProjectsDashboardTable({ searchName })
 
   return (
-    <Table
-      loading={isLoading}
-      dataSource={projects?.results ?? []}
+    <DataTable
+      isLoading={isLoading}
+      data={data}
       columns={columns}
-      rowKey="id"
-      onChange={handleChange}
-      pagination={paginationTable}
+      rowCount={total}
+      onPaginationChange={setPaginationParams}
+      onSortingChange={setColumnSorting}
+      state={{
+        pagination: paginationParams,
+        sorting: columnSorting,
+      }}
+      enableSortingRemoval={false}
+      manualPagination
+      manualFiltering
+      manualSorting
       data-testid="projects-dashboard-table"
     />
   )

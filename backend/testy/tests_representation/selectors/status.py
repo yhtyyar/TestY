@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -51,7 +51,7 @@ class ResultStatusSelector:
         for status_pk, status_position in project.settings.get('status_order', {}).items():
             conditions_list.append(When(pk=int(status_pk), then=int(status_position)))
         case = Case(*conditions_list, output_field=IntegerField())
-        return queryset.annotate(ordering=case).order_by('ordering')
+        return queryset.annotate(ordering=case).order_by('ordering', 'id')
 
     @classmethod
     def status_list(cls, project: Project, ordering: bool = False) -> QuerySet[ResultStatus]:
@@ -67,14 +67,9 @@ class ResultStatusSelector:
         return queryset
 
     @classmethod
-    def status_list_by_project_id(cls, project_id: int) -> QuerySet[ResultStatus]:
-        return (
-            ResultStatusSelector
-            .status_list_raw()
-            .filter(
-                Q(type=ResultStatusType.SYSTEM) | Q(project_id=project_id),
-            )
-        )
+    def status_list_by_project_id(cls, project_id: int, ordering: bool = False) -> QuerySet[ResultStatus]:
+        project = Project.objects.get(id=project_id)
+        return cls.status_list(project=project, ordering=ordering)
 
     @classmethod
     def status_list_by_project_and_name(cls, project: Project | None, name: str) -> QuerySet[ResultStatus]:

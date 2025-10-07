@@ -25,6 +25,7 @@ export const TestCaseDetail = () => {
     handleChangeVersion,
     handleRestoreVersion,
     handleRefetch,
+    handleArchiveTestCase,
   } = useTestCaseDetail()
 
   const isLastVersion = testCase?.versions[0] === showVersion
@@ -59,12 +60,27 @@ export const TestCaseDetail = () => {
               />
             )}
             <Flex gap={8} style={{ marginLeft: !hasVersion ? "auto" : undefined }}>
-              <CopyTestCase testCase={testCase} onSubmit={handleRefetch} />
-              <EditTestCase testCase={testCase} />
-              {!testCase.source_archived ? (
-                <ArchiveTestCase testCase={testCase} onSubmit={handleRefetch} />
+              <CopyTestCase
+                testCase={testCase}
+                onSubmit={handleRefetch}
+                disabled={!isLastVersion}
+              />
+              {!testCase.source_archived && !testCase.is_archive && (
+                <EditTestCase testCase={testCase} disabled={!isLastVersion} />
+              )}
+              {!testCase.source_archived && !testCase.is_archive ? (
+                <ArchiveTestCase
+                  testCase={testCase}
+                  onArchive={handleArchiveTestCase}
+                  onDelete={handleRefetch}
+                  disabled={!isLastVersion}
+                />
               ) : (
-                <DeleteTestCase testCase={testCase} onSubmit={handleRefetch} />
+                <DeleteTestCase
+                  testCase={testCase}
+                  onSubmit={handleRefetch}
+                  disabled={!isLastVersion}
+                />
               )}
             </Flex>
             <Flex gap={8} align="center" style={{ width: "100%" }}>
@@ -87,6 +103,7 @@ export const TestCaseDetail = () => {
             banner
             className={styles.versionAlert}
             data-testid="test-case-detail-version-warning"
+            style={{ marginBottom: 16 }}
             message={
               <span>
                 {t("This isn't the latest version.")}{" "}

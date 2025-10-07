@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -55,6 +55,7 @@ from testy.core.api.v2.serializers import (
     ModifyNotificationsSettingsSerializer,
     NotificationSerializer,
     NotificationSettingSerializer,
+    ProjectIntegrationSerializer,
     ProjectRetrieveSerializer,
     ProjectSerializer,
     ProjectStatisticsSerializer,
@@ -67,6 +68,7 @@ from testy.core.filters import (
     NotificationFilter,
     NotificationSettingFilter,
     ProjectFilter,
+    ProjectIntegrationFilterSet,
     ProjectOrderingFilter,
 )
 from testy.core.mixins import MediaViewMixin
@@ -81,6 +83,7 @@ from testy.core.selectors.attachments import AttachmentSelector
 from testy.core.selectors.custom_attribute import CustomAttributeSelector
 from testy.core.selectors.labels import LabelSelector
 from testy.core.selectors.notifications import NotificationSelector
+from testy.core.selectors.project_integrations import ProjectIntegrationSelector
 from testy.core.selectors.projects import ProjectSelector
 from testy.core.services.attachments import AttachmentService
 from testy.core.services.custom_attribute import CustomAttributeService
@@ -498,3 +501,17 @@ class NotificationViewSet(
         NotificationService.disable_notifications(request.user, codes)
         message = ', '.join([code.verbose_name for code in codes])
         return Response(f'Disabled notifications for {message}')
+
+
+class ProjectIntegrationViewSet(TestyModelViewSet):
+    queryset = ProjectIntegrationSelector.integration_list()
+    permission_classes = [IsAuthenticated, *BASE_PERMISSIONS]
+    serializer_class = ProjectIntegrationSerializer
+    filter_backends = [TestyFilterBackend]
+    pagination_class = StandardSetPagination
+    schema_tags = ['Project integrations']
+
+    @property
+    def filterset_class(self):
+        if self.action == _LIST:
+            return ProjectIntegrationFilterSet

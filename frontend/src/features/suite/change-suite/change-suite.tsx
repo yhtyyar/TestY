@@ -26,10 +26,10 @@ export const ChangeTestSuite = memo(
       )
       const currentSearchParams = new URLSearchParams(window.location.search)
 
-      const parentTestSuite =
+      const parent =
         (type === "create" ? suite?.id.toString() : suite?.parent?.id.toString()) ?? testSuiteId
-      if (parentTestSuite) {
-        url.searchParams.append("parentTestSuite", parentTestSuite)
+      if (parent) {
+        url.searchParams.append("parent", parent)
       }
 
       url.searchParams.append(

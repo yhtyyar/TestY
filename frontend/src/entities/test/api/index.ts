@@ -124,6 +124,8 @@ export const testRelatedEntitiesInvalidate = testApi.util.invalidateTags([
   { type: "TestRelatedEntities" },
 ])
 
+export const testInvalidate = testApi.util.invalidateTags([{ type: "Test", id: "LIST" }])
+
 export const {
   useGetTestQuery,
   useLazyGetTestsQuery,

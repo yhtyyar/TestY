@@ -12,6 +12,10 @@
         "name": "typescript-plugin-css-modules",
       },
     ],
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "module": "ESNext",
     "skipLibCheck": true,
     "baseUrl": "./src",
@@ -29,6 +33,7 @@
   },
   "include": [
     "src",
+    "vitest.config.ts",
   ],
   "references": [
     {

@@ -90,7 +90,7 @@ export const useAdministrationStatusModal = () => {
       okText: t("Delete"),
       onOk: async () => {
         try {
-          await deleteStatus(statusId).unwrap()
+          await deleteStatus({ id: statusId, project: Number(projectId) }).unwrap()
           antdNotification.success("delete-status", {
             description: t("Status deleted successfully"),
           })

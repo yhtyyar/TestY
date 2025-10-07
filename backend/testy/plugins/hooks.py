@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -41,7 +41,7 @@ hookspec = HookspecMarker('testy')
 hookimpl = HookimplMarker('testy')
 
 URLS_SENTINEL = object()
-VERSION = '2.1.0'
+VERSION = '2.1.1'
 
 
 class TestyPluginConfig(AppConfig):

@@ -11,20 +11,18 @@ interface Props {
   testCase: TestCase
   isDisabled: boolean
   isClone: boolean
-  onClick: (result: Result, isClone: boolean) => void
+  onClick: (result: Result, testCase: TestCase, isClone: boolean) => void
 }
 
 export const EditCloneResult = ({ testResult, isDisabled, isClone, onClick, testCase }: Props) => {
   const { t } = useTranslation()
-
-  if (isClone && testCase.current_version !== testResult.test_case_version) return null
 
   return (
     <Button
       id={`${isClone ? "clone" : "edit"}-result-${testResult.id}-button`}
       onClick={(e) => {
         e.stopPropagation()
-        onClick(testResult, isClone)
+        onClick(testResult, testCase, isClone)
       }}
       color="ghost"
       className={styles.actionButton}

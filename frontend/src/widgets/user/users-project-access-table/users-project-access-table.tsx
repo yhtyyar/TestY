@@ -1,5 +1,6 @@
-import { Space, Table } from "antd"
+import { Space } from "antd"
 import { useTranslation } from "react-i18next"
+import { DataTable } from "widgets"
 
 import { Button } from "shared/ui"
 
@@ -11,8 +12,18 @@ interface Props {
 
 export const UsersProjectAccessTable = ({ isManageable = false }: Props) => {
   const { t } = useTranslation()
-  const { columns, isLoading, users, paginationTable, handleChange, clearAll } =
-    useUsersProjectAccessTable(isManageable)
+  const {
+    columns,
+    isLoading,
+    users,
+    total,
+    tableRef,
+    paginationParams,
+    columnFilters,
+    setColumnFilters,
+    setPaginationParams,
+    clearAll,
+  } = useUsersProjectAccessTable(isManageable)
 
   return (
     <>
@@ -21,14 +32,20 @@ export const UsersProjectAccessTable = ({ isManageable = false }: Props) => {
           {t("Clear filters and sorters")}
         </Button>
       </Space>
-      <Table
-        loading={isLoading}
-        dataSource={users}
+      <DataTable
+        tableRef={tableRef}
+        isLoading={isLoading}
+        data={users}
+        rowCount={total}
         columns={columns}
-        rowKey="username"
-        style={{ marginTop: 12 }}
-        onChange={handleChange}
-        pagination={paginationTable}
+        onPaginationChange={setPaginationParams}
+        onColumnFiltersChange={setColumnFilters}
+        state={{
+          pagination: paginationParams,
+          columnFilters,
+        }}
+        manualPagination
+        manualFiltering
         data-testid="users-project-access-table"
       />
     </>

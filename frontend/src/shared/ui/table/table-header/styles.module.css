@@ -1,0 +1,8 @@
+.tableHeader {
+  background-color: var(--y-color-datatable-header-background);
+  position: relative;
+}
+
+.tableHeader tr {
+  border-bottom: 1px solid var(--y-color-divider);
+}

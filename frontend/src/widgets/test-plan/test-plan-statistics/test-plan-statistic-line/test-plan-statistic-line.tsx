@@ -17,6 +17,7 @@ export const TestPlanStatisticLine = ({ data, type }: Props) => {
       value: type === "count" ? item.value : item.estimates,
       color: item.color,
       id: item.id,
+      type,
     })) ?? []
 
   const countData = type === "count" ? data.total.count : data.total.estimates

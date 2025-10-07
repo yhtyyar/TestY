@@ -1,8 +1,8 @@
 *.pyc
 __pycache__/
 /htmlcov/
-*/venv/
-*/.venv/
+**/venv/
+**/.venv/
 static/
 !docs/source/static
 testy-static/

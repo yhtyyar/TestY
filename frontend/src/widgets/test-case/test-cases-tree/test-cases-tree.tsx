@@ -19,7 +19,7 @@ export const TestsCasesTree = () => {
   const project = useProjectContext()
   const { testCasesTree, skipInit, fetcher, fetcherAncestors } = useContext(TestCasesTreeContext)!
 
-  const testCasesTreeSettings = useAppSelector(selectSettings<TestTreeParams>("tree"))
+  const testCasesTreeSettings = useAppSelector(selectSettings<BaseTreeParams>("tree"))
   const testCasesTreeFilter = useAppSelector(selectFilter)
   const testCasesTreeOrdering = useAppSelector(selectOrdering)
 

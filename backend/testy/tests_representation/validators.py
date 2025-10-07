@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -263,10 +263,10 @@ class TestResultCustomAttributeValuesValidator(BaseCustomAttributeValuesValidato
 
 @deconstructible
 class DateRangeValidator:
-    def __call__(self, attrs):
-        started_at = attrs.get('started_at')
-        due_date = attrs.get('due_date')
-
+    def __call__(self, attrs: dict[str, Any]):
+        plan = attrs.get('plan')
+        started_at = attrs.get('started_at') or getattr(plan, 'started_at', None)
+        due_date = attrs.get('due_date') or getattr(plan, 'due_date', None)
         if started_at >= due_date:
             raise ValidationError('End date must be greater than start date.')
 

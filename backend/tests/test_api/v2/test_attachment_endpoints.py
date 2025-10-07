@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -35,9 +35,11 @@ from pathlib import Path
 
 import pytest
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
 
 from tests.commons import RequestType
+from tests.error_messages import CONTENT_TYPE_NOT_SPECIFIED
 from testy.core.models import Attachment
 from testy.core.services.attachments import AttachmentService
 
@@ -275,6 +277,45 @@ class TestAttachmentEndpoints:
             expected_status=HTTPStatus.NO_CONTENT,
         )
         assert not Attachment.objects.count()
+
+    def test_correct_save_with_png_as_jpeg(
+        self,
+        authorized_client,
+        png_as_jpeg_file,
+        project,
+        media_directory,
+    ):
+        attachment_json = {
+            'project': project.id,
+            'file': png_as_jpeg_file,
+        }
+        number_of_objects_to_create = 1  # No cropped images
+        attachment_id = authorized_client.send_request(
+            self.list_view_name,
+            data=attachment_json,
+            request_type=RequestType.POST,
+            expected_status=HTTPStatus.CREATED,
+            format='multipart',
+        ).json()[0]['id']
+        attachment = Attachment.objects.get(pk=attachment_id)
+        files_folder = Path(attachment.file.url).parts[3]
+        attachment_file_path = Path(media_directory, self.attachments_folder, files_folder)
+        assert number_of_objects_to_create == len(os.listdir(attachment_file_path))
+
+    def test_save_file_without_content_type(self, authorized_client, project):
+        upload_file = SimpleUploadedFile('test_name.txt', b'Test content', content_type='')
+        attachment_json = {
+            'project': project.id,
+            'file': upload_file,
+        }
+        response_data = authorized_client.send_request(
+            self.list_view_name,
+            data=attachment_json,
+            request_type=RequestType.POST,
+            expected_status=HTTPStatus.BAD_REQUEST,
+            format='multipart',
+        ).json()
+        assert response_data['file'] == CONTENT_TYPE_NOT_SPECIFIED
 
 
 @pytest.mark.django_db

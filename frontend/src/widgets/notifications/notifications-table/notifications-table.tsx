@@ -1,6 +1,6 @@
 import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons"
-import { Table } from "antd"
 import { useTranslation } from "react-i18next"
+import { DataTable } from "widgets"
 
 import { Button } from "shared/ui"
 
@@ -10,13 +10,14 @@ import { useNotificationsTable } from "./use-noitifications-table"
 export const NotificationsTable = () => {
   const { t } = useTranslation()
   const {
+    tableRef,
     isLoading,
     data,
-    pagination,
+    total,
+    paginationParams,
     selectedRowKeys,
     columns,
-    handleChange,
-    handleSelectRows,
+    setPaginationParams,
     handleRead,
     handleUnread,
   } = useNotificationsTable()
@@ -46,23 +47,18 @@ export const NotificationsTable = () => {
           </Button>
         </div>
       )}
-      <Table
-        loading={isLoading}
-        dataSource={data}
+      <DataTable
+        tableRef={tableRef}
+        isLoading={isLoading}
+        data={data}
+        rowCount={total}
         columns={columns}
-        rowKey="id"
-        style={{ marginTop: 12 }}
-        id="notifications-table"
-        rowClassName={(record) => {
-          return record.unread ? styles.unreadRow : styles.readRow
+        onPaginationChange={setPaginationParams}
+        state={{
+          pagination: paginationParams,
         }}
-        pagination={pagination}
-        onChange={handleChange}
-        rowSelection={{
-          type: "checkbox",
-          onChange: handleSelectRows,
-          selectedRowKeys,
-        }}
+        rowBodyClassName={(row) => (row.original.unread ? styles.unreadRow : styles.readRow)}
+        manualPagination
         data-testid="notifications-table"
       />
     </>

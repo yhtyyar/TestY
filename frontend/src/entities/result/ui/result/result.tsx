@@ -11,13 +11,15 @@ import { useAppDispatch } from "app/hooks"
 import { toggleResultVisibility } from "entities/result/model/slice"
 import { TestResultComment } from "entities/result/ui/comment"
 
+import { useGetTestCaseByIdQuery } from "entities/test-case/api"
+
 import { UserAvatar } from "entities/user/ui"
 
 import { EditCloneResult } from "features/test-result"
 
-import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { colors } from "shared/config"
-import { Attachment, AttributesObjectView, Status, Steps } from "shared/ui"
+import { Attachment, AttributesObjectView, ContainerLoader, Status, Steps } from "shared/ui"
 
 import styles from "./styles.module.css"
 
@@ -27,7 +29,7 @@ interface Props {
   testId: number
   isProjectArchive: boolean
   isOpen: boolean
-  onActionClick: (result: Result, isClone: boolean) => void
+  onActionClick: (result: Result, testCase: TestCase, isClone: boolean) => void
 }
 
 export const Result = memo(
@@ -36,9 +38,15 @@ export const Result = memo(
     const { testPlanId } = useParams<ParamTestPlanId>()
     const dispatch = useAppDispatch()
 
-    const resultSteps = testCase.steps
-      .filter(({ id }) => result.steps_results?.some(({ step }) => step === id))
-      .sort((first, second) => first.sort_order - second.sort_order)
+    const { data: resultTestCase, isLoading } = useGetTestCaseByIdQuery({
+      testCaseId: testCase.id.toString(),
+      ver: result.test_case_version.toString(),
+    })
+
+    const resultSteps =
+      resultTestCase?.steps
+        .filter(({ id }) => result.steps_results?.some(({ step }) => step === id))
+        .sort((first, second) => first.sort_order - second.sort_order) ?? []
 
     const resultStepStatuses: Record<number, number> = {}
 
@@ -59,9 +67,9 @@ export const Result = memo(
           ghost
           defaultActiveKey={isOpen ? result.id : undefined}
           expandIcon={({ isActive }) => (
-            <ArrowIcon
-              width={24}
-              height={24}
+            <ChevronIcon
+              width={16}
+              height={16}
               className={classNames(styles.arrowIcon, {
                 [styles.arrowIconOpen]: isActive,
               })}
@@ -91,7 +99,7 @@ export const Result = memo(
                 {result.test_case_version && (
                   <Link
                     className={styles.link}
-                    to={`/projects/${result.project}/suites/${testCase.suite.id}/?test_case=${testCase.id}&version=${result.test_case_version}`}
+                    to={`/projects/${result.project}/suites/${testCase.suite.id}/?test_case=${testCase.id}&ver=${result.test_case_version}`}
                   >
                     {t("ver.")} {result.test_case_version}
                   </Link>
@@ -104,20 +112,24 @@ export const Result = memo(
                     {dayjs(result.created_at).format("YYYY-MM-DD HH:mm")}
                   </HashLink>
                 </span>
-                <EditCloneResult
-                  isDisabled={isProjectArchive}
-                  testResult={result}
-                  isClone
-                  onClick={onActionClick}
-                  testCase={testCase}
-                />
-                <EditCloneResult
-                  isDisabled={isProjectArchive}
-                  testResult={result}
-                  isClone={false}
-                  onClick={onActionClick}
-                  testCase={testCase}
-                />
+                {testCase.current_version === result.test_case_version && (
+                  <EditCloneResult
+                    isDisabled={isProjectArchive || isLoading}
+                    testResult={result}
+                    isClone
+                    onClick={onActionClick}
+                    testCase={testCase}
+                  />
+                )}
+                {resultTestCase && (
+                  <EditCloneResult
+                    isDisabled={isProjectArchive || isLoading}
+                    testResult={result}
+                    isClone={false}
+                    onClick={onActionClick}
+                    testCase={resultTestCase}
+                  />
+                )}
                 <Space>
                   {result.is_archive ? (
                     <div>
@@ -129,20 +141,26 @@ export const Result = memo(
             }
             key={result.id}
           >
-            <div className={styles.resultBody}>
-              <TestResultComment result={result} />
-              {!!resultSteps.length && (
-                <Steps.StepList
-                  id={`result-steps-${result.id}`}
-                  steps={resultSteps}
-                  stepStatuses={resultStepStatuses}
-                  label={<div className={styles.stepsLabel}>{t("Steps")}</div>}
-                  project={testCase.project}
-                />
-              )}
-              <AttributesObjectView attributes={result.attributes} />
-              {!!result.attachments.length && <Attachment.Field attachments={result.attachments} />}
-            </div>
+            {isLoading ? (
+              <ContainerLoader />
+            ) : (
+              <div className={styles.resultBody}>
+                <TestResultComment result={result} />
+                {!!resultSteps.length && (
+                  <Steps.StepList
+                    id={`result-steps-${result.id}`}
+                    steps={resultSteps}
+                    stepStatuses={resultStepStatuses}
+                    label={<div className={styles.stepsLabel}>{t("Steps")}</div>}
+                    project={testCase.project}
+                  />
+                )}
+                <AttributesObjectView attributes={result.attributes} />
+                {!!result.attachments.length && (
+                  <Attachment.Field attachments={result.attachments} />
+                )}
+              </div>
+            )}
           </Collapse.Panel>
         </Collapse>
       </div>

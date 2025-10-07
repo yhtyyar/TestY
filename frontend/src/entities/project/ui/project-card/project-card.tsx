@@ -5,14 +5,14 @@ import { Link } from "react-router-dom"
 
 import { RequestProjectAccess } from "features/project"
 
-import { icons } from "shared/assets/inner-icons"
+import DashboardIcon from "shared/assets/yi-icons/dashboard.svg?react"
+import TestPlansIcon from "shared/assets/yi-icons/test-plans.svg?react"
+import TestSuitesIcon from "shared/assets/yi-icons/test-suites.svg?react"
 import { createConcatIdsFn } from "shared/libs"
 import { ArchivedTag } from "shared/ui"
 
 import { ProjectIcon } from ".."
 import styles from "./styles.module.css"
-
-const { DashboardIcon, TestPlansIcon, TestSuitesIcon } = icons
 
 interface Props {
   project: Project
@@ -53,19 +53,19 @@ export const ProjectCard = ({ project, folowProject }: Props) => {
           </div>
           <ul className={styles.dataBlock}>
             <li data-testid={getIdWithTitle("data-block-suites")}>
-              <span className={styles.dataCount}>{project.suites_count}</span>
+              <span className={styles.dataCount}>{project.suites_count.toLocaleString()}</span>
               <span className={styles.dataTitle}>{t("Test Suites")}</span>
             </li>
             <li data-testid={getIdWithTitle("data-block-plans")}>
-              <span className={styles.dataCount}>{project.plans_count}</span>
+              <span className={styles.dataCount}>{project.plans_count.toLocaleString()}</span>
               <span className={styles.dataTitle}>{t("Test Plans")}</span>
             </li>
             <li data-testid={getIdWithTitle("data-block-cases")}>
-              <span className={styles.dataCount}>{project.cases_count}</span>
+              <span className={styles.dataCount}>{project.cases_count.toLocaleString()}</span>
               <span className={styles.dataTitle}>{t("Test Cases")}</span>
             </li>
             <li data-testid={getIdWithTitle("data-block-tests")}>
-              <span className={styles.dataCount}>{project.tests_count}</span>
+              <span className={styles.dataCount}>{project.tests_count.toLocaleString()}</span>
               <span className={styles.dataTitle}>{t("Tests")}</span>
             </li>
           </ul>

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -57,6 +57,7 @@ from testy.swagger.v1.cases import (
     cases_version_restore_schema,
 )
 from testy.swagger.v1.suites import suite_copy_schema, suite_list_schema, suite_retrieve_schema
+from testy.tests_description.api.mixins import TestCaseVersionRedirectMixin
 from testy.tests_description.api.v1.serializers import (
     TestCaseCopySerializer,
     TestCaseHistorySerializer,
@@ -107,7 +108,7 @@ _ID = 'id'
 
 
 @cases_list_schema
-class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin):
+class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArchiveMixin):
     queryset = TestCaseSelector().case_list()
     serializer_class = TestCaseListSerializer
     permission_classes = [
@@ -176,18 +177,18 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin):
         serializer.is_valid(raise_exception=True)
 
         if serializer.validated_data.get('is_steps', False):
-            instance = TestCaseService().case_with_steps_update(
+            TestCaseService().case_with_steps_update(
                 serializer.instance, {
                     _USER: request.user, **serializer.validated_data,
                 },
             )
         else:
-            instance = TestCaseService().case_update(
+            TestCaseService().case_update(
                 serializer.instance, {
                     _USER: request.user, **serializer.validated_data,
                 },
             )
-
+        instance = self.get_object()
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -197,9 +198,12 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin):
 
     @cases_retrieve_schema
     def retrieve(self, request, pk=None, **kwargs):
+        if self.is_need_version_redirect(request):
+            return self.version_redirect(request)
+
         instance = self.get_object()
-        version = request.query_params.get('version')
-        instance, version = TestCaseSelector.case_by_version(instance, version)
+        version = request.query_params.get('ver')
+        instance, version = TestCaseSelector.case_by_display_version(instance, version)
         serializer = TestCaseRetrieveSerializer(instance, version=version, context=self.get_serializer_context())
         return Response(serializer.data)
 
@@ -250,7 +254,7 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin):
         instance = self.get_object()
         serializer = TestCaseRestoreSerializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        updated_test_case = TestCaseService.restore_version(serializer.validated_data.get('version'), pk)
+        updated_test_case = TestCaseService.restore_version(serializer.validated_data.get('version'), instance.pk)
         return Response(TestCaseRetrieveSerializer(updated_test_case, context=self.get_serializer_context()).data)
 
     @cases_search_schema

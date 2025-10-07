@@ -1,7 +1,15 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 
-import { useDeleteTestSuiteMutation, useGetSuiteDeletePreviewQuery } from "entities/suite/api"
+import { useAppDispatch } from "app/hooks"
+
+import {
+  useDeleteTestSuiteMutation,
+  useGetSuiteDeletePreviewQuery,
+  useLazyGetSuiteTestPlansQuery,
+} from "entities/suite/api"
+
+import { testPlanCasesIdsInvalidate } from "entities/test-plan/api"
 
 import { initInternalError } from "shared/libs"
 import { antdNotification } from "shared/libs/antd-modals"
@@ -24,13 +32,23 @@ export const DeleteTestSuiteModal = ({ isShow, setIsShow, testSuite, onSubmit }:
   })
   const navigate = useNavigate()
 
+  const dispatch = useAppDispatch()
+
+  const [getPlans] = useLazyGetSuiteTestPlansQuery()
+
   const handleClose = () => {
     setIsShow(false)
   }
 
   const handleDelete = async () => {
     try {
+      const plans = await getPlans(testSuite.id).unwrap()
       await deleteTestSuite(testSuite.id).unwrap()
+
+      plans.plan_ids.forEach((id) => {
+        dispatch(testPlanCasesIdsInvalidate(id))
+      })
+
       navigate(`/projects/${testSuite.project}/suites`)
       antdNotification.success("delete-test-suite", {
         description: (

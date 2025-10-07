@@ -22,8 +22,7 @@ const CACHE_COLLAPSE_KEY = "collapse-test-plan-statistic"
 export const TestPlansOverviewTab = () => {
   const { t } = useTranslation()
   const { userConfig, updateConfig } = useMeContext()
-  const [dataView, setDataView] = useCacheState<EntityView>("test-plan-detail-tests-view", "tree")
-  const { testPlan, hasTestPlan, isFetching } = useTestPlanContext()
+  const { testPlan, hasTestPlan, isFetching, dataView } = useTestPlanContext()
   const statistics = useTestPlanStatistics({ testPlanId: testPlan?.id, view: dataView })
   const [segment, setSegment] = useState<GraphBaseType>(userConfig?.ui?.graph_base_type ?? "pie")
   const [isCollapse, setIsCollapse] = useCacheState(CACHE_COLLAPSE_KEY, false, toBool)
@@ -114,11 +113,7 @@ export const TestPlansOverviewTab = () => {
           <TestPlanStatistics testPlanId={testPlan?.id} segment={segment} />
         </Collapse>
         <Divider />
-        <TestPlanDataActions
-          testPlanId={testPlan?.id}
-          dataView={dataView}
-          setDataView={setDataView}
-        />
+        <TestPlanDataActions testPlanId={testPlan?.id} />
         {dataView === "list" && !isFetching && <TestsTable testPlanId={testPlan?.id} />}
         {dataView === "tree" && !isFetching && <TestsTree testPlanId={testPlan?.id} />}
         <TestDetail />

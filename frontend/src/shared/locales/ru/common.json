@@ -1,3 +1,9 @@
 {
-  "copyright": "<linkRepoUrl>TestY TMS {{version}}.</linkRepoUrl> Размещено под лицензией AGPL-v3. Если вы обнаружили ошибку, <linkIssue>сообщите о ней</linkIssue> или напишите нам по <linkEmail>электронной почте</linkEmail>.<br/>Авторские права © {{year}} <linkKns>KNS Group LLC (YADRO).</linkKns>"
+  "paginationTotal_one": "из {{count}} записи",
+  "paginationTotal_few": "из {{count}} записей",
+  "paginationTotal_many": "из {{count}} записей",
+  "paginationPages_one": "из {{count}} страницы",
+  "paginationPages_few": "из {{count}} страниц",
+  "paginationPages_many": "из {{count}} страниц",
+  "copyright": "<linkRepoUrl>TestY TMS {{version}}.</linkRepoUrl> Размещено под лицензией AGPL-v3. Есть вопрос или нашли ошибку? <linkIssue>Напишите нам.</linkIssue><br/>© {{year}} <linkKns>KNS Group LLC (YADRO).</linkKns>"
 }

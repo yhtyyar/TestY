@@ -1,5 +1,5 @@
 .mdViewer {
-  z-index: 999;
+  z-index: var(--max-z-index);
   position: relative;
   font-size: 14px;
   max-width: 100%;

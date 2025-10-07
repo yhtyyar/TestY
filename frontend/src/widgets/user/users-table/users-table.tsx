@@ -1,5 +1,6 @@
-import { Space, Table } from "antd"
+import { Space } from "antd"
 import { useTranslation } from "react-i18next"
+import { DataTable } from "widgets"
 
 import { Button } from "shared/ui"
 
@@ -7,7 +8,18 @@ import { useUsersTable } from "./use-users-table"
 
 export const UsersTable = () => {
   const { t } = useTranslation()
-  const { columns, isLoading, users, paginationTable, handleChange, clearAll } = useUsersTable()
+  const {
+    tableRef,
+    total,
+    columns,
+    isLoading,
+    users,
+    paginationParams,
+    columnFilters,
+    setColumnFilters,
+    setPaginationParams,
+    clearAll,
+  } = useUsersTable()
 
   return (
     <>
@@ -16,14 +28,20 @@ export const UsersTable = () => {
           {t("Clear filters and sorters")}
         </Button>
       </Space>
-      <Table
-        loading={isLoading}
-        dataSource={users}
+      <DataTable
+        tableRef={tableRef}
+        isLoading={isLoading}
+        data={users}
+        rowCount={total}
         columns={columns}
-        rowKey="username"
-        style={{ marginTop: 12 }}
-        onChange={handleChange}
-        pagination={paginationTable}
+        onPaginationChange={setPaginationParams}
+        onColumnFiltersChange={setColumnFilters}
+        state={{
+          pagination: paginationParams,
+          columnFilters,
+        }}
+        manualPagination
+        manualFiltering
         data-testid="users-table"
       />
     </>

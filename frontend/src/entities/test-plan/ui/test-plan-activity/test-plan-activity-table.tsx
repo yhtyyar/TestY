@@ -1,9 +1,10 @@
-import { Empty, Pagination, Table, Typography } from "antd"
+import { Empty, Flex, Typography } from "antd"
 import dayjs from "dayjs"
+import { DataTable } from "widgets"
 
 import { useTestPlanActivity } from "entities/test-plan/model"
 
-import { ContainerLoader } from "shared/ui"
+import { ContainerLoader, TablePageChanger } from "shared/ui"
 
 export const TestPlanActivityTable = ({
   testPlanActivity,
@@ -25,22 +26,32 @@ export const TestPlanActivityTable = ({
           <Typography.Paragraph strong data-testid={`test-plan-activity-table-title-${dayStr}`}>
             {dayjs(dayStr).format("D MMMM YYYY")}
           </Typography.Paragraph>
-          <Table
+          <DataTable
+            data={item}
             columns={testPlanActivity.columns}
-            dataSource={item}
-            rowKey="action_timestamp"
-            pagination={false}
+            manualPagination
+            paginationVisible={false}
             data-testid={`test-plan-activity-table-${dayStr}`}
           />
         </li>
       ))}
-      <Pagination
-        defaultCurrent={1}
-        pageSize={testPlanActivity.pagination?.pageSize ?? 10}
-        total={testPlanActivity.data.count}
-        style={{ width: "fit-content", marginLeft: "auto" }}
-        onChange={testPlanActivity.handlePaginationChange}
-      />
+      {testPlanActivity.tableFilterRef.current !== null && (
+        <Flex justify="end">
+          <TablePageChanger
+            current={testPlanActivity.tableFilterRef.current.getState().pagination.pageIndex + 1}
+            pageSize={testPlanActivity.tableFilterRef.current.getState().pagination.pageSize}
+            total={testPlanActivity.data.count}
+            onChangePage={(page) => {
+              if (testPlanActivity.tableFilterRef.current) {
+                testPlanActivity.setPaginationParams((prevState) => ({
+                  ...prevState,
+                  pageIndex: page - 1,
+                }))
+              }
+            }}
+          />
+        </Flex>
+      )}
     </ul>
   )
 }

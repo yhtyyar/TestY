@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams } from "react-router"
 
 import { useLazySearchTestCasesQuery } from "entities/test-case/api"
@@ -9,18 +9,39 @@ export const useTestCasesSearch = ({ isShow }: { isShow: boolean }) => {
   const { projectId } = useParams<ParamProjectId>()
   const [searchText, setSearchText] = useState("")
   const [treeData, setTreeData] = useState<DataWithKey<Suite>[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [searchTestCases] = useLazySearchTestCasesQuery()
+  const [searchTestCases, { isFetching: isLoading }] = useLazySearchTestCasesQuery()
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activeRequestRef = useRef<any>(null)
+
+  const fetchData = useCallback(
+    async (params: SearchTestCasesQuery) => {
+      if (activeRequestRef.current) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+        activeRequestRef.current.abort()
+      }
+
+      try {
+        const res = searchTestCases(params)
+        activeRequestRef.current = res
+
+        const { data = [] } = await res
+        return makeTestSuitesWithCasesForTreeView(data)
+      } catch (err) {
+        console.error(err)
+        return []
+      } finally {
+        activeRequestRef.current = null
+      }
+    },
+    [projectId, searchTestCases]
+  )
 
   useEffect(() => {
     if (!isShow || !projectId) return
     const fetch = async () => {
-      setIsLoading(true)
-      const res = await searchTestCases({ project: projectId }).unwrap()
-      const suitesWithKeys = makeTestSuitesWithCasesForTreeView(res)
+      const suitesWithKeys = await fetchData({ project: projectId })
       setTreeData(suitesWithKeys as unknown as DataWithKey<Suite>[])
-      setIsLoading(false)
     }
 
     fetch()
@@ -37,16 +58,13 @@ export const useTestCasesSearch = ({ isShow }: { isShow: boolean }) => {
       setSearchText(value)
     }
 
-    setIsLoading(true)
-    const res = await searchTestCases({
+    const suitesWithKeys = await fetchData({
       project: projectId,
       search: value,
       labels,
       labels_condition: labels.length > 1 ? labels_condition : undefined,
       is_archive: showArchived,
-    }).unwrap()
-
-    const suitesWithKeys = makeTestSuitesWithCasesForTreeView(res)
+    })
 
     const [filteredRows] = TreeUtils.filterRows(
       suitesWithKeys as unknown as DataWithKey<Suite>[],
@@ -61,7 +79,6 @@ export const useTestCasesSearch = ({ isShow }: { isShow: boolean }) => {
       setExpandedRowKeys([])
     }
     setTreeData(filteredRows)
-    setIsLoading(false)
   }
 
   const onRowExpand = (expandedRows: string[], recordKey: string) => {

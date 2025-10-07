@@ -64,9 +64,9 @@ html[data-theme="light"] {
   --y-color-primary-inline-hover: var(--y-grey-50);
 
   /* Secondary */
-  --y-color-secondary: var(--y-grey-20);
+  --y-color-secondary: var(--y-grey-15);
   --y-color-secondary-hover: var(--y-grey-20);
-  --y-color-secondary-focus: var(--y-grey-20);
+  --y-color-secondary-focus: var(--y-grey-15);
   --y-color-secondary-active: var(--y-grey-25);
   --y-color-on-secondary: var(--y-grey-70);
   --y-сolor-secondary-border: var(--y-grey-15);
@@ -150,6 +150,7 @@ html[data-theme="light"] {
   --y-color-datatable-header-background: var(--y-grey-10);
   --y-color-datatable-cell-hover: var(--y-grey-10);
   --y-color-datatable-selected-row-background: var(--y-blue-10);
+  --y-color-databale-overlay-loading: rgba(0, 0, 0, 0.05);
 
   /* Menu */
   --y-color-menu-background: var(--y-grey-85);

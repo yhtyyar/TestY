@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -72,6 +72,7 @@ class TestSuiteEndpoints:
     view_name_copy = 'api:v2:testsuite-copy'
     view_name_union = 'api:v2:testsuite-union'
     view_name_cases = 'api:v2:testsuite-cases'
+    view_name_plans = 'api:v2:testsuite-plans'
 
     @allure.title('Test list display')
     def test_list(self, superuser_client, test_suite_factory, project):
@@ -509,13 +510,13 @@ class TestSuiteEndpoints:
                 request_type=RequestType.PUT,
             )
 
-        copied_case_histories = copied_case.history.all().order_by('history_date').values_list('history_id', flat=True)
+        copied_case_histories = copied_case.history.count()
         with allure.step('Validate steps count for all versions'):
-            for history_id in copied_case_histories:
+            for history_id in range(1, copied_case_histories + 1):
                 resp_body = authorized_superuser_client.send_request(
                     case_detail_reverse,
                     reverse_kwargs={'pk': copied_case.pk},
-                    query_params={'version': history_id},
+                    query_params={'ver': history_id},
                 ).json()
             assert len(resp_body['steps']) == 2
         with allure.step('Validate steps count for case without version'):
@@ -578,7 +579,7 @@ class TestSuiteEndpoints:
             assert child_suites[parent_id] == response_data
 
     @pytest.mark.parametrize('descending', [True, False], ids=['Descending', 'Ascending'])
-    @pytest.mark.parametrize('order_by', ['id', 'created_at', 'name'])
+    @pytest.mark.parametrize('order_by', ['id', 'created_at', 'name', 'estimate'])
     def test_suite_union_order_by_filter(
         self,
         test_suite_factory,
@@ -600,17 +601,20 @@ class TestSuiteEndpoints:
                     refresh_instances=True,
                 )
                 expected_suites.append(suite)
-            expected_suites.sort(key=lambda elem: elem.get(order_by, ''), reverse=descending)
+            if order_by != 'estimate':
+                expected_suites.sort(key=lambda elem: elem.get(order_by, ''), reverse=descending)
         with allure.step('Generate and sort cases'):
             expected_cases = []
             for idx in range(3):
-                test = model_to_dict_via_serializer(
-                    test_case_factory(project=project, suite=root_suite, name=str(idx)),
-                    TestCaseUnionMockSerializer,
-                    refresh_instances=True,
-                )
-                expected_cases.append(test)
-            expected_cases.sort(key=lambda elem: elem.get(order_by, ''), reverse=descending)
+                case = test_case_factory(project=project, suite=root_suite, name=str(idx))
+                expected_cases.append(case)
+            expected_cases.sort(key=lambda elem: getattr(elem, order_by, ''), reverse=descending)
+            expected_cases = model_to_dict_via_serializer(
+                expected_cases,
+                TestCaseUnionMockSerializer,
+                refresh_instances=True,
+                many=True,
+            )
         expected_suites.extend(expected_cases)
         response_data = authorized_superuser_client.send_request(
             self.view_name_union,
@@ -879,6 +883,26 @@ class TestSuiteEndpoints:
         with allure.step('Validate label exists'):
             assert new_case.labeled_items.exists()
             assert new_case.labeled_items.first().label_id == dst_label.id
+
+    def test_plan_ids_by_suite(
+        self,
+        superuser_client,
+        test_suite_factory,
+        test_case_factory,
+        test_plan_factory,
+        test_factory,
+        project,
+    ):
+        expected_plan_ids = []
+        suite = test_suite_factory(project=project)
+        test_case = test_case_factory(project=project, suite=suite)
+        for _ in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
+            plan = test_plan_factory(project=project)
+            test_factory(plan=plan, project=project, case=test_case)
+            expected_plan_ids.append(plan.id)
+        response_data = superuser_client.send_request(self.view_name_plans, reverse_kwargs={'pk': suite.id}).json()
+        for plan_id in expected_plan_ids:
+            assert plan_id in response_data['plan_ids']
 
     @classmethod
     def _validate_copied_objects(

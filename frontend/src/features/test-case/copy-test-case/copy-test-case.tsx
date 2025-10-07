@@ -16,11 +16,12 @@ import { useTestCaseCopyModal } from "./use-test-case-copy-modal"
 interface Props {
   testCase: TestCase
   onSubmit?: (suite: TestCase) => void
+  disabled?: boolean
 }
 
 const TEST_ID = "copy-test-case"
 
-export const CopyTestCase = ({ testCase, onSubmit }: Props) => {
+export const CopyTestCase = ({ testCase, onSubmit, disabled = false }: Props) => {
   const { t } = useTranslation()
   const { projectId } = useParams<ParamProjectId>()
   const [getSuites] = useLazyGetTestSuitesQuery()
@@ -35,6 +36,7 @@ export const CopyTestCase = ({ testCase, onSubmit }: Props) => {
         icon={<CopyOutlined />}
         onClick={handleShow}
         color="secondary-linear"
+        disabled={disabled}
       >
         {t("Copy")}
       </Button>

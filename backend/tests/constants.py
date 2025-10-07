@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -101,3 +101,4 @@ DETAIL_VIEW_NAMES = {
     'parameter': 'api:v2:parameter-detail',
     'status': 'api:v2:status-detail',
 }
+PROJECT_INTEGRATION_NAME = 'Jenkins run job'

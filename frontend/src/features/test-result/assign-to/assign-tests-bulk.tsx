@@ -12,7 +12,7 @@ interface Props {
 }
 
 export const AssignTestsBulk = ({ isLoading, onSubmit }: Props) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["entities"])
   const {
     isOpen,
     errors,
@@ -30,7 +30,7 @@ export const AssignTestsBulk = ({ isLoading, onSubmit }: Props) => {
     <>
       <Flex align="center" id="assign-to-btn" key="submit" onClick={handleOpenAssignModal}>
         <UserIcon width={16} height={16} style={{ marginRight: 8 }} />
-        {t("Assign To")}
+        {t("entities:user.AssignTo")}
       </Flex>
       <AssingToModal
         isOpenModal={isOpen}

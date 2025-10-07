@@ -130,6 +130,11 @@ export const suiteApi = createApi({
       }),
       providesTags: (result) => providesList(result?.results, "TestSuiteTestCase"),
     }),
+    getSuiteTestPlans: builder.query<{ plan_ids: number[] }, number>({
+      query: (id) => ({
+        url: `${rootPath}/${id}/plans/`,
+      }),
+    }),
   }),
 })
 
@@ -155,6 +160,7 @@ export const {
   useGetTestSuitesQuery,
   useGetSuiteQuery,
   useGetTestSuiteAncestorsQuery,
+  useLazyGetSuiteTestPlansQuery,
   useLazyGetTestSuiteAncestorsQuery,
   useLazyGetTestSuitesWithTestCasesQuery,
   useCreateSuiteMutation,

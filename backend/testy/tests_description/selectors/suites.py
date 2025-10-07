@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -29,13 +29,14 @@
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
 import logging
-import uuid
 import warnings
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, TypeVar
 
+from django.contrib.postgres.expressions import ArraySubquery
 from django.db.models import (
     BooleanField,
     Case,
+    CharField,
     Exists,
     F,
     Func,
@@ -48,9 +49,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.sql.constants import LOUTER
 from django.shortcuts import get_object_or_404
-from django_cte import With
 from mptt.querysets import TreeQuerySet
 
 from testy.tests_description.models import TestCase, TestSuite
@@ -158,12 +157,20 @@ class TestSuiteSelector:  # noqa: WPS214
 
     def root_suites_by_plans(
         self,
-        plans: QuerySet[TestPlan],
-        parent: int | None,
+        parent: TestPlan,
+        project_id: int,
+        show_descendants: bool,
     ) -> list[dict[str, Any]]:
-        plan_ids = list(plans.values_list(_ID, flat=True))
-        tests = Test.objects.filter(plan__in=plan_ids)
-        suite_ids = tests.values_list('case__suite__id', flat=True).distinct()
+        search_args = [Q(project_id=project_id)]
+        if parent is None and not show_descendants:
+            search_args.append(Q(plan__parent_id__isnull=True))
+        elif parent:
+            plan_condition = Q(plan_id=parent.id)
+            if show_descendants:
+                plan_condition |= Q(plan__path__descendant=parent.path)
+            search_args.append(plan_condition)
+        tests = Test.objects.select_related('plan').filter(*search_args)
+        suite_ids = tests.values_list('case__suite_id', flat=True).distinct()
         if parent is None:
             qs = TestSuite.objects.filter(tree_id__in=tests.values_list('case__suite__tree_id', flat=True).distinct())
         else:
@@ -218,25 +225,21 @@ class TestSuiteSelector:  # noqa: WPS214
         ).order_by(_NAME)
 
     @classmethod
-    def annotate_suite_path(cls, qs: QuerySet[_MT], outer_ref_key: str = _ID) -> QuerySet[_MT]:
-        ancestor_paths = TestSuite.objects.filter(
-            Q(path__ancestor=OuterRef(_PATH)),
-        ).order_by(_PATH).values(_NAME)
-
-        suite_path_cte = With(
-            TestSuite.objects.all()
-            .annotate(suite_path=ConcatSubquery(ancestor_paths, separator='/'))
-            .values('suite_path', _ID),
-            name=uuid.uuid4().hex,
+    def annotate_suite_path(cls, qs: QuerySet[_MT], outer_ref_key: str = _PATH) -> QuerySet[_MT]:
+        sq = ArraySubquery(
+            TestSuite.objects.filter(
+                path__ancestor=OuterRef(outer_ref_key),
+            ).order_by(_PATH).values_list(_NAME, flat=True),
         )
-        return (
-            suite_path_cte.join(
-                qs,
-                **{outer_ref_key: suite_path_cte.col.id},
-                _join_type=LOUTER,
-            )
-            .with_cte(suite_path_cte)
-            .annotate(suite_path=suite_path_cte.col.suite_path)
+        return qs.alias(
+            suite_path_list=sq,
+        ).annotate(
+            suite_path=Func(
+                F('suite_path_list'),
+                Value('/'),
+                function='array_to_string',
+                output_field=CharField(),
+            ),
         )
 
     @classmethod
@@ -311,24 +314,27 @@ class TestSuiteSelector:  # noqa: WPS214
         parent_id: int | None,
         suites: QuerySet[TestSuite],
     ) -> 'ValuesQuerySet[TestSuite, dict[str, Any]]':
-        fields = (_ID, 'created_at', _NAME, _IS_LEAF, _TYPE)
+        fields = (_ID, 'created_at', _NAME, _IS_LEAF, _TYPE, 'union_estimate')
 
         cases_for_display = TestCase.objects.none()
         if parent_id is None:
             return suites.annotate(
                 is_leaf=Value(False),
                 type=Value(_SUITE),
+                union_estimate=Value(0),
             ).values(*fields).order_by(_IS_LEAF, _NAME)
         cases_for_display = cases.filter(suite=parent_id, pk__in=cases)
 
         cases_for_display = cases_for_display.annotate(
             is_leaf=Value(True),
             type=Value('case'),
+            union_estimate=F('estimate'),
         ).values(*fields)
 
         suites_values = suites.annotate(
             is_leaf=Value(False),
             type=Value(_SUITE),
+            union_estimate=Value(0),
         ).values(*fields)
         suites_values = suites_values.union(cases_for_display).values(*fields).order_by(_IS_LEAF)
         return suites_values.order_by(_IS_LEAF, _NAME)
@@ -349,7 +355,7 @@ class TestSuiteSelector:  # noqa: WPS214
                 case_ids.append(elem[_ID])
 
         db_cases = TestCaseSelector.cases_for_union_data(case_ids)
-        db_cases = TestSuiteSelector.annotate_suite_path(db_cases, 'suite').select_related(_SUITE)
+        db_cases = TestSuiteSelector.annotate_suite_path(db_cases, 'suite__path').select_related(_SUITE)
 
         db_suites = self.suites_by_ids(suite_ids, _PK)
         db_suites = self.suite_list_union(db_suites)

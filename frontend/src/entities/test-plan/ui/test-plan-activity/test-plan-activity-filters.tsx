@@ -1,17 +1,24 @@
-import { Space, Table, Typography } from "antd"
+import { Space, Typography } from "antd"
 import { useTranslation } from "react-i18next"
+import { DataTable } from "widgets"
 
 import { useTestPlanActivity, useTestPlanActivityFilters } from "entities/test-plan/model"
 
 import { Button } from "shared/ui"
 
-export const TestPlanActivityFilers = ({
+export const TestPlanActivityFilters = ({
   testPlanActivity,
 }: {
   testPlanActivity: ReturnType<typeof useTestPlanActivity>
 }) => {
   const { t } = useTranslation()
-  const { filters, handleChange } = useTestPlanActivityFilters(testPlanActivity)
+  const {
+    filters,
+    columnFilters,
+    columnSorting,
+    handleColumnFiltersChange,
+    handleColumnSortingChange,
+  } = useTestPlanActivityFilters(testPlanActivity)
 
   return (
     <div
@@ -41,15 +48,22 @@ export const TestPlanActivityFilers = ({
           </Button>
         </Space>
       </div>
-      <Table
+      <DataTable
+        tableRef={testPlanActivity.tableFilterRef}
+        data={[]}
         columns={filters}
-        dataSource={[]}
-        rowKey="id"
-        pagination={false}
-        loading={false}
-        className="test-plan-activity-filters"
-        onChange={handleChange}
-        data-testid="test-plan-activity-filters-table"
+        onColumnFiltersChange={handleColumnFiltersChange}
+        onSortingChange={handleColumnSortingChange}
+        state={{
+          columnFilters,
+          sorting: columnSorting,
+          pagination: testPlanActivity.paginationParams,
+        }}
+        manualFiltering
+        manualSorting
+        paginationVisible={false}
+        tableBodyVisible={false}
+        data-testid="test-plan-activity-filters"
       />
     </div>
   )

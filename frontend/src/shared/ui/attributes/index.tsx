@@ -19,7 +19,7 @@ export const AttributesObjectView = ({ attributes }: { attributes: AttributesObj
       {Object.keys(attributes ?? {}).map((keyName: string) => (
         <Collapse
           ghost
-          style={{ padding: 0, margin: 0, userSelect: "none" }}
+          style={{ padding: 0, margin: 0 }}
           key={`${keyName}-collapse`}
           expandIcon={({ isActive }) => (
             <ArrowIcon

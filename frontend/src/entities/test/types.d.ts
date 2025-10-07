@@ -1,9 +1,10 @@
 interface TestState {
   test: Test | null
   drawer: DrawerData
+  dataView: EntityView
   settings: {
     table: TestTableParams
-    tree: TestTreeParams
+    tree: BaseTreeParams
   }
 }
 
@@ -87,24 +88,9 @@ interface TestGetFilters extends TestGet {
   _n?: string | number
 }
 
-interface TestTableParams {
-  page: number
-  page_size: number
-  visibleColumns: ColumnParam[]
-  columns: ColumnParam[]
-  sorter?: SorterResult<string>
-  hasBulk: boolean
-  isAllSelectedTableBulk: boolean
-  selectedRows: number[]
-  excludedRows: number[]
-  count: number
-  _n?: number
-}
-
-interface TestTreeParams {
-  columns: ColumnParam[]
-  visibleColumns: ColumnParam[]
-}
+type TestTableParams = BaseTableParams<{
+  testPlanId: number | null
+}>
 
 interface TestTableFilters {
   plan?: number

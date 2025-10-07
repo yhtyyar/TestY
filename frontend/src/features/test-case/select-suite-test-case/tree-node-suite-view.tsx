@@ -2,12 +2,10 @@ import { Spin } from "antd"
 import classNames from "classnames"
 import { MouseEvent } from "react"
 
-import { icons } from "shared/assets/inner-icons"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { LazyNodeProps, LazyTreeNodeApi, TreeBaseLoadMore } from "shared/libs/tree"
 
 import styles from "./styles.module.css"
-
-const { ArrowIcon } = icons
 
 interface Props {
   node: LazyTreeNodeApi<Suite, LazyNodeProps>
@@ -17,7 +15,7 @@ interface Props {
 export const TreeNodeSuiteView = ({ node, onSelect, selectedId }: Props) => {
   const offset = node.props.level * 20
 
-  const handleOpenClick = async (e: MouseEvent<HTMLElement | SVGElement>) => {
+  const handleOpenClick = async (e: MouseEvent<SVGElement>) => {
     e.stopPropagation()
     await node.open()
   }
@@ -54,7 +52,7 @@ export const TreeNodeSuiteView = ({ node, onSelect, selectedId }: Props) => {
           <div className={styles.nodeLeftAction}>
             {node.props.isLoading && <Spin size="small" className={styles.loader} />}
             {!node.props.isLoading && node.props.canOpen && (
-              <ArrowIcon
+              <ChevronIcon
                 className={classNames(styles.arrowIcon, {
                   [styles.arrowIconOpen]: node.props.isOpen,
                 })}

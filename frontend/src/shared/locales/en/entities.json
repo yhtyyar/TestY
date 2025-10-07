@@ -4,5 +4,15 @@
   },
   "test": {
     "MoveSuccess": "Tests successfully moved"
+  },
+  "user": {
+    "RecentUsers": "Recent users",
+    "SearchUsers": "Search users",
+    "Assignee": "Assignee",
+    "AssignTo": "Assign to",
+    "AssignToMe": "Assign to me",
+    "AssignedToMe": "Assigned to me",
+    "Unassign": "Unassign",
+    "NotAssigned": "Not Assigned"
   }
 }

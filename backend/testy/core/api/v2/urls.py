@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -41,6 +41,7 @@ router.register('labels', views.LabelViewSet)
 router.register('projects', views.ProjectViewSet)
 router.register('custom-attributes', views.CustomAttributeViewSet)
 router.register('notifications', views.NotificationViewSet)
+router.register('integrations', views.ProjectIntegrationViewSet)
 
 urlpatterns = [
     path('system/messages/', views.SystemMessagesViewSet.as_view({'get': 'list'}), name='system-messages'),

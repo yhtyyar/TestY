@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -33,7 +33,7 @@ import warnings
 from decimal import Decimal, DecimalException
 from functools import partial, reduce
 from types import MethodType
-from typing import Callable
+from typing import Callable, Iterable, TypeAlias
 
 from django import forms
 from django.contrib.auth import get_user_model
@@ -56,6 +56,12 @@ from testy.utilities.tree import form_tree_prefetch_lookups
 _EMPTY_VALUES = ('', [], None)
 UserModel = get_user_model()
 
+OrderingFieldsValues: TypeAlias = tuple[
+    tuple[
+        str | tuple[str, str], str,
+    ], ...,
+]
+
 project_filter = partial(
     filters.NumberFilter,
     'project',
@@ -73,9 +79,48 @@ case_insensitive_filter = partial(
 )
 
 
-def ordering_filter(fields: tuple[tuple[str, str], ...]):
+class MultipleOrderingFilter(filters.OrderingFilter):
+    def filter(self, qs: QuerySet[Model], value: Iterable[str] | None):
+        ordering = self._get_ordering_values(value)
+        if not ordering:
+            return qs
+        return qs.order_by(*ordering)
+
+    def get_ordering_value(self, param: str):
+        descending = param.startswith('-')
+        param = param[1:] if descending else param
+        field_name = self.param_map.get(param, param)
+        if isinstance(field_name, str):
+            return '-%s' % field_name if descending else field_name
+        elif isinstance(field_name, tuple):
+            main_param = '-%s' % field_name[0] if descending else field_name[0]
+            return [main_param, *field_name[1:]]
+        raise ValidationError(f'Invalid field name: {field_name}')
+
+    def _get_ordering_values(self, params: Iterable[str] | None) -> list[str]:
+        ordering = []
+        params = params or []
+        for param in params:
+            ordering_value = self.get_ordering_value(param)
+            if isinstance(ordering_value, list):
+                ordering.extend(ordering_value)
+            else:
+                ordering.append(ordering_value)
+        return ordering
+
+
+class UnionOrderingFilter(MultipleOrderingFilter):
+    def filter(self, qs, value):
+        if value in EMPTY_VALUES:
+            return qs
+
+        ordering = ['is_leaf', *self._get_ordering_values(value), 'id']
+        return qs.order_by(*ordering)
+
+
+def ordering_filter(fields: OrderingFieldsValues):
     ordering_args = ','.join(field[1] for field in fields)
-    return filters.OrderingFilter(
+    return MultipleOrderingFilter(
         fields=fields,
         help_text=f'Valid values are: {ordering_args}. Prefix "-" reverses order',
     )
@@ -218,16 +263,7 @@ class IsFilteredMixin:
         return False
 
 
-def union_ordering_filter(fields: tuple[tuple[str, str], ...]):
-    class UnionOrderingFilter(filters.OrderingFilter):
-        def filter(self, qs, value):
-            if value in EMPTY_VALUES:
-                return qs
-
-            ordering = [self.get_ordering_value(param) for param in value]
-            ordering.insert(0, 'is_leaf')
-            return qs.order_by(*ordering)
-
+def union_ordering_filter(fields: OrderingFieldsValues):
     ordering_fields = ','.join(field[1] for field in fields)
     return UnionOrderingFilter(
         fields=fields,

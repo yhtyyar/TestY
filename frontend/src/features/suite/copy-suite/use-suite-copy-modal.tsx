@@ -29,7 +29,7 @@ export const useSuiteCopyModal = (
   mainSuite: Suite,
   onSubmit?: (newSuite: CopySuiteResponse) => void
 ) => {
-  const { t } = useTranslation()
+  const { t } = useTranslation(["translation", "errors"])
   const [errors, setErrors] = useState<string[]>([])
   const [isShow, setIsShow] = useState(false)
   const project = useProjectContext()
@@ -69,7 +69,9 @@ export const useSuiteCopyModal = (
     reset({
       new_name: `${mainSuite.name}(Copy)`,
       project: { label: project.name, value: project.id },
+      suite: null,
     })
+    setSelectedSuite(null)
     setIsShow(false)
     setErrors([])
   }
@@ -89,7 +91,7 @@ export const useSuiteCopyModal = (
     }
 
     if (!new_name.trim().length) {
-      setErrors([t("New name is not be empty")])
+      setErrors([t("errors:newNameNotBeEmpty")])
       return
     }
 
@@ -124,13 +126,21 @@ export const useSuiteCopyModal = (
     }
   }
 
+  const handleSelectProject = (newProject: SelectData | null) => {
+    setValue("project", newProject)
+    setValue("suite", null)
+    setSelectedSuite(null)
+  }
+
   const projects = useMemo(() => {
     if (!dataProjects) return []
 
-    return dataProjects.results.map((i) => ({
-      label: i.name,
-      value: i.id,
-    }))
+    return dataProjects.results
+      .filter(({ is_visible }) => is_visible)
+      .map((i) => ({
+        label: i.name,
+        value: i.id,
+      }))
   }, [dataProjects])
 
   useEffect(() => {
@@ -156,6 +166,7 @@ export const useSuiteCopyModal = (
     handleChangeShow,
     handleShow,
     handleSelectSuite,
+    handleSelectProject,
     handleSubmitForm: handleSubmit(handleSave),
   }
 }

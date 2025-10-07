@@ -20,10 +20,10 @@ import { ClearFilters } from "features/filter"
 import { ChangeBulkLabel } from "features/label"
 import { CreateTestCase } from "features/test-case"
 
-import { useProjectContext } from "pages/project"
+import { useProjectContext, useTestSuiteContext } from "pages/project"
 
 import CollapseIcon from "shared/assets/icons/arrows-in-simple.svg?react"
-import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { saveVisibleColumns } from "shared/libs"
 import { antdNotification } from "shared/libs/antd-modals"
 import { deleteEmptyParams } from "shared/libs/query-params"
@@ -41,23 +41,14 @@ import { MoveEntity } from "../../../features/common"
 import styles from "./styles.module.css"
 
 interface Props {
-  dataView: "list" | "tree"
-  setDataView: (dataView: "list" | "tree") => void
   suite?: Suite
   isFetching: boolean
 }
 
-const getSelectedTestsCount = (tableSettings: TestCaseTableParams) => {
-  if (!tableSettings.isAllSelectedTableBulk) {
-    return tableSettings.selectedRows.length
-  }
-
-  return tableSettings.count - tableSettings.excludedRows.length
-}
-
-export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetching }: Props) => {
+export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
   const { t } = useTranslation(["translation", "entities"])
   const { testCasesTree } = useContext(TestCasesTreeContext)!
+  const { dataView, updateDataView } = useTestSuiteContext()
   const [bulkUpdateTestCases, { isLoading }] = useBulkUpdateMutation()
   const [getSuites] = useLazyGetTestSuitesQuery()
   const [getAncestors] = useLazyGetTestSuiteAncestorsQuery()
@@ -65,7 +56,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
 
   const dispatch = useAppDispatch()
   const tableSettings = useAppSelector(selectSettings<TestCaseTableParams>("table"))
-  const treeSettings = useAppSelector(selectSettings<TestCaseTableParams>("tree"))
+  const treeSettings = useAppSelector(selectSettings<BaseTreeParams>("tree"))
   const testCasesSelectedCount = useAppSelector(selectFilterCount)
   const testCasesFilter = useAppSelector(selectFilter)
 
@@ -91,10 +82,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
       updateSettings({
         key: "table",
         settings: {
-          selectedRows: [],
-          excludedRows: [],
-          isAllSelectedTableBulk: false,
-          hasBulk: false,
+          isResetSelection: true,
         },
       })
     )
@@ -121,7 +109,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
       project: project.id,
     }
 
-    if (tableSettings.isAllSelectedTableBulk) {
+    if (tableSettings.isAllSelected) {
       reqData.excluded_cases = tableSettings.excludedRows
     } else {
       reqData.included_cases = tableSettings.selectedRows
@@ -169,7 +157,10 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
     resetSelectedRows()
   }
 
-  const selectedCount = getSelectedTestsCount(tableSettings)
+  const selectedCount =
+    tableSettings.isAllSelected && !tableSettings.excludedRows.length
+      ? tableSettings.count
+      : tableSettings.selectedRows.length
 
   const bulkActions: MenuProps["items"] = [
     {
@@ -206,7 +197,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
           {t("Test Cases")}
         </Typography.Title>
         <CreateTestCase parentSuite={suite} loading={isFetching} />
-        {tableSettings.hasBulk && (
+        {(tableSettings.isAllSelected || !!tableSettings.selectedRows.length) && (
           <>
             <Dropdown
               menu={{ items: bulkActions }}
@@ -215,7 +206,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
             >
               <Button color="accent" style={{ gap: 4 }} data-testid="test-cases-actions-dropdown">
                 <span>{t("Actions")}</span>
-                <ArrowIcon width={16} height={16} className={styles.actionMenuArrow} />
+                <ChevronIcon width={16} height={16} className={styles.actionMenuArrow} />
               </Button>
             </Dropdown>
             <span>{`${t("Items Selected")} ${selectedCount}`}</span>
@@ -249,7 +240,7 @@ export const TestSuiteDataActions = memo(({ dataView, setDataView, suite, isFetc
           onChange={handleChangeVisibleColumns}
         />
         <Divider type="vertical" style={{ height: "1.5em" }} />
-        <DataViewSelect value={dataView} onChange={setDataView} />
+        <DataViewSelect value={dataView} onChange={updateDataView} />
       </Flex>
     </Flex>
   )

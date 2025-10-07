@@ -4,7 +4,7 @@
   justify-content: center;
   position: absolute;
   top: 0;
-  z-index: 999;
+  z-index: var(--max-z-index);
   width: 12px;
   height: 100%;
   cursor: ew-resize;

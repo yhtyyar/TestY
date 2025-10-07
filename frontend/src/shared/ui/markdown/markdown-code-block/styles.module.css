@@ -23,3 +23,7 @@
   margin-top: 0 !important;
   border-radius: 0 !important;
 }
+
+.codeBlock * {
+  font-family: "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}

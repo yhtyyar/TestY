@@ -11,23 +11,25 @@ import styles from "./styles.module.css"
 
 interface Props {
   testCase: TestCase
-  onSubmit?: (testCase: TestCase) => void
+  onArchive?: (testCase: TestCase) => void
+  onDelete?: (testCase: TestCase) => void
+  disabled?: boolean
 }
 
-export const ArchiveTestCase = ({ testCase, onSubmit }: Props) => {
+export const ArchiveTestCase = ({ testCase, onDelete, onArchive, disabled = false }: Props) => {
   const { t } = useTranslation()
   const [isShow, setIsShow] = useState(false)
 
   const items: MenuProps["items"] = [
     {
       key: "1",
-      label: <DeleteTestCase testCase={testCase} onSubmit={onSubmit} />,
+      label: <DeleteTestCase testCase={testCase} onSubmit={onDelete} />,
     },
   ]
 
   return (
     <>
-      <Dropdown menu={{ items }} trigger={["hover"]}>
+      <Dropdown menu={{ items }} trigger={["hover"]} disabled={disabled}>
         <Button style={{ gap: 4 }} color="secondary-linear">
           <span data-testid="archive-test-case-btn" onClick={() => setIsShow(true)}>
             {t("Archive")}
@@ -42,7 +44,7 @@ export const ArchiveTestCase = ({ testCase, onSubmit }: Props) => {
         isShow={isShow}
         setIsShow={setIsShow}
         testCase={testCase}
-        onSubmit={onSubmit}
+        onSubmit={onArchive}
       />
     </>
   )

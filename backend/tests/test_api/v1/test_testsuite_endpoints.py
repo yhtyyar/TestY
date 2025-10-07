@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -459,13 +459,13 @@ class TestSuiteEndpoints:
                 request_type=RequestType.PUT,
             )
 
-        copied_case_histories = copied_case.history.all().order_by('history_date').values_list('history_id', flat=True)
+        copied_case_histories = copied_case.history.count()
         with allure.step('Validate steps count for all versions'):
-            for history_id in copied_case_histories:
+            for history_id in range(1, copied_case_histories + 1):
                 resp_body = authorized_superuser_client.send_request(
                     case_detail_reverse,
                     reverse_kwargs={'pk': copied_case.pk},
-                    query_params={'version': history_id},
+                    query_params={'ver': history_id},
                 ).json()
             assert len(resp_body['steps']) == 2
         with allure.step('Validate steps count for case without version'):

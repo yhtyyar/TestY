@@ -1,9 +1,8 @@
-import { PropsWithChildren, createContext, useContext, useMemo } from "react"
-
-import { useAppDispatch, useAppSelector } from "app/hooks"
+import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from "react"
 
 import { useGetConfigQuery, useGetMeQuery, useUpdateConfigMutation } from "entities/user/api"
-import { selectUserConfig, setUserConfig } from "entities/user/model"
+
+import { userConfig as baseUserConfig } from "shared/config/base-user-config"
 
 interface MeContextType {
   me: User | null
@@ -23,33 +22,33 @@ export const MeProvider = ({ children }: PropsWithChildren) => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery()
   const { data: config, isLoading: isConfigLoading } = useGetConfigQuery({}, { skip: !me })
   const [updateConfigMutation] = useUpdateConfigMutation()
+  const [userConfig, setUserConfig] = useState(baseUserConfig)
 
-  const dispatch = useAppDispatch()
-  const userConfigState = useAppSelector(selectUserConfig)
+  useEffect(() => {
+    if (!config) {
+      return
+    }
+
+    if (!Object.keys(config).length) {
+      updateConfig(baseUserConfig)
+      return
+    }
+
+    setUserConfig(config)
+  }, [config])
 
   const updateConfig = async (data: object) => {
     const newConfig = {
-      ...userConfigState,
+      ...userConfig,
       ...data,
     }
 
-    dispatch(setUserConfig(newConfig))
+    setUserConfig(newConfig)
     await updateConfigMutation(newConfig)
   }
 
-  const userConfig = useMemo(() => {
-    if (!config) {
-      return null
-    }
-
-    return {
-      ...config,
-      ...userConfigState,
-    }
-  }, [config, userConfigState])
-
   const value: MeContextType | null = useMemo(() => {
-    if (!me || !userConfig) {
+    if (!me) {
       return null
     }
 

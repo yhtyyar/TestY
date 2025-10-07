@@ -1,0 +1,11 @@
+{
+  "newNameNotBeEmpty": "Новое имя не должно быть пустым",
+  "filterNameNotBeEmpty": "Имя фильтра не должно быть пустым",
+  "appliedToAtLeastOneActive": "Хотя бы один вариант 'Применить к' должен быть активен",
+  "zodErrors": {
+    "arrayOfNumbers": "Должен быть массив чисел",
+    "andOrOr": "Должен быть 'и' или 'или'",
+    "trueOrFalse": "Должен быть 'true' или 'false'",
+    "number": "Должен быть числом"
+  }
+}

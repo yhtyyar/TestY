@@ -36,6 +36,7 @@ export const CopySuite = memo(({ as, suite, onSubmit }: Props) => {
     selectedProject,
     handleSubmitForm,
     handleSelectSuite,
+    handleSelectProject,
     handleCancel,
     handleShow,
   } = useSuiteCopyModal(suite, onSubmit)
@@ -105,6 +106,7 @@ export const CopySuite = memo(({ as, suite, onSubmit }: Props) => {
               render={({ field }) => (
                 <Select
                   {...field}
+                  onChange={handleSelectProject}
                   id="copy-test-suite-select-project"
                   showSearch
                   placeholder={t("Please select project")}

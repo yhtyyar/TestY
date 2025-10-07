@@ -1,8 +1,8 @@
-import { LockOutlined } from "@ant-design/icons"
 import { Form, Input, Modal } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
+import LockIcon from "shared/assets/yi-icons/lock-linear.svg?react"
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
 
@@ -28,12 +28,13 @@ export const ChangePassword = () => {
     <>
       <Button
         id="change-password-btn"
-        icon={<LockOutlined />}
+        color="ghost"
         onClick={handleShow}
-        style={{ marginLeft: 8 }}
-        color="secondary-linear"
+        shape="square"
+        size="m"
+        style={{ width: 24, height: 24 }}
       >
-        {t("Change password")}
+        <LockIcon width={20} height={20} />
       </Button>
       <Modal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}

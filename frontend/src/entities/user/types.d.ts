@@ -1,6 +1,5 @@
 interface UserState {
   userModal: User | null
-  userConfig: UserConfig
   modal: {
     isShow: boolean
     isEditMode: boolean

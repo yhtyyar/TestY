@@ -4,10 +4,14 @@ import { BaseQueryFn } from "@reduxjs/toolkit/query"
 import { FetchArgs } from "@reduxjs/toolkit/query"
 import { Tabs, TabsProps } from "antd"
 import { useMeContext } from "processes"
-import React, { useContext, useEffect, useState } from "react"
+import React, { useContext, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom"
 import { FooterView, TestPlanHeader } from "widgets"
+
+import { useAppDispatch, useAppSelector } from "app/hooks"
+
+import { selectDataView, setDataView } from "entities/test/model"
 
 import { useGetTestPlanQuery } from "entities/test-plan/api"
 
@@ -30,6 +34,8 @@ export interface TestPlanContextType {
     >
   >
   hasTestPlan: boolean
+  dataView: EntityView
+  updateDataView: (view: EntityView) => void
 }
 
 export const TestPlanContext = React.createContext<TestPlanContextType | null>(null)
@@ -44,6 +50,8 @@ export const TestPlanLayout = () => {
   const { userConfig } = useMeContext()
   const navigate = useNavigate()
   const location = useLocation()
+  const dataView = useAppSelector(selectDataView)
+  const dispatch = useAppDispatch()
   const [tab, setTab] = useState<TestPlanTabs>("overview")
 
   const {
@@ -79,6 +87,10 @@ export const TestPlanLayout = () => {
     navigate(`/projects/${project.id}/plans/${testPlanId}/${newTab}`)
   }
 
+  const updateDataView = (view: EntityView) => {
+    dispatch(setDataView(view))
+  }
+
   const tabItems: TabsProps["items"] = [
     {
       key: "overview",
@@ -98,15 +110,20 @@ export const TestPlanLayout = () => {
     },
   ]
 
+  const value = useMemo(
+    () => ({
+      testPlan: testPlanId ? testPlan : undefined,
+      isFetching,
+      refetch,
+      hasTestPlan: !!testPlanId && !!testPlan,
+      dataView,
+      updateDataView,
+    }),
+    [testPlan, isFetching, refetch, testPlanId, dataView, updateDataView]
+  )
+
   return (
-    <TestPlanContext.Provider
-      value={{
-        testPlan: testPlanId ? testPlan : undefined,
-        isFetching,
-        refetch,
-        hasTestPlan: !!testPlanId && !!testPlan,
-      }}
-    >
+    <TestPlanContext.Provider value={value}>
       <TestsTreeProvider>
         <div className={styles.wrapper}>
           <TestPlanHeader />

@@ -54,6 +54,10 @@ export const ProjectLayout = () => {
       key: ProjectTab.ACCESS_MANAGEMENT,
       label: t("Access Management"),
     },
+    {
+      key: ProjectTab.INTEGRATIONS,
+      label: t("Integrations"),
+    },
   ]
 
   const handleTabChange = (newTab: string) => {
@@ -100,11 +104,8 @@ export const ProjectLayout = () => {
             {project.is_manageable && editable && <EditProject project={project} />}
             <FolowProject project={project} />
             <Popover
-              overlayInnerStyle={{
-                paddingBottom: 8,
-                paddingTop: 8,
-                paddingInline: 0,
-                minWidth: 172,
+              styles={{
+                body: { paddingBottom: 8, paddingTop: 8, paddingInline: 0, minWidth: 172 },
               }}
               content={
                 <Flex gap={4} vertical>

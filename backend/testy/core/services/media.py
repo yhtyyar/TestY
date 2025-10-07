@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -65,13 +65,17 @@ class MediaService:
             logger.warning(err_msg.format(filepath=file.path, err=err))
             return
         path, suffixes = strip_suffixes(file.path)
-        for resolution in settings.TESTY_THUMBNAIL_RESOLUTIONS:
-            width, height = resolution
-            thumbnail = full_image.copy()
-            thumbnail.thumbnail(resolution)
-            thumbnail.save(
-                Path(f'{path}@{width}x{height}{suffixes}'),
-            )
+        try:
+            for resolution in settings.TESTY_THUMBNAIL_RESOLUTIONS:
+                width, height = resolution
+                thumbnail = full_image.copy()
+                thumbnail.thumbnail(resolution)
+                thumbnail.save(
+                    Path(f'{path}@{width}x{height}{suffixes}'),
+                )
+        except Exception as err:
+            logger.error(f'Can not crop the image {file.name}: {err}')
+            return
 
     @classmethod
     def remove_media(cls, src_file_path: Path):

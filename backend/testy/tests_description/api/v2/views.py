@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -57,6 +57,7 @@ from testy.swagger.v2.cases import (
     cases_version_restore_schema,
 )
 from testy.swagger.v2.suites import suite_copy_schema, suite_list_schema
+from testy.tests_description.api.mixins import TestCaseVersionRedirectMixin
 from testy.tests_description.api.v2.serializers import (
     BulkUpdateTestCasesSerializer,
     TestCaseCopySerializer,
@@ -123,7 +124,7 @@ _ID = 'id'
 logger = logging.getLogger(__name__)
 
 
-class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin):
+class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin):
     queryset = TestCaseSelector().case_list()
     serializer_class = TestCaseListSerializer
     permission_classes = [
@@ -170,7 +171,7 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin)
                 return Test.objects.none()
 
         qs = TestCaseSelector().case_list()
-        return TestSuiteSelector.annotate_suite_path(qs, 'suite')
+        return TestSuiteSelector.annotate_suite_path(qs, 'suite__path')
 
     def get_serializer_class(self):
         match self.action:
@@ -208,18 +209,18 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin)
         serializer.is_valid(raise_exception=True)
 
         if serializer.validated_data.get('is_steps', False):
-            instance = TestCaseService().case_with_steps_update(
+            TestCaseService().case_with_steps_update(
                 serializer.instance, {
                     _USER: request.user, **serializer.validated_data,
                 },
             )
         else:
-            instance = TestCaseService().case_update(
+            TestCaseService().case_update(
                 serializer.instance, {
                     _USER: request.user, **serializer.validated_data,
                 },
             )
-
+        instance = self.get_object()
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
@@ -229,9 +230,12 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin)
 
     @cases_retrieve_schema
     def retrieve(self, request, pk=None, **kwargs):
+        if self.is_need_version_redirect(request):
+            return self.version_redirect(request)
+
         instance = self.get_object()
-        version = request.query_params.get('version')
-        instance, version = TestCaseSelector.case_by_version(instance, version)
+        version = request.query_params.get('ver')
+        instance, version = TestCaseSelector.case_by_display_version(instance, version)
         serializer = TestCaseRetrieveSerializer(instance, version=version, context=self.get_serializer_context())
         return Response(serializer.data)
 
@@ -249,7 +253,7 @@ class TestCaseViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin)
         case = TestCaseSelector.case_by_id(pk)
         self.check_object_permissions(request, case)
         qs = TestSelector().test_list_with_last_status(filter_condition={'case_id': pk})
-        qs = TestSuiteSelector.annotate_suite_path(qs, 'case__suite')
+        qs = TestSuiteSelector.annotate_suite_path(qs, 'case__suite__path')
         page = self.paginate_queryset(self.filter_queryset(qs))
         serializer = TestSerializer(page, many=True, context=self.get_serializer_context())
         response_tests = []
@@ -415,7 +419,7 @@ class TestSuiteViewSet(TestyModelViewSet):
         if get_boolean(request, 'show_descendants'):
             suite_ids = suite.get_descendants(include_self=True).values_list('id', flat=True)
         cases = TestCaseSelector.case_list_by_suite_ids(suite_ids)
-        cases = TestSuiteSelector.annotate_suite_path(cases, 'suite')
+        cases = TestSuiteSelector.annotate_suite_path(cases, 'suite__path')
         cases = CasesBySuiteFilter(request.query_params, request=request, queryset=cases).qs
         page = self.paginate_queryset(cases)
         serializer = self.get_serializer(page, many=True)
@@ -486,3 +490,9 @@ class TestSuiteViewSet(TestyModelViewSet):
         instance = self.get_object()
         tree = TestSuiteSelector.suite_list_ancestors(instance)
         return Response(get_breadcrumbs_treeview(tree, len(tree) - 1, lambda suite: suite.name))
+
+    @action(methods=[_GET], url_path='plans', url_name='plans', detail=True)
+    def get_plans(self, request, pk):
+        suite = self.get_object()
+        plan_ids = TestSelector.test_list_by_suite_id(suite_id=suite.pk).values_list('plan_id', flat=True)
+        return Response({'plan_ids': list(plan_ids)})

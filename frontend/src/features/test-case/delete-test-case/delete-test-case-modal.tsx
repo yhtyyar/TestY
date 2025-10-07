@@ -3,8 +3,12 @@ import { useSearchParams } from "react-router-dom"
 
 import { useAppDispatch } from "app/hooks"
 
+import { useLazyGetSuiteTestPlansQuery } from "entities/suite/api"
+
 import { useDeleteTestCaseMutation, useGetTestCaseDeletePreviewQuery } from "entities/test-case/api"
 import { clearDrawerTestCase } from "entities/test-case/model"
+
+import { testPlanCasesIdsInvalidate } from "entities/test-plan/api"
 
 import { initInternalError } from "shared/libs"
 import { antdNotification } from "shared/libs/antd-modals"
@@ -28,6 +32,8 @@ export const DeleteTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: P
   const [searchParams, setSearchParams] = useSearchParams()
   const dispatch = useAppDispatch()
 
+  const [getPlans] = useLazyGetSuiteTestPlansQuery()
+
   const handleClose = () => {
     setIsShow(false)
   }
@@ -40,6 +46,12 @@ export const DeleteTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: P
         dispatch(clearDrawerTestCase())
         return searchParams
       })
+      const plans = await getPlans(testCase.suite.id).unwrap()
+
+      plans.plan_ids.forEach((id) => {
+        dispatch(testPlanCasesIdsInvalidate(id))
+      })
+
       await deleteTestCase(testCase.id).unwrap()
       antdNotification.success("delete-test-case", {
         description: (

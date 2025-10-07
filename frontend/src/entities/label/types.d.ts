@@ -1,5 +1,5 @@
 interface Label {
-  id?: string | number
+  id: number
   name: string
   project: number
   type: number

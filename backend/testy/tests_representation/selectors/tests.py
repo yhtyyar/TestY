@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -40,17 +40,23 @@ from testy.tests_representation.models import Test, TestPlan
 if TYPE_CHECKING:
     from testy.tests_description.selectors.suites import TestSuiteSelector
 
+_CASE_SUITE = 'case__suite'
+
 
 class TestSelector(BulkUpdateSelector):
     @classmethod
     def test_list(cls) -> QuerySet[Test]:
-        return Test.objects.select_related('case').prefetch_related('results').annotate(
+        return Test.objects.select_related(
+            'case', 'plan', 'last_status', 'assignee',
+        ).prefetch_related(
+            'results', _CASE_SUITE, 'case__labeled_items', 'case__labeled_items__label', 'assignee',
+        ).annotate(
             test_suite_description=F('case__suite__description'),
         ).all().order_by('case__name')
 
     @classmethod
     def test_list_raw(cls) -> QuerySet[Test]:
-        return Test.objects.all()
+        return Test.objects.all().order_by('id')
 
     @classmethod
     def test_list_by_testplan_ids(cls, plan_ids: Iterable[int]) -> QuerySet[Test]:
@@ -82,7 +88,7 @@ class TestSelector(BulkUpdateSelector):
             lookup |= Q(plan=parent_id)
         if not has_common_filters:
             tests = tests.filter(lookup)
-        tests = suite_selector.annotate_suite_path(tests, 'case__suite')
+        tests = suite_selector.annotate_suite_path(tests, 'case__suite__path')
         return tests.annotate(assignee_username=F('assignee__username'))
 
     def test_list_with_last_status(
@@ -97,13 +103,13 @@ class TestSelector(BulkUpdateSelector):
         return (
             qs
             .select_related('case', 'last_status')
-            .prefetch_related('case__suite', 'case__labeled_items', 'case__labeled_items__label', 'assignee')
+            .prefetch_related(_CASE_SUITE, 'case__labeled_items', 'case__labeled_items__label', 'assignee')
             .filter(**filter_condition)
             .annotate(
                 test_suite_description=F('case__suite__description'),
                 estimate=F('case__estimate'),
             )
-            .order_by('case__suite', '-id')
+            .order_by(_CASE_SUITE, '-id')
         )
 
     @classmethod
@@ -117,3 +123,7 @@ class TestSelector(BulkUpdateSelector):
     @classmethod
     def tests_by_parent_plan_subquery(cls, **kwargs) -> Subquery:
         return Test.objects.filter(plan__path__descendant=OuterRef('path'), **kwargs)
+
+    @classmethod
+    def test_list_by_suite_id(cls, suite_id: int):
+        return Test.objects.select_related('case').filter(case__suite_id=suite_id)

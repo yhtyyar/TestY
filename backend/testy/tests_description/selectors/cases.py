@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -33,9 +33,12 @@ import logging
 from typing import Any, Iterable
 
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, OuterRef, Q, QuerySet, Subquery, Value
+from django.contrib.postgres.expressions import ArraySubquery
+from django.db.models import F, Func, IntegerField, OuterRef, Q, QuerySet, Value, Window
+from django.db.models.functions import RowNumber
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
+from utilities.sql import SubCount
 
 from testy.core.models import Project
 from testy.core.selectors.attachments import AttachmentSelector
@@ -59,12 +62,10 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
     def case_list(self, filter_condition: dict[str, Any] | None = None) -> QuerySet[TestCase]:
         if not filter_condition:
             filter_condition = {}
-        return TestCase.objects.filter(**filter_condition).prefetch_related(
+        test_cases = TestCase.objects.filter(**filter_condition).prefetch_related(
             'attachments', _STEPS, 'steps__attachments', 'labeled_items', 'labeled_items__label',
-        ).select_related(_SUITE).annotate(
-            current_version=self._current_version_subquery(),
-            versions=self._versions_subquery(),
-        ).order_by('name')
+        ).select_related(_SUITE).order_by('name')
+        return self.annotate_versions(test_cases)
 
     def case_list_with_label_names(self, filter_condition: dict[str, Any] | None = None) -> QuerySet[TestCase]:
         return self.case_list(filter_condition=filter_condition).annotate(
@@ -78,8 +79,8 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
 
     def case_deleted_list(self) -> DeletedQuerySet[TestCase]:
         return TestCase.deleted_objects.all().prefetch_related().annotate(
-            current_version=self._current_version_subquery(),
-            versions=self._versions_subquery(),
+            current_version=self._current_display_version_subquery(),
+            versions=self._display_versions_subquery(),
         )
 
     def case_version(self, case: TestCase) -> int:
@@ -125,8 +126,31 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
         return history_instance.instance, version
 
     @classmethod
+    def case_by_display_version(cls, case: TestCase, display_version: str | None) -> tuple[TestCase, str | None]:
+        if not display_version:
+            return case, None
+
+        if not display_version.isnumeric():
+            raise ValidationError('Version must be a valid integer.')
+
+        version = cls.get_version_by_display_version(case.pk, int(display_version))
+        history_instance = get_object_or_404(case.history, history_id=version)
+        return history_instance.instance, version
+
+    @classmethod
     def get_history_by_case_id(cls, pk: int):
-        return TestCase.history.select_related('history_user').filter(id=pk).order_by(_HISTORY_ID_DESC)
+        return (
+            TestCase.history
+            .select_related('history_user')
+            .filter(id=pk)
+            .annotate(
+                version=Window(
+                    expression=RowNumber(),
+                    order_by=_HISTORY_ID,
+                ),
+            )
+            .order_by('-version')
+        )
 
     @classmethod
     def get_case_history_by_version(cls, pk: int, version: int):
@@ -138,7 +162,7 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
 
     @classmethod
     def version_exists(cls, pk: int, version: int):
-        return TestCase.history.filter(id=pk, history_id=version).exists()
+        return TestCase.history.filter(id=pk).count() >= version
 
     @classmethod
     def case_list_union(
@@ -170,22 +194,9 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
 
     @classmethod
     def annotate_versions(cls, qs: QuerySet[TestCase]) -> QuerySet[TestCase]:
-        current_version_subq = (
-            TestCase.history
-            .filter(id=OuterRef(_ID))
-            .order_by(_HISTORY_ID_DESC)
-            .values_list(_HISTORY_ID, flat=True)[:1]
-        )
-        versions_subq = (
-            TestCase.history
-            .filter(id=OuterRef(_ID))
-            .values(_ID)
-            .annotate(temp=ArrayAgg(_HISTORY_ID, ordering=_HISTORY_ID_DESC))
-            .values('temp')
-        )
         return qs.annotate(
-            current_version=Subquery(current_version_subq),
-            versions=Subquery(versions_subq),
+            current_version=cls._current_display_version_subquery(),
+            versions=cls._display_versions_subquery(),
         )
 
     @classmethod
@@ -213,6 +224,27 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
         return queryset
 
     @classmethod
+    def get_display_version_by_version(cls, case_id: int, version: int):
+        return TestCase.objects.filter(pk=case_id).annotate(
+            versions=cls._versions_subquery(),
+            position=Func(
+                F('versions'),
+                version,
+                function='array_position',
+                output_field=IntegerField(),
+            ),
+        ).values_list('position', flat=True).first()
+
+    @classmethod
+    def get_version_by_display_version(cls, case_id: int, version: int):
+        version_index = version - 1
+
+        history_instances = TestCase.history.filter(id=case_id).order_by('history_id')
+        if history_instances.count() - 1 < version_index:
+            raise ValidationError('Wrong version.')
+        return history_instances[version_index].history_id
+
+    @classmethod
     def _current_version_subquery(cls):
         return (
             TestCase.history
@@ -222,13 +254,31 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
         )
 
     @classmethod
+    def _current_display_version_subquery(cls):
+        return SubCount(TestCase.history.filter(id=OuterRef(_ID)))
+
+    @classmethod
+    def _display_versions_subquery(cls):
+        return ArraySubquery(
+            TestCase.history
+            .filter(id=OuterRef('id'))
+            .annotate(
+                rank=Window(
+                    expression=RowNumber(),
+                    order_by=_HISTORY_ID,
+                ),
+            )
+            .order_by('-rank')
+            .values('rank'),
+        )
+
+    @classmethod
     def _versions_subquery(cls):
-        return Subquery(
+        return ArraySubquery(
             TestCase.history
             .filter(id=OuterRef(_ID))
-            .values(_ID)
-            .annotate(temp=ArrayAgg(_HISTORY_ID, ordering=_HISTORY_ID_DESC))
-            .values('temp'),
+            .values(_HISTORY_ID)
+            .order_by(_HISTORY_ID),
         )
 
 

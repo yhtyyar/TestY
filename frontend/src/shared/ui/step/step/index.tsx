@@ -206,14 +206,18 @@ export const Step = ({
           <div style={{ paddingRight: 8 }}>
             <div>
               <div style={{ fontWeight: 600, marginBottom: 8 }}>{t("Scenario")}</div>
-              <div data-testid={`${extraId}-scenario`}>
+              <div className="markdown" data-testid={`${extraId}-scenario`} style={{ padding: 0 }}>
                 <Markdown content={step.scenario} />
               </div>
             </div>
             {step.expected && (
               <div>
                 <div style={{ fontWeight: 600, marginBottom: 8 }}>{t("Expected")}</div>
-                <div data-testid={`${extraId}-expected`}>
+                <div
+                  className="markdown"
+                  data-testid={`${extraId}-expected`}
+                  style={{ padding: 0 }}
+                >
                   <Markdown content={step.expected} />
                 </div>
               </div>

@@ -29,7 +29,7 @@ export const AttachmentItem = ({ attachment, handleAttachmentRemove, id }: Attac
           style={{ margin: 0, fontSize: 13 }}
           data-testid={id}
         >
-          {attachment.name}
+          {attachment.filename}
         </a>
       </Col>
 

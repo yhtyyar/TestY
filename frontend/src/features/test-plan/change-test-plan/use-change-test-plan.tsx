@@ -89,7 +89,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
     defaultValues: formDefaultVales,
   })
 
-  const { setDateFrom, setDateTo, disabledDateFrom, disabledDateTo } = useDatepicker()
+  const { setDateFrom, setDateTo, disabledDateTo } = useDatepicker()
   const {
     attachments,
     attachmentsIds,
@@ -217,8 +217,8 @@ export const useChangeTestPlan = ({ type }: Props) => {
         id: stateTestPlan.id,
         body: {
           ...data,
-          due_date: data.due_date.format("YYYY-MM-DDThh:mm"),
-          started_at: data.started_at.format("YYYY-MM-DDThh:mm"),
+          due_date: data.due_date.format("YYYY-MM-DD"),
+          started_at: data.started_at.format("YYYY-MM-DD"),
           parent: data.parent ?? null,
           test_cases: newTestCases,
           attributes: attributesJson,
@@ -258,6 +258,8 @@ export const useChangeTestPlan = ({ type }: Props) => {
         test_cases: newTestCases,
         project: project.id,
         attributes: attributesJson,
+        started_at: data.started_at.format("YYYY-MM-DD"),
+        due_date: data.due_date.format("YYYY-MM-DD"),
       }).unwrap()
       antdNotification.success("create-test-plan", {
         description: (
@@ -296,15 +298,15 @@ export const useChangeTestPlan = ({ type }: Props) => {
   }, [parameters])
 
   useEffect(() => {
-    const parentTestPlanId = searchParams.get("parentTestPlan")
-    if (!parentTestPlanId || (parentTestPlanId && stateTestPlan)) {
+    const parentId = searchParams.get("parent")
+    if (!parentId || (parentId && stateTestPlan)) {
       return
     }
 
     const fetchParentPlan = async () => {
       const plan = await getTestPlan({
         project: project.id,
-        testPlanId: parentTestPlanId,
+        testPlanId: parentId,
       }).unwrap()
       setStateTestPlan(plan)
       setValue("parent", plan.id)
@@ -312,7 +314,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
     }
 
     fetchParentPlan()
-  }, [stateTestPlan, searchParams.get("parentTestPlan")])
+  }, [stateTestPlan, searchParams.get("parent")])
 
   useEffect(() => {
     if (!stateTestPlan || isLoadingAttributes) return
@@ -369,10 +371,10 @@ export const useChangeTestPlan = ({ type }: Props) => {
     formErrors,
     tab,
     isDirty,
-    isLoadingSubmit:
+    isLoadingInitData: isLoadingGetTestPlan || isLoadingAttributes,
+    isLoadingActionButton:
       isLoadingCreateTestPlan ||
       isLoadingUpdateTestPlan ||
-      isLoadingGetTestPlan ||
       isLoadingAttachments ||
       isLoadingTestCases,
     control,
@@ -382,7 +384,6 @@ export const useChangeTestPlan = ({ type }: Props) => {
     parametersTreeView,
     stateTestPlan,
     setDateFrom,
-    disabledDateFrom,
     setDateTo,
     disabledDateTo,
     handleSelectTestPlan,

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -111,7 +111,7 @@ class PieChartProcessor:
             seconds = estimate_period.in_seconds(in_workday=True)
         self.seconds = seconds
         self.all_statuses = []
-        statuses = ResultStatusSelector.status_list_by_project_id(project_id)
+        statuses = ResultStatusSelector.status_list_by_project_id(project_id, ordering=True)
         for status in statuses:
             self.all_statuses.append(
                 {

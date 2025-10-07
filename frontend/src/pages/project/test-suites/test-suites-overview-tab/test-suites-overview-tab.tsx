@@ -2,7 +2,6 @@ import { Divider, Flex } from "antd"
 import { useTranslation } from "react-i18next"
 import { TestSuiteDataActions } from "widgets"
 
-import { useCacheState } from "shared/hooks"
 import { Collapse, Markdown } from "shared/ui"
 
 import { TestCaseDetail, TestCasesTable, TestsCasesTree } from "widgets/test-case"
@@ -10,15 +9,9 @@ import { TestCaseDetail, TestCasesTable, TestsCasesTree } from "widgets/test-cas
 import { useTestSuiteContext } from "../test-suite-layout/test-suite-layout"
 import styles from "./styles.module.css"
 
-type EntityView = "list" | "tree"
-
 export const TestSuitesOverviewTab = () => {
   const { t } = useTranslation()
-  const [dataView, setDataView] = useCacheState<EntityView>(
-    "test-suite-detail-test-cases-view",
-    "tree"
-  )
-  const { suite, hasTestSuite, isFetching } = useTestSuiteContext()
+  const { suite, hasTestSuite, isFetching, dataView } = useTestSuiteContext()
 
   return (
     <Flex vertical style={{ width: "100%" }}>
@@ -37,12 +30,7 @@ export const TestSuitesOverviewTab = () => {
           <Divider />
         </>
       )}
-      <TestSuiteDataActions
-        dataView={dataView}
-        setDataView={setDataView}
-        suite={suite}
-        isFetching={isFetching}
-      />
+      <TestSuiteDataActions suite={suite} isFetching={isFetching} />
       {dataView === "list" && <TestCasesTable />}
       {dataView === "tree" && <TestsCasesTree />}
       <TestCaseDetail />

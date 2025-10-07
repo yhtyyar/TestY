@@ -12,7 +12,7 @@ import { getTestCaseChangeResult } from "entities/test-plan/lib"
 
 import { TestCaseLabels } from "features/test-plan/change-test-plan/ui/test-cases-form-item/ui/test-case-labels/test-case-labels"
 
-import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
+import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { TreeUtils } from "shared/libs"
 import { ArchivedTag, ContainerLoader } from "shared/ui"
 
@@ -133,7 +133,7 @@ export const TestCasesFormItem = ({ errors, control }: Props) => {
                     checkable
                     switcherIcon={(node) => {
                       return (
-                        <ArrowIcon
+                        <ChevronIcon
                           className={classNames(styles.arrow, {
                             [styles.expanded]: node.expanded,
                           })}
