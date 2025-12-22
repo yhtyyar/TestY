@@ -116,6 +116,10 @@ const initialState: TestState = {
     tree: {
       columns: baseTreeColumns,
       visibleColumns: getVisibleColumns("tests-visible-cols-tree") ?? baseTreeColumns,
+      selectedRows: [],
+      selectedLeafRows: [],
+      selectedCount: 0,
+      isResetSelection: false,
     },
   },
 }

@@ -53,3 +53,14 @@
 .footer {
   line-height: 16px;
 }
+
+.linkDocs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--y-color-text-primary);
+  text-decoration: none;
+  font-size: 14px;
+}

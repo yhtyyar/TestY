@@ -1,3 +1,4 @@
+import { AnyAction, ThunkDispatch } from "@reduxjs/toolkit"
 import { createApi } from "@reduxjs/toolkit/dist/query/react"
 import { openComment } from "entities/comments/model/slice"
 
@@ -49,43 +50,21 @@ export const testApi = createApi({
       }),
       async onQueryStarted({ current_plan, plan_id, project }, { dispatch, queryFulfilled }) {
         await queryFulfilled
-
-        const cacheIdCurrentPlan = `${project}-${current_plan}`
-        const cacheIdPlan = `${project}-${plan_id ?? null}`
-
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanStatistics", id: cacheIdCurrentPlan },
-            { type: "TestPlanStatistics", id: cacheIdPlan },
-          ])
-        )
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanHistogram", id: cacheIdCurrentPlan },
-            { type: "TestPlanHistogram", id: cacheIdPlan },
-          ])
-        )
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanLabels", id: "LIST" },
-            { type: "TestPlanLabels", id: plan_id },
-          ])
-        )
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanCasesIds", id: current_plan },
-            { type: "TestPlanCasesIds", id: plan_id },
-          ])
-        )
-
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanTest", id: "LIST" },
-            { type: "TestPlanTest", id: current_plan },
-          ])
-        )
+        bulkUpdateInvalidateCache(dispatch, project, current_plan, plan_id)
       },
-      invalidatesTags: (result) => invalidatesList(result, "Test"),
+      invalidatesTags: () => [{ type: "Test" }, { type: "TestRelatedEntities" }],
+    }),
+    bulkTreeUpdate: builder.mutation<Test[], TestBulkUpdate>({
+      query: (body) => ({
+        url: `${rootPath}/bulk-update-tree/`,
+        method: "PUT",
+        body,
+      }),
+      async onQueryStarted({ current_plan, plan_id, project }, { dispatch, queryFulfilled }) {
+        await queryFulfilled
+        bulkUpdateInvalidateCache(dispatch, project, current_plan, plan_id)
+      },
+      invalidatesTags: () => [{ type: "Test" }, { type: "TestRelatedEntities" }],
     }),
     getRelatedEntities: builder.query<
       PaginationResponse<(Result | CommentType)[]>,
@@ -126,12 +105,55 @@ export const testRelatedEntitiesInvalidate = testApi.util.invalidateTags([
 
 export const testInvalidate = testApi.util.invalidateTags([{ type: "Test", id: "LIST" }])
 
+export const bulkUpdateInvalidateCache = (
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>,
+  project: number,
+  current_plan: number | undefined,
+  plan_id: number | undefined
+) => {
+  const cacheIdCurrentPlan = `${project}-${current_plan}`
+  const cacheIdPlan = `${project}-${plan_id ?? null}`
+
+  dispatch(
+    testPlanApi.util.invalidateTags([
+      { type: "TestPlanStatistics", id: cacheIdCurrentPlan },
+      { type: "TestPlanStatistics", id: cacheIdPlan },
+    ])
+  )
+  dispatch(
+    testPlanApi.util.invalidateTags([
+      { type: "TestPlanHistogram", id: cacheIdCurrentPlan },
+      { type: "TestPlanHistogram", id: cacheIdPlan },
+    ])
+  )
+  dispatch(
+    testPlanApi.util.invalidateTags([
+      { type: "TestPlanLabels", id: "LIST" },
+      { type: "TestPlanLabels", id: plan_id },
+    ])
+  )
+  dispatch(
+    testPlanApi.util.invalidateTags([
+      { type: "TestPlanCasesIds", id: current_plan },
+      { type: "TestPlanCasesIds", id: plan_id },
+    ])
+  )
+
+  dispatch(
+    testPlanApi.util.invalidateTags([
+      { type: "TestPlanTest", id: "LIST" },
+      { type: "TestPlanTest", id: current_plan },
+    ])
+  )
+}
+
 export const {
   useGetTestQuery,
   useLazyGetTestsQuery,
   useLazyGetTestQuery,
   useUpdateTestMutation,
   useBulkUpdateMutation,
+  useBulkTreeUpdateMutation,
   useGetTestsQuery,
   useGetRelatedEntitiesQuery,
 } = testApi

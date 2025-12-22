@@ -1,6 +1,6 @@
 import dayjs from "dayjs"
-import { TreebarContext } from "processes"
-import { useContext, useEffect, useState } from "react"
+import { useTreebarProvider } from "processes/treebar-provider"
+import { useEffect, useState } from "react"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
@@ -12,7 +12,6 @@ import { useGetParametersQuery } from "entities/parameter/api"
 import {
   useCreateTestPlanMutation,
   useGetTestPlanCasesQuery,
-  useLazyGetTestPlanAncestorsQuery,
   useLazyGetTestPlanQuery,
   useUpdateTestPlanMutation,
 } from "entities/test-plan/api"
@@ -20,12 +19,10 @@ import { useAttributesTestPlan } from "entities/test-plan/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useConfirmBeforeRedirect, useDatepicker, useErrors } from "shared/hooks"
+import { useAntdModals, useConfirmBeforeRedirect, useDatepicker, useErrors } from "shared/hooks"
 import { makeAttributesJson, makeParametersForTreeView } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
-
-import { refetchNodeAfterCreateOrCopy, refetchNodeAfterEdit } from "widgets/[ui]/treebar/utils"
+import { arrayOfStringToObject, objectToArrayOfString } from "shared/ui/tree/utils"
 
 type TabType = "general" | "attachments"
 
@@ -50,6 +47,7 @@ export type ChangeTestPlanForm = Modify<
     started_at: dayjs.Dayjs
     due_date: dayjs.Dayjs
     attributes: Attribute[]
+    test_cases: Record<string, boolean>
   }
 >
 
@@ -61,7 +59,7 @@ const formDefaultVales = {
   name: "",
   description: "",
   parent: null,
-  test_cases: [],
+  test_cases: {},
   parameters: [],
   started_at: dayjs(),
   due_date: dayjs().add(1, "day"),
@@ -69,14 +67,19 @@ const formDefaultVales = {
   attachments: [],
 }
 
+const filterTestCases = (data: string[]) => {
+  return data.filter((item) => !item.startsWith("TS"))
+}
+
 export const useChangeTestPlan = ({ type }: Props) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const project = useProjectContext()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
-  const { treebar } = useContext(TreebarContext)!
+  const { treebar } = useTreebarProvider()
 
   const {
     handleSubmit,
@@ -85,6 +88,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
     setValue,
     formState: { isDirty, errors: formErrors },
     register,
+    watch,
   } = useForm<ChangeTestPlanForm>({
     defaultValues: formDefaultVales,
   })
@@ -129,7 +133,6 @@ export const useChangeTestPlan = ({ type }: Props) => {
 
   const { data: parameters } = useGetParametersQuery(project.id)
   const [getTestPlan, { isLoading: isLoadingGetTestPlan }] = useLazyGetTestPlanQuery()
-  const [getAncestors] = useLazyGetTestPlanAncestorsQuery()
   const [createTestPlan, { isLoading: isLoadingCreateTestPlan }] = useCreateTestPlanMutation()
   const [updateTestPlan, { isLoading: isLoadingUpdateTestPlan }] = useUpdateTestPlanMutation()
   const { data: tests, isLoading: isLoadingTestCases } = useGetTestPlanCasesQuery(
@@ -140,29 +143,24 @@ export const useChangeTestPlan = ({ type }: Props) => {
   )
 
   const refetchParentAfterCreate = async (updatedEntity: TestPlan) => {
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterCreateOrCopy(treebar.current, updatedEntity)
+    await treebar.current.rowRefetch(
+      !updatedEntity.parent ? null : updatedEntity.parent.id.toString()
+    )
   }
 
   const refetchParentAfterEdit = async (updatedEntity: TestPlan, oldEntity: TestPlan) => {
-    if (!treebar.current) {
+    if (!updatedEntity.parent || !oldEntity.parent) {
+      await treebar.current.initRoot()
       return
     }
 
-    const fetchAncestors = (id: number) => {
-      return getAncestors(
-        {
-          id,
-          project: oldEntity.project,
-        },
-        false
-      ).unwrap()
+    if (updatedEntity.parent.id === oldEntity.parent.id) {
+      await treebar.current.rowRefetch(updatedEntity.parent.id.toString())
+      return
     }
 
-    await refetchNodeAfterEdit(treebar.current, updatedEntity, oldEntity, fetchAncestors)
+    await treebar.current.rowRefetch(updatedEntity.parent.id.toString())
+    await treebar.current.rowRefetch(oldEntity.parent.id.toString())
   }
 
   const handleTabChange = (activeKey: string) => {
@@ -204,7 +202,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
     if (!stateTestPlan) return
 
     setErrors(null)
-    const newTestCases = data.test_cases?.filter((item) => !item.startsWith("TS"))
+    const newTestCases = filterTestCases(objectToArrayOfString(data.test_cases))
     const { isSuccess, attributesJson, errors: attributeErrors } = makeAttributesJson(attributes)
 
     if (!isSuccess) {
@@ -246,7 +244,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
   const onSubmitCreate: SubmitHandler<ChangeTestPlanForm> = async (data) => {
     setErrors(null)
     try {
-      const newTestCases = data.test_cases?.filter((item) => !item.startsWith("TS"))
+      const newTestCases = filterTestCases(objectToArrayOfString(data.test_cases))
       const { isSuccess, attributesJson, errors: attributeErrors } = makeAttributesJson(attributes)
       if (!isSuccess) {
         setErrors({ attributes: JSON.stringify(attributeErrors) })
@@ -345,7 +343,7 @@ export const useChangeTestPlan = ({ type }: Props) => {
         name: stateTestPlan.name,
         description: stateTestPlan.description,
         parent: stateTestPlan.parent?.id ?? null,
-        test_cases: tests.case_ids.map((i) => String(i)),
+        test_cases: arrayOfStringToObject(tests.case_ids),
         started_at: dayjs(stateTestPlan.started_at),
         due_date: stateTestPlan.due_date ? dayjs(stateTestPlan.due_date) : undefined,
         attributes: attrs,
@@ -402,5 +400,6 @@ export const useChangeTestPlan = ({ type }: Props) => {
     onAttributeChangeType,
     onAttributeChangeValue,
     onAttributeRemove,
+    watch,
   }
 }

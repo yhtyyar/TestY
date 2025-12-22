@@ -1,0 +1,33 @@
+.tableRow {
+  border-bottom: 1px solid var(--y-color-divider);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.draggable {
+  cursor: grab;
+}
+
+.draggable:hover {
+  background-color: var(--y-color-datatable-cell-hover);
+}
+
+.clickable:hover {
+  background-color: var(--y-color-datatable-cell-hover);
+}
+
+.tableRow[data-active="true"] {
+  background-color: var(--y-color-datatable-selected-row-background);
+}
+
+/* COLOR SCHEME */
+
+.tree-linear {
+  border: none;
+}
+
+.table-linear {
+  border-bottom: 1px solid var(--y-color-divider);
+}

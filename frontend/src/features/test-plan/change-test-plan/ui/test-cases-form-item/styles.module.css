@@ -1,7 +1,3 @@
-.treeBlock :global(.ant-tree-node-content-wrapper) {
-  display: flex !important;
-}
-
 .switcher {
   margin-bottom: 8px;
 }
@@ -18,10 +14,6 @@
   white-space: nowrap;
 }
 
-.rowWithThree {
-  grid-template-columns: 80px 1fr 60px;
-}
-
 .container {
   display: flex;
   flex-direction: column;
@@ -30,6 +22,7 @@
 
 .form {
   padding: 0 4px;
+  margin-bottom: 8px;
 }
 .filterBtn {
   width: 22px;
@@ -41,18 +34,17 @@
   border: 1px solid var(--y-grey-20);
 }
 
-.archivedRow {
-  display: flex;
-  justify-content: flex-start;
-  gap: 8px;
-}
-
 .labelWrapper {
   display: flex;
 }
 
 .labelWrapper > label {
   width: 100%;
+}
+
+.labelsCondition {
+  margin-bottom: auto;
+  margin-left: auto;
 }
 
 .fieldLabel {
@@ -72,14 +64,17 @@
   margin-right: 4px;
 }
 
-.arrow {
-  height: 24px;
-  width: 24px;
-  transition: all 0.3s;
-  color: var(--y-pending-block);
-  transform: rotate(-90deg);
+.labelsFilter {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 4px;
 }
 
-.arrow.expanded {
-  transform: rotate(0);
+.treeRow {
+  cursor: pointer;
+}
+
+.treeRow:hover {
+  background-color: var(--y-color-background-alternative);
 }

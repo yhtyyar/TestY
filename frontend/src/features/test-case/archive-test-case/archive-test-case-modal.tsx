@@ -5,8 +5,7 @@ import {
   useGetTestCaseArchivePreviewQuery,
 } from "entities/test-case/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]"
@@ -20,6 +19,7 @@ interface Props {
 
 export const ArchiveTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [archiveTestCase, { isLoading: isLoadingDelete }] = useArchiveTestCaseMutation()
   const { data, isLoading, status } = useGetTestCaseArchivePreviewQuery(String(testCase.id), {
     skip: !isShow,

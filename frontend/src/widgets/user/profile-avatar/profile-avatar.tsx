@@ -9,8 +9,8 @@ import { Crop, PercentCrop, ReactCrop } from "react-image-crop"
 import { useDeleteAvatarMutation, useUploadAvatarMutation } from "entities/user/api"
 import { UserAvatar } from "entities/user/ui/user-avatar/user-avatar"
 
+import { useAntdModals } from "shared/hooks"
 import { fileReader, getNumberToFixed } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
 import { Button } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -26,6 +26,7 @@ const mutex = new Mutex()
 
 export const ProfileAvatar = () => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { me } = useMeContext()
 
   const [nonce, setNonce] = useState(1)

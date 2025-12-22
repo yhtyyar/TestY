@@ -10,16 +10,14 @@ import {
 
 import { LazyGetTriggerType } from "app/export-types"
 
-import { LazyNodeProps, LazyTreeNodeApi } from "shared/libs/tree"
-
-import { BaseSearchEntity, LazyTreeSearch } from "widgets/lazy-tree-search/lazy-tree-search"
+import { LazyTreeSearch } from "widgets/lazy-tree-search/lazy-tree-search"
 
 interface Props<T extends FieldValues> {
   id: string
   control: Control<T>
   name: Path<T>
-  getData: LazyGetTriggerType<T>
-  getAncestors: LazyGetTriggerType<T>
+  getData: LazyGetTriggerType<PaginationResponse<T[]>>
+  getAncestors: LazyGetTriggerType<PaginationResponse<T[]>>
   onSelect: (value: SelectData | null) => void
   label?: string
   placeholder?: string
@@ -79,9 +77,8 @@ export const LazyTreeSearchFormItem = <T extends FieldValues>({
             skipInit={skipInit}
             dataParams={dataParams}
             placeholder={placeholder}
-            // @ts-ignore
-            onSelect={(node: LazyTreeNodeApi<BaseSearchEntity, LazyNodeProps> | null) =>
-              onSelect(node ? { label: node.title, value: node.id as number } : null)
+            onSelect={(node) =>
+              onSelect(node ? { label: node.title, value: Number(node.id) } : null)
             }
             selectedId={selected?.value}
             searchValue={selected?.label?.toString() ?? ""}

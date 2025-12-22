@@ -52,3 +52,7 @@
 .rightShadowActive.tableContainer::after {
   opacity: 1;
 }
+
+.tree {
+  border: none;
+}

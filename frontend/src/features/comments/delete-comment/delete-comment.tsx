@@ -5,8 +5,7 @@ import { useDeleteCommentMutation } from "entities/comments/api"
 import { useTranslation } from "react-i18next"
 
 import DeleteIcon from "shared/assets/yi-icons/delete.svg?react"
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -19,6 +18,7 @@ const TEST_ID = "delete-comment"
 
 export const DeleteComment = ({ commentId }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [deleteComment] = useDeleteCommentMutation()
 
   const handleDelete = async () => {

@@ -185,7 +185,6 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
         header={
           <FilterControl
             type="plans"
-            hasSomeFilter={!!testsFilterCount}
             filterData={testsFilter as unknown as Record<string, unknown>}
             filterSchema={filterTestsSchema}
             filterSettings={testsFilterSettings}
@@ -246,6 +245,7 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
                       field.onChange([])
                       triggerSubmit()
                     }}
+                    treeWrapperId="test-filter-drawer-plans"
                   />
                 )}
               />
@@ -271,6 +271,7 @@ export const TestsButtonFilterDrawer = ({ resetSelectedRows }: Props) => {
                       field.onChange([])
                       triggerSubmit()
                     }}
+                    treeWrapperId="test-filter-drawer-suites"
                   />
                 )}
               />

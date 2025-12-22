@@ -17,8 +17,8 @@ import { useProjectContext } from "pages/project"
 import ContextMenuIcon from "shared/assets/yi-icons/context-menu.svg?react"
 import ResetIcon from "shared/assets/yi-icons/reset.svg?react"
 import SaveIcon from "shared/assets/yi-icons/save.svg?react"
+import { useAntdModals } from "shared/hooks"
 import { clearObject } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
 import { Button } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -43,6 +43,7 @@ export const ActionButtonsFilter = ({
   clearFilter,
 }: Props) => {
   const { t } = useTranslation(["translation", "errors"])
+  const { antdNotification } = useAntdModals()
 
   const { userConfig, updateConfig } = useMeContext()
   const project = useProjectContext()

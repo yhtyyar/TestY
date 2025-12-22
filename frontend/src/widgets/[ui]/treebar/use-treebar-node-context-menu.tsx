@@ -1,4 +1,5 @@
 import { CopyOutlined, EditOutlined, HistoryOutlined, PlusOutlined } from "@ant-design/icons"
+import { Row, Table } from "@tanstack/react-table"
 import { Flex } from "antd"
 import { MenuProps } from "antd/lib"
 import { useTranslation } from "react-i18next"
@@ -10,43 +11,41 @@ import { ArchiveTestPlan, ChangeTestPlan, CopyTestPlan, DeleteTestPlan } from "f
 
 import ArchiveIcon from "shared/assets/yi-icons/archive.svg?react"
 import DeleteIcon from "shared/assets/yi-icons/delete.svg?react"
-import { LazyNodeProps, LazyTreeApi } from "shared/libs/tree"
 import { CopyLinkContextMenu } from "shared/ui"
-
-import {
-  refetchNodeAfterArchive,
-  refetchNodeAfterCreateOrCopy,
-  refetchNodeAfterDelete,
-} from "./utils"
+import { TreeNode } from "shared/ui/tree"
 
 export interface TestPlanProps {
-  data: TestPlan
+  row: Row<TreeNode<TestPlan>>
   type: "plans"
   projectId: number
-  tree: LazyTreeApi<TestPlan, LazyNodeProps>
+  tree: Table<TreeNode<TestPlan>>
 }
 
 export interface TestSuiteProps {
-  data: Suite
+  row: Row<TreeNode<Suite>>
   type: "suites"
   projectId: number
-  tree: LazyTreeApi<Suite, LazyNodeProps>
+  tree: Table<TreeNode<Suite>>
 }
 
 export function useTreebarNodeContextMenu(
   props: TestPlanProps | TestSuiteProps
 ): MenuProps["items"] {
   const { t } = useTranslation()
-  const refetchParentAfterCreateOrCopy = (updatedEntity: BaseEntity) => {
-    refetchNodeAfterCreateOrCopy(props.tree, updatedEntity)
+
+  const refetchParentAfterCopy = (updatedEntity: BaseEntity) => {
+    props.row.copy({
+      parent: updatedEntity.parent?.id.toString(),
+      // @ts-ignore
+      data: {
+        ...props.row.original.data,
+        ...updatedEntity,
+      },
+    })
   }
 
-  const refetchParentAfterArchive = (updatedEntity: BaseEntity) => {
-    refetchNodeAfterArchive(props.tree, updatedEntity)
-  }
-
-  const refetchParentAfterDelete = (updatedEntity: BaseEntity) => {
-    refetchNodeAfterDelete(props.tree, updatedEntity)
+  const refetchParentAfterArchive = () => {
+    props.tree.rowRefetch(props.row.original.data.parent?.id.toString())
   }
 
   if (props.type === "plans") {
@@ -60,7 +59,7 @@ export function useTreebarNodeContextMenu(
                 <PlusOutlined style={{ fontSize: 14 }} /> {t("Create child plan")}
               </Flex>
             }
-            testPlan={props.data}
+            testPlan={props.row.original.data}
           />
         ),
         key: "create_child_plan",
@@ -74,8 +73,8 @@ export function useTreebarNodeContextMenu(
                 {t("Copy")}
               </Flex>
             }
-            testPlan={props.data}
-            onSubmit={refetchParentAfterCreateOrCopy}
+            testPlan={props.row.original.data}
+            onSubmit={refetchParentAfterCopy}
           />
         ),
         key: "copy_plan",
@@ -83,12 +82,12 @@ export function useTreebarNodeContextMenu(
       {
         label: (
           <CopyLinkContextMenu
-            link={`${window.location.origin}/projects/${props.data.project}/plans/${props.data.id}`}
+            link={`${window.location.origin}/projects/${props.row.original.data.project}/plans/${props.row.original.data.id}`}
           />
         ),
         key: "copy_link_plan",
       },
-      !props.data.is_archive && {
+      !props.row.original.data.is_archive && {
         label: (
           <ChangeTestPlan
             type="edit"
@@ -98,12 +97,12 @@ export function useTreebarNodeContextMenu(
                 {t("Edit")}
               </Flex>
             }
-            testPlan={props.data}
+            testPlan={props.row.original.data}
           />
         ),
         key: "edit_plan",
       },
-      !props.data.is_archive && {
+      !props.row.original.data.is_archive && {
         label: (
           <ArchiveTestPlan
             as={
@@ -111,7 +110,7 @@ export function useTreebarNodeContextMenu(
                 <ArchiveIcon width={14} height={14} /> {t("Archive")}
               </Flex>
             }
-            testPlan={props.data}
+            testPlan={props.row.original.data}
             onSubmit={refetchParentAfterArchive}
           />
         ),
@@ -126,8 +125,8 @@ export function useTreebarNodeContextMenu(
                 {t("Delete")}
               </Flex>
             }
-            testPlan={props.data}
-            onSubmit={refetchParentAfterDelete}
+            testPlan={props.row.original.data}
+            onSubmit={props.row.delete}
           />
         ),
         key: "delete_plan",
@@ -138,7 +137,7 @@ export function useTreebarNodeContextMenu(
       {
         label: (
           <Link
-            to={`/projects/${props.projectId}/plans/${props.data.id}/activity`}
+            to={`/projects/${props.projectId}/plans/${props.row.original.data.id}/activity`}
             style={{ gap: 6, display: "flex", flexDirection: "row", alignItems: "center" }}
           >
             <HistoryOutlined style={{ fontSize: 14 }} /> {t("View activity")}
@@ -160,7 +159,7 @@ export function useTreebarNodeContextMenu(
               {t("Create child suite")}
             </Flex>
           }
-          suite={props.data}
+          suite={props.row.original.data}
         />
       ),
       key: "create_child_suite",
@@ -174,8 +173,8 @@ export function useTreebarNodeContextMenu(
               {t("Copy")}
             </Flex>
           }
-          suite={props.data}
-          onSubmit={refetchParentAfterCreateOrCopy}
+          suite={props.row.original.data}
+          onSubmit={refetchParentAfterCopy}
         />
       ),
       key: "copy_suite",
@@ -183,7 +182,7 @@ export function useTreebarNodeContextMenu(
     {
       label: (
         <CopyLinkContextMenu
-          link={`${window.location.origin}/projects/${props.data.project}/suites/${props.data.id}`}
+          link={`${window.location.origin}/projects/${props.row.original.data.project}/suites/${props.row.original.data.id}`}
         />
       ),
       key: "copy_link_suite",
@@ -198,7 +197,7 @@ export function useTreebarNodeContextMenu(
               {t("Edit")}
             </Flex>
           }
-          suite={props.data}
+          suite={props.row.original.data}
         />
       ),
       key: "edit_suite",
@@ -212,8 +211,8 @@ export function useTreebarNodeContextMenu(
               {t("Delete")}
             </Flex>
           }
-          suite={props.data}
-          onSubmit={refetchParentAfterDelete}
+          suite={props.row.original.data}
+          onSubmit={props.row.delete}
         />
       ),
       key: "delete_suite",
@@ -230,7 +229,7 @@ export function useTreebarNodeContextMenu(
               {t("Create Test Case")}
             </Flex>
           }
-          parentSuite={props.data}
+          parentSuite={props.row.original.data}
         />
       ),
       key: "create_test_case",

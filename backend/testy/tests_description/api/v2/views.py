@@ -60,6 +60,7 @@ from testy.swagger.v2.suites import suite_copy_schema, suite_list_schema
 from testy.tests_description.api.mixins import TestCaseVersionRedirectMixin
 from testy.tests_description.api.v2.serializers import (
     BulkUpdateTestCasesSerializer,
+    BulkUpdateTestsCasesTreeSerializer,
     TestCaseCopySerializer,
     TestCaseHistorySerializer,
     TestCaseInputSerializer,
@@ -79,17 +80,19 @@ from testy.tests_description.api.v2.serializers import (
     TestSuiteUnionSerializer,
     TestSuiteUpdateOutputSerializer,
 )
-from testy.tests_description.filters import (
+from testy.tests_description.filters.cases import (
     CasesBySuiteFilter,
-    SuiteProjectParentFilter,
-    SuiteUnionFilterNoSearch,
-    SuiteUnionOrderingFilter,
     TestCaseFilter,
     TestCaseFilterSearch,
     TestCaseHistoryFilter,
     TestCaseWithoutProjectFilter,
-    TestSuiteFilter,
     UnionCaseFilter,
+)
+from testy.tests_description.filters.suites import (
+    SuiteProjectParentFilter,
+    SuiteUnionFilterNoSearch,
+    SuiteUnionOrderingFilter,
+    TestSuiteFilter,
 )
 from testy.tests_description.models import TestCase, TestSuite
 from testy.tests_description.permissions import (
@@ -105,7 +108,7 @@ from testy.tests_description.selectors.suites import TestSuiteSelector
 from testy.tests_description.services.cases import TestCaseService
 from testy.tests_description.services.suites import TestSuiteService
 from testy.tests_representation.api.v2.serializers import TestSerializer
-from testy.tests_representation.filters import TestFilterNested
+from testy.tests_representation.filters.tests import TestFilterNested
 from testy.tests_representation.models import Test
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.tests_representation.selectors.tests import TestSelector
@@ -154,7 +157,7 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
                 return TestCaseHistoryFilter
             case 'cases_search':
                 return TestCaseFilterSearch
-            case 'bulk_update_cases':
+            case str() as action_type if action_type in {'bulk_update_cases', 'bulk_update_cases_tree'}:
                 return TestCaseWithoutProjectFilter
 
     def get_queryset(self):
@@ -164,7 +167,7 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
             case 'restore_archived':
                 return TestCaseSelector().case_list({_IS_ARCHIVE: True})
             case 'cases_search':
-                return TestCaseSelector().case_list_with_label_names()
+                return TestCaseSelector().case_list_with_labels_annotation()
             case 'get_history':
                 return get_history_model_for_model(TestCase).objects.none()
             case 'get_tests':
@@ -185,6 +188,8 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
                 return TestCaseRetrieveSerializer
             case 'bulk_update_cases':
                 return BulkUpdateTestCasesSerializer
+            case 'bulk_update_cases_tree':
+                return BulkUpdateTestsCasesTreeSerializer
         return TestCaseListSerializer
 
     @cases_create_schema
@@ -206,7 +211,7 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
         is_partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=is_partial)
-        serializer.is_valid(raise_exception=True)
+        serializer.is_valid(raise_exception=True)  # noqa: WPS204
 
         if serializer.validated_data.get('is_steps', False):
             TestCaseService().case_with_steps_update(
@@ -320,6 +325,18 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
         if filter_conditions:
             queryset = self._filter_queryset_from_request_payload(queryset, filter_conditions)
         test_cases = TestCaseService.bulk_update_cases(queryset, serializer.validated_data, request.user)
+        return Response(TestCaseListSerializer(test_cases, many=True, context=self.get_serializer_context()).data)
+
+    @action(methods=['put'], url_path='bulk-update-tree', url_name='bulk-update-tree', detail=False)
+    def bulk_update_cases_tree(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data.get('project')
+        queryset = TestCaseSelector.list_cases_by_parent_suite_and_project(project)
+        filter_conditions = serializer.validated_data.pop('filter_conditions', {})
+        if filter_conditions:
+            queryset = self._filter_queryset_from_request_payload(queryset, filter_conditions)
+        test_cases = TestCaseService.bulk_update_cases(queryset, serializer.validated_data, request.user, is_tree=True)
         return Response(TestCaseListSerializer(test_cases, many=True, context=self.get_serializer_context()).data)
 
 
@@ -480,6 +497,7 @@ class TestSuiteViewSet(TestyModelViewSet):
         context = self.get_serializer_context()
         data = TestSuiteSelector().get_union_data(
             page,
+            request,
             partial(TestSuiteUnionSerializer, context=context),
             partial(TestCaseUnionSerializer, context=context),
         )

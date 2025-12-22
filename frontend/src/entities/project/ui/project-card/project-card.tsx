@@ -31,12 +31,14 @@ export const ProjectCard = ({ project, folowProject }: Props) => {
       <div className={cn({ [styles.cardBlured]: !project.is_visible })}>
         <div className={cn(styles.cardContainer)}>
           <div className={styles.nameBlock}>
-            <ProjectIcon
-              icon={project.icon}
-              name={project.name}
-              size={32}
-              dataTestId="project-card-icon"
-            />
+            <div className={styles.iconBlock}>
+              <ProjectIcon
+                icon={project.icon}
+                name={project.name}
+                size={32}
+                dataTestId="project-card-icon"
+              />
+            </div>
             <Flex gap={8} align="center">
               {project.is_archive && <ArchivedTag data-testid={getIdWithTitle("archived-tag")} />}
               <Link

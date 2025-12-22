@@ -1,5 +1,5 @@
 import { CopyOutlined } from "@ant-design/icons"
-import { Alert, Form, Input, Modal, Select } from "antd"
+import { Alert, Form, Input, Select } from "antd"
 import { ReactNode, memo } from "react"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -8,6 +8,7 @@ import { useLazyGetTestSuiteAncestorsQuery, useLazyGetTestSuitesQuery } from "en
 
 import { Button } from "shared/ui"
 import { LazyTreeSearchFormItem } from "shared/ui/form-items"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { useSuiteCopyModal } from "./use-suite-copy-modal"
 
@@ -57,7 +58,7 @@ export const CopySuite = memo(({ as, suite, onSubmit }: Props) => {
           {t("Copy").toUpperCase()}
         </Button>
       )}
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
         wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
         title={
@@ -154,7 +155,7 @@ export const CopySuite = memo(({ as, suite, onSubmit }: Props) => {
         {!!errors.length && (
           <Alert style={{ marginBottom: 0, marginTop: 16 }} description={errors} type="error" />
         )}
-      </Modal>
+      </NyModal>
     </>
   )
 })

@@ -1,11 +1,12 @@
 import { EditOutlined, PlusOutlined } from "@ant-design/icons"
-import { Form, Input, Modal, Select } from "antd"
+import { Form, Input, Select } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { customAttributeTypes } from "shared/config/custom-attribute-types"
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { SelectContentTypes } from "./ui"
 import { PropsChangeCustomAttribute, useChangeCustomAttribute } from "./use-change-custom-attribute"
@@ -42,7 +43,7 @@ export const ChangeCustomAttribute = (props: PropsChangeCustomAttribute) => {
       >
         {isCreate ? t("Create Custom Attribute") : ""}
       </Button>
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${testId}-modal-body` }}
         wrapProps={{ "data-testid": `${testId}-modal-wrapper` }}
         title={
@@ -136,7 +137,7 @@ export const ChangeCustomAttribute = (props: PropsChangeCustomAttribute) => {
             </Form.Item>
           </Form>
         </>
-      </Modal>
+      </NyModal>
     </>
   )
 }

@@ -23,9 +23,10 @@ interface UpdateTestCaseSettings extends SetCaseSettings {
 type ChangeLabelBulkOperationType = "add" | "update" | "delete"
 
 interface TestCaseBulkUpdate {
+  included_suites: number[]
   included_cases: number[]
   excluded_cases: number[]
-  current_suite: number
+  current_suite: number | null
   project: number
   filter_conditions?: Partial<TestCaseGetFilters>
   labels?: LabelInForm[]
@@ -79,6 +80,7 @@ interface TestCaseCreate {
   estimate?: string
   description?: string
   attachments?: number[]
+  labels?: { id?: number; name: string }[]
   attributes?: AttributesObject
 }
 
@@ -87,6 +89,7 @@ interface TestCaseUpdate extends TestCase {
   attachments?: number[]
   steps: NewStepAttachNumber[]
   skip_history?: boolean
+  labels?: { id?: number; name: string }[]
 }
 
 interface Step {
@@ -141,7 +144,7 @@ interface TestCaseFormData {
   steps?: Step[]
   expanded_steps?: number[]
   is_steps?: boolean
-  labels?: LabelInForm[]
+  labels?: SelectedLabel[]
   attributes?: Attribute[]
 }
 

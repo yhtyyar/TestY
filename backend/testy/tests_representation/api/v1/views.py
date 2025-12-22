@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -36,7 +36,6 @@ from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
-from tests_representation.permissions import BulkUpdateTestsPermission
 
 from testy.core.api.v1.serializers import LabelSerializer
 from testy.core.permissions import (
@@ -92,20 +91,12 @@ from testy.tests_representation.api.v1.serializers import (  # noqa: WPS 235
     TestResultSerializer,
     TestSerializer,
 )
-from testy.tests_representation.filters import (
-    ActivityFilter,
-    ParameterFilter,
-    PlanFilterV1,
-    ResultStatusFilter,
-    TestFilter,
-    TestPlanSearchFilter,
-    TestResultByPlanFilter,
-    TestResultFilter,
-    TestsByPlanFilter,
-    TestWithoutProjectFilter,
-)
+from testy.tests_representation.filters.plans import ActivityFilter, ParameterFilter, PlanFilterV1, TestPlanSearchFilter
+from testy.tests_representation.filters.results import ResultStatusFilter, TestResultByPlanFilter, TestResultFilter
+from testy.tests_representation.filters.tests import TestFilter, TestsByPlanFilter, TestWithoutProjectFilter
 from testy.tests_representation.models import Test, TestPlan, TestResult
 from testy.tests_representation.permissions import (
+    BulkUpdateTestsPermission,
     ResultStatusPermission,
     TestPlanCopyPermission,
     TestPlanDetailReadPermission,

@@ -5,9 +5,8 @@ import { useTranslation } from "react-i18next"
 
 import { useСopyTestPlanMutation } from "entities/test-plan/api"
 
-import { useDatepicker } from "shared/hooks"
-import { initInternalError, isFetchBaseQueryError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useDatepicker } from "shared/hooks"
+import { isFetchBaseQueryError } from "shared/libs"
 import { AlertSuccessChange } from "shared/ui"
 
 interface FormPlanCopy {
@@ -32,6 +31,7 @@ interface Props {
 
 export const useTestPlanCopyModal = ({ testPlan, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [isShow, setIsShow] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [copyTestPlan, { isLoading }] = useСopyTestPlanMutation()

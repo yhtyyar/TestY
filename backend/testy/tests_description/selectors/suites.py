@@ -51,7 +51,9 @@ from django.db.models import (
 )
 from django.shortcuts import get_object_or_404
 from mptt.querysets import TreeQuerySet
+from rest_framework.request import Request
 
+from testy.tests_description.filters.cases import UnionCaseFilter
 from testy.tests_description.models import TestCase, TestSuite
 from testy.tests_description.selectors.cases import TestCaseSelector
 from testy.tests_representation.models import Test, TestPlan
@@ -342,6 +344,7 @@ class TestSuiteSelector:  # noqa: WPS214
     def get_union_data(
         self,
         qs: 'ValuesQuerySet[TestSuite, dict[str, Any]]',
+        request: Request,
         suite_serializer: 'type[TestSuiteUnionSerializer]',
         case_serializer: 'type[TestCaseUnionSerializer]',
     ) -> list[Mapping[str, Any]]:
@@ -359,6 +362,7 @@ class TestSuiteSelector:  # noqa: WPS214
 
         db_suites = self.suites_by_ids(suite_ids, _PK)
         db_suites = self.suite_list_union(db_suites)
+        db_suites = db_suites.annotate(union_count=self._union_cases_count(request, include_descendants=True))
 
         suites = {suite.pk: suite for suite in db_suites}
         cases = {case.pk: case for case in db_cases}
@@ -518,3 +522,15 @@ class TestSuiteSelector:  # noqa: WPS214
             )
             .values('total'),
         )
+
+    @classmethod
+    def _union_cases_count(cls, request: Request, include_descendants: bool = False):
+        condition = Q(suite_id=_OUTER_REF_PK)
+        if include_descendants:
+            condition |= Q(suite__path__descendant=OuterRef(_PATH))
+        cases = UnionCaseFilter(
+            request.query_params,
+            request=request,
+            queryset=TestCase.objects.select_related('suite').filter(condition),
+        ).qs
+        return SubCount(cases)

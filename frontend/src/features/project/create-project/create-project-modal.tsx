@@ -1,4 +1,4 @@
-import { Form, Input, Modal, Switch, Upload } from "antd"
+import { Form, Input, Switch, Upload } from "antd"
 import { RcFile, UploadChangeParam, UploadFile } from "antd/lib/upload"
 import { useContext, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
@@ -7,10 +7,10 @@ import { useTranslation } from "react-i18next"
 import { useCreateProjectMutation } from "entities/project/api"
 import { ProjectIcon } from "entities/project/ui"
 
-import { ErrorObj, useErrors } from "shared/hooks"
+import { ErrorObj, useAntdModals, useErrors } from "shared/hooks"
 import { fileReader } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertError, AlertSuccessChange, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { DashboardViewContext } from "../../../widgets/dashboard"
 
@@ -21,6 +21,16 @@ interface ErrorData {
   description?: string
   is_archive?: string
   is_private?: string
+  is_favorite?: string
+}
+
+interface FormData {
+  name: string
+  icon?: string
+  description?: string
+  is_archive?: boolean
+  is_private?: boolean
+  is_favorite?: boolean
 }
 
 interface Props {
@@ -34,6 +44,7 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
   const { t } = useTranslation()
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const dashboardContext = useContext(DashboardViewContext)
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const {
     handleSubmit,
     reset,
@@ -41,13 +52,14 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
     setValue,
     watch,
     formState: { isDirty },
-  } = useForm<Project>({
+  } = useForm<FormData>({
     defaultValues: {
       name: "",
       description: "",
       icon: "",
       is_archive: false,
       is_private: false,
+      is_favorite: false,
     },
   })
   const [createProject, { isLoading }] = useCreateProjectMutation()
@@ -56,17 +68,18 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
   const nameWatch = watch("name")
   const isPrivate = watch("is_private")
 
-  const onSubmit: SubmitHandler<Project> = async (data) => {
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     setErrors(null)
 
     try {
       const fmData = new FormData()
 
       fmData.append("name", data.name)
-      fmData.append("description", data.description)
+      fmData.append("description", data.description ?? "")
       fmData.append("is_archive", String(data.is_archive))
       fmData.append("icon", data.icon ?? "")
       fmData.append("is_private", String(data.is_private))
+      fmData.append("is_favorite", String(data.is_favorite))
       const newProject = await createProject(fmData).unwrap()
       dashboardContext?.setNeedRefetchProjects(true)
 
@@ -132,7 +145,7 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
   }
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={<span data-testid={`${TEST_ID}-modal-title`}>{`${t("Create")} ${t("Project")}`}</span>}
@@ -252,8 +265,25 @@ export const CreateProjectModal = ({ isShow, setIsShow }: Props) => {
               )}
             />
           </Form.Item>
+          <Form.Item
+            label={t("Add to Favorite")}
+            validateStatus={errors?.is_private ? "error" : ""}
+            help={errors?.is_private ? errors.is_private : ""}
+          >
+            <Controller
+              name="is_favorite"
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={Boolean(field.value)}
+                  onChange={field.onChange}
+                  data-testid="create-project-is-favorite"
+                />
+              )}
+            />
+          </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

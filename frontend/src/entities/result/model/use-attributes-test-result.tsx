@@ -71,6 +71,7 @@ export const useAttributesTestResult = ({ mode, setValue }: UseAttributesProps) 
   return {
     attributes,
     isLoading,
+    initAttributes,
     setAttributes,
     resetAttributes,
     addAttribute,

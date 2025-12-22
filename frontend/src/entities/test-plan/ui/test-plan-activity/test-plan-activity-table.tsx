@@ -4,6 +4,7 @@ import { DataTable } from "widgets"
 
 import { useTestPlanActivity } from "entities/test-plan/model"
 
+import { useMyTranslation } from "shared/hooks"
 import { ContainerLoader, TablePageChanger } from "shared/ui"
 
 export const TestPlanActivityTable = ({
@@ -11,6 +12,7 @@ export const TestPlanActivityTable = ({
 }: {
   testPlanActivity: ReturnType<typeof useTestPlanActivity>
 }) => {
+  const { language } = useMyTranslation()
   if (testPlanActivity.isLoading) return <ContainerLoader />
 
   if (!testPlanActivity.data?.count) return <Empty />
@@ -31,6 +33,7 @@ export const TestPlanActivityTable = ({
             columns={testPlanActivity.columns}
             manualPagination
             paginationVisible={false}
+            lang={language}
             data-testid={`test-plan-activity-table-${dayStr}`}
           />
         </li>
@@ -38,14 +41,14 @@ export const TestPlanActivityTable = ({
       {testPlanActivity.tableFilterRef.current !== null && (
         <Flex justify="end">
           <TablePageChanger
-            current={testPlanActivity.tableFilterRef.current.getState().pagination.pageIndex + 1}
+            current={testPlanActivity.tableFilterRef.current.getState().pagination.pageIndex}
             pageSize={testPlanActivity.tableFilterRef.current.getState().pagination.pageSize}
             total={testPlanActivity.data.count}
-            onChangePage={(page) => {
+            onChangePage={(pageIndex) => {
               if (testPlanActivity.tableFilterRef.current) {
                 testPlanActivity.setPaginationParams((prevState) => ({
                   ...prevState,
-                  pageIndex: page - 1,
+                  pageIndex,
                 }))
               }
             }}

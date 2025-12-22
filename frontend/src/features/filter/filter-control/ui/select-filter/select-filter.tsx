@@ -12,7 +12,7 @@ import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 import { useProjectContext } from "pages/project"
 
 import ArrowIcon from "shared/assets/yi-icons/arrow.svg?react"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
 import styles from "./styles.module.css"
@@ -39,6 +39,7 @@ export const SelectFilter = ({
   updateSettings,
 }: Props) => {
   const { t } = useTranslation(["translation", "errors"])
+  const { antdNotification } = useAntdModals()
 
   const { userConfig, updateConfig } = useMeContext()
   const project = useProjectContext()
@@ -138,6 +139,7 @@ export const SelectFilter = ({
 
   useEffect(() => {
     if (!filterSettings.selected) {
+      updateSettings({ hasUnsavedChanges: false })
       return
     }
 

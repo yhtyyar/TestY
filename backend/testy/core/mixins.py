@@ -43,6 +43,20 @@ suffix_properties: TypeAlias = tuple[str, str, str] | tuple[str, int, int]
 
 
 class MediaViewMixin:
+    view_allowed_extensions: tuple[str, ...] = (
+        '.json',
+        '.yml',
+        '.yaml',
+        '.txt',
+        '.xml',
+        '.log',
+        '.py',
+        '.html',
+        '.sh',
+        '.md',
+        '.rtf',
+        '.cfg',
+    )
 
     @classmethod
     def format_response(
@@ -50,11 +64,12 @@ class MediaViewMixin:
         file: FieldFile,
         request: Request,
         filename: str | None = None,
+        is_view: bool = False,
     ) -> HttpResponse | FileResponse:
         filename = filename or file.name
         try:
             if settings.TESTY_ALLOW_FILE_RESPONSE:
-                return cls.file_response(file, request, filename)
+                return cls.file_response(file, request, filename, is_view=is_view)
             return cls.redirect_response(file, request, filename)
         except IOError:
             return HttpResponse(status=status.HTTP_404_NOT_FOUND)
@@ -68,14 +83,22 @@ class MediaViewMixin:
         return response
 
     @classmethod
-    def file_response(cls, file: FieldFile, request: Request, filename: str | None) -> FileResponse:
+    def file_response(
+        cls,
+        file: FieldFile,
+        request: Request,
+        filename: str | None,
+        is_view: bool = False,
+    ) -> FileResponse:
+        _, suffix = strip_suffixes(filename)
         content_type = cls._get_content_type(filename)
-        is_attachment = 'image/' not in content_type
+        is_view_allowed = 'image/' in content_type or suffix in cls.view_allowed_extensions
+        as_attachment = not (is_view_allowed and is_view)
         path = cls._populate_resolution(file.path, request)
         # https://docs.djangoproject.com/en/5.0/ref/request-response/#fileresponse-objects
         return FileResponse(
             open(path, 'rb'),  # noqa: WPS515
-            as_attachment=is_attachment,
+            as_attachment=as_attachment,
             content_type=content_type,
             filename=filename,
         )

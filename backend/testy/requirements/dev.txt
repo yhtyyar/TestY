@@ -16,7 +16,7 @@ allure-pytest==2.13.2
     # via -r dev.in
 allure-python-commons==2.13.2
     # via allure-pytest
-allure-uploader-v2 @ git+https://gitlab-pub.yadro.com/testy/allure-uploader-v2.git@release/2.1.2
+allure-uploader-v2 @ git+https://gitlab-pub.yadro.com/testy/allure-uploader-v2.git@release/2.1.5
     # via -r prod.in
 amqp==5.2.0
     # via kombu

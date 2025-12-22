@@ -185,6 +185,7 @@ class Label(BaseModel):
     user = models.ForeignKey(UserModel, on_delete=models.SET_NULL, null=True, blank=True)
     # TODO: delete type field
     type = models.IntegerField(choices=LabelTypes.choices, default=LabelTypes.CUSTOM)
+    color = models.CharField(max_length=settings.CHAR_FIELD_MAX_LEN, blank=True, null=True)
 
     class Meta:
         verbose_name = _('Label')
@@ -192,7 +193,10 @@ class Label(BaseModel):
         constraints = [unique_soft_delete_constraint([_PROJECT, _NAME], 'label')]
 
     def clean(self):
-        if label := Label.objects.filter(name__iexact=self.name, project=self.project).first():
+        labels = Label.objects.filter(name__iexact=self.name, project=self.project)
+        if self.pk:
+            labels = labels.exclude(pk=self.pk)
+        if label := labels.first():
             raise ValidationError(
                 {
                     _NAME: (

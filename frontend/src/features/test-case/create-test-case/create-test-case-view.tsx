@@ -1,12 +1,12 @@
 import { Flex, Form, Input, Row, Tabs } from "antd"
 import { CustomAttributeAdd, CustomAttributeForm } from "entities/custom-attribute/ui"
-import { TreebarContext } from "processes"
-import { useContext, useRef } from "react"
+import { useTreebarProvider } from "processes/treebar-provider"
+import { useRef } from "react"
 import { Controller, FormProvider } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { FooterView } from "widgets"
 
-import { LabelWrapper } from "entities/label/ui"
+import { LabelSelectWithAdd } from "entities/label/ui"
 
 import { config } from "shared/config"
 import { ErrorObj, useResizebleBlock } from "shared/hooks"
@@ -40,7 +40,6 @@ export const CreateTestCaseView = () => {
     isDirty,
     tab,
     attributes,
-    labelProps,
     selectedSuite,
     onLoad,
     onRemove,
@@ -68,7 +67,7 @@ export const CreateTestCaseView = () => {
   const elRef = useRef(null)
   const containerRef = useRef(null)
 
-  const { treebarWidth } = useContext(TreebarContext)!
+  const { treebarWidth } = useTreebarProvider()
   const { width, handleMouseDown, focus } = useResizebleBlock({
     key: "create-test-case",
     elRef,
@@ -282,7 +281,11 @@ export const CreateTestCaseView = () => {
                         name="labels"
                         control={control}
                         render={({ field }) => (
-                          <LabelWrapper labelProps={labelProps} fieldProps={field} />
+                          <LabelSelectWithAdd
+                            value={field.value ?? []}
+                            onChange={field.onChange}
+                            fieldProps={field}
+                          />
                         )}
                       />
                     </Form.Item>

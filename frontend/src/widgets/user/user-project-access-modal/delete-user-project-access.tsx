@@ -6,8 +6,7 @@ import { useParams } from "react-router-dom"
 
 import { useAppSelector } from "app/hooks"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 interface Props {
@@ -16,6 +15,7 @@ interface Props {
 
 export const DeleteUsetProjectAccess = ({ user }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const [unassignUser] = useUnassignRoleMutation()
   const onSuccess = useAppSelector(selectRoleOnSuccess)
   const { projectId } = useParams<ParamProjectId>()

@@ -1,9 +1,13 @@
 import { memo } from "react"
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
+
 import { useTestCasesTable } from "./use-test-cases-table"
 
 export const TestCasesTable = memo(() => {
+  const { t, language } = useMyTranslation(["translation", "common"])
+
   const {
     tableRef,
     data,
@@ -42,6 +46,8 @@ export const TestCasesTable = memo(() => {
       manualFiltering
       manualSorting
       enableColumnDragging
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       draggingColumnCacheKey="test-cases-table"
       resizeColumnCacheKey="test-cases-table"
       data-testid="test-cases-table"

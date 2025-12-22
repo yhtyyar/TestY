@@ -34,14 +34,12 @@ from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from notifications.models import Notification
-from permissions import IsAdminOrForbidArchiveUpdate
 from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from utilities.request import get_list
 
 from testy.core.api.v2.serializers import (
     AccessRequestSerializer,
@@ -92,6 +90,7 @@ from testy.core.services.notifications import NotificationService
 from testy.core.services.projects import ProjectService
 from testy.filters import TestyFilterBackend
 from testy.paginations import StandardSetPagination
+from testy.permissions import IsAdminOrForbidArchiveUpdate
 from testy.root.mixins import TestyArchiveMixin, TestyDestroyModelMixin, TestyModelViewSet, TestyRestoreModelMixin
 from testy.swagger.common_query_parameters import is_archive_parameter
 from testy.swagger.v1.notifications import notification_mark_as_schema
@@ -102,7 +101,7 @@ from testy.tests_representation.api.v2.serializers import (
     TestPlanOutputSerializer,
     TestPlanProgressSerializer,
 )
-from testy.tests_representation.filters import TestFilter
+from testy.tests_representation.filters.tests import TestFilter
 from testy.tests_representation.selectors.parameters import ParameterSelector
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.tests_representation.selectors.tests import TestSelector
@@ -111,7 +110,7 @@ from testy.users.filters import UserFilter
 from testy.users.models import Membership, User
 from testy.users.selectors.roles import RoleSelector
 from testy.users.services.roles import RoleService
-from testy.utilities.request import PeriodDateTime
+from testy.utilities.request import PeriodDateTime, get_list
 
 _GET = 'get'
 _MEMBERS = 'members'

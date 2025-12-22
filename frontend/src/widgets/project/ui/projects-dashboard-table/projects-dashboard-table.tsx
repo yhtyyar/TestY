@@ -1,5 +1,7 @@
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
+
 import { useProjectsDashboardTable } from "widgets/project/model"
 
 interface Props {
@@ -7,6 +9,7 @@ interface Props {
 }
 
 export const ProjectsDashboardTable = ({ searchName }: Props) => {
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     isLoading,
     columns,
@@ -34,6 +37,8 @@ export const ProjectsDashboardTable = ({ searchName }: Props) => {
       manualPagination
       manualFiltering
       manualSorting
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       data-testid="projects-dashboard-table"
     />
   )

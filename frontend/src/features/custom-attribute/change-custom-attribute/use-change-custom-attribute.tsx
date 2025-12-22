@@ -10,8 +10,7 @@ import { useTranslation } from "react-i18next"
 
 import { useProjectContext } from "pages/project"
 
-import { useErrors, useModal } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors, useModal } from "shared/hooks"
 
 interface ErrorData {
   name?: string
@@ -38,6 +37,7 @@ const defaultFormValue = {
 
 export const useChangeCustomAttribute = ({ formType, attribute }: PropsChangeCustomAttribute) => {
   const { t } = useTranslation(["translation", "errors"])
+  const { antdNotification } = useAntdModals()
   const project = useProjectContext()
   const { statuses } = useStatuses({ project: project.id })
   const { handleClose: handleCloseModal, handleShow, isShow } = useModal()

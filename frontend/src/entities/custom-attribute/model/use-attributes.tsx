@@ -98,7 +98,7 @@ export const useAttributes = ({
     setAttributes(mode === "create" ? initAttributes : [])
   }
 
-  const getAttributeJson = (attributesJson: AttributesObject) => {
+  const getAttributeJson = (attributesJson: AttributesObject, addInitAttributes = true) => {
     const newAttributes: Attribute[] = []
 
     Object.keys(attributesJson).map((key: string) => {
@@ -133,11 +133,18 @@ export const useAttributes = ({
       }
     })
 
-    // add missing custom attributes
+    if (addInitAttributes) {
+      getInitAttributeJson(newAttributes)
+    }
+
+    return newAttributes
+  }
+
+  const getInitAttributeJson = (prevAttributes: Attribute[] = []) => {
     initAttributes.forEach((attr) => {
-      const existingAttribute = newAttributes.find((lookupAttr) => lookupAttr.name === attr.name)
+      const existingAttribute = prevAttributes.find((lookupAttr) => lookupAttr.name === attr.name)
       if (!existingAttribute) {
-        newAttributes.push(attr)
+        prevAttributes.push(attr)
       } else if (attr.type !== existingAttribute.type) {
         existingAttribute.type = attr.type
       } else if (attr.required && !existingAttribute.required) {
@@ -146,8 +153,7 @@ export const useAttributes = ({
         existingAttribute.is_init = true
       }
     })
-
-    return newAttributes
+    return prevAttributes
   }
 
   return {
@@ -160,6 +166,7 @@ export const useAttributes = ({
     onAttributeChangeName,
     onAttributeRemove,
     getAttributeJson,
+    getInitAttributeJson,
     generateAttributeCopy,
   }
 }

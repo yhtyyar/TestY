@@ -1,10 +1,11 @@
 import { QueryStatus } from "@reduxjs/toolkit/dist/query"
 import { ColumnDef } from "@tanstack/react-table"
-import { Modal, Typography } from "antd"
+import { Typography } from "antd"
 import { useMemo } from "react"
-import { useTranslation } from "react-i18next"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { DataTable } from "widgets/data-table/data-table"
 
@@ -41,7 +42,7 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
   typeTitle,
   action,
 }: Props<T>) => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
 
   const columns: ColumnDef<T>[] = [
     {
@@ -73,7 +74,7 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
   }, [data])
 
   return (
-    <Modal
+    <NyModal
       className={`${type}-${action}-modal`}
       open={isShow}
       title={`${action === "archive" ? t("Archive") : t("Delete")} ${typeTitle} '${name}'`}
@@ -110,8 +111,10 @@ export const ModalConfirmDeleteArchive = <T extends DataType>({
         columns={columns}
         paginationVisible={false}
         manualPagination
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid={`${type}-${action}-modal-table`}
       />
-    </Modal>
+    </NyModal>
   )
 }

@@ -72,12 +72,8 @@ from testy.tests_description.api.v1.serializers import (
     TestSuiteSerializer,
     TestSuiteTreeSerializer,
 )
-from testy.tests_description.filters import (
-    TestCaseFilter,
-    TestCaseHistoryFilter,
-    TestSuiteFilter,
-    TestSuiteSearchFilter,
-)
+from testy.tests_description.filters.cases import TestCaseFilter, TestCaseHistoryFilter
+from testy.tests_description.filters.suites import TestSuiteFilter, TestSuiteSearchFilter
 from testy.tests_description.models import TestCase, TestSuite
 from testy.tests_description.permissions import (
     TestCaseCopyPermission,
@@ -91,7 +87,7 @@ from testy.tests_description.selectors.suites import TestSuiteSelector
 from testy.tests_description.services.cases import TestCaseService
 from testy.tests_description.services.suites import TestSuiteService
 from testy.tests_representation.api.v1.serializers import TestSerializer
-from testy.tests_representation.filters import TestFilterNested
+from testy.tests_representation.filters.tests import TestFilterNested
 from testy.tests_representation.models import Test
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.tests_representation.selectors.tests import TestSelector
@@ -141,7 +137,7 @@ class TestCaseViewSet(TestCaseVersionRedirectMixin, TestyModelViewSet, TestyArch
         if self.action == 'restore_archived':
             return TestCaseSelector().case_list({_IS_ARCHIVE: True})
         if self.action == 'cases_search':
-            return TestCaseSelector().case_list_with_label_names()
+            return TestCaseSelector().case_list_with_labels_annotation()
         if self.action == 'get_history':
             return get_history_model_for_model(TestCase).objects.none()
         if self.action == 'get_tests':

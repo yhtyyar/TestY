@@ -1,8 +1,8 @@
 import { Flex, Form, Row, Tabs } from "antd"
 import dayjs from "dayjs"
 import { CustomAttributeAdd, CustomAttributeForm } from "entities/custom-attribute/ui"
-import { TreebarContext } from "processes"
-import { useContext, useRef } from "react"
+import { useTreebarProvider } from "processes/treebar-provider"
+import { useRef } from "react"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { FooterView } from "widgets"
@@ -64,6 +64,7 @@ export const ChangeTestPlanView = ({ type }: Props) => {
     onAttributeChangeType,
     onAttributeChangeValue,
     onAttributeRemove,
+    watch,
   } = useChangeTestPlan({ type })
 
   const [getPlans] = useLazyGetTestPlansQuery()
@@ -71,7 +72,7 @@ export const ChangeTestPlanView = ({ type }: Props) => {
   const elRef = useRef(null)
   const containerRef = useRef(null)
 
-  const { treebarWidth } = useContext(TreebarContext)!
+  const { treebarWidth } = useTreebarProvider()
   const { width, handleMouseDown, focus } = useResizebleBlock({
     key: `${type}-test-plan`,
     elRef,
@@ -241,7 +242,7 @@ export const ChangeTestPlanView = ({ type }: Props) => {
                 </Flex>
                 <LineDivider onMouseDown={handleMouseDown} focus={focus} />
                 <Flex vertical style={{ flex: "1 1", minWidth: 350 }}>
-                  <TestCasesFormItem errors={errors} control={control} />
+                  <TestCasesFormItem errors={errors} control={control} watch={watch} type={type} />
                 </Flex>
               </Flex>
               <FooterView />

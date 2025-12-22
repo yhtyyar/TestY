@@ -33,7 +33,6 @@ from functools import partial
 
 import humanize
 import timeago
-from core.selectors.projects import ProjectSelector
 from django.contrib.contenttypes.models import ContentType
 from django.urls import reverse
 from django.utils import timezone
@@ -62,10 +61,12 @@ from testy.core.models import (
 )
 from testy.core.selectors.notifications import NotificationSelector
 from testy.core.selectors.project_settings import ProjectSettings
+from testy.core.selectors.projects import ProjectSelector
 from testy.core.validators import (
     BulkUpdateExcludeIncludeValidator,
     CustomAttributeCreateValidator,
     DefaultStatusValidator,
+    LabelColorValidator,
     ProjectStatusOrderValidator,
 )
 from testy.serializer_fields import EstimateField
@@ -80,10 +81,11 @@ from testy.validators import validator_launcher
 class LabelSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(view_name='api:v2:label-detail')
     username = SerializerMethodField()
+    color = CharField(allow_blank=True, required=False, allow_null=True, validators=[LabelColorValidator()])
 
     class Meta:
         model = Label
-        fields = ('id', 'url', 'name', 'username', 'type', 'user', 'project')
+        fields = ('id', 'url', 'name', 'username', 'type', 'user', 'project', 'color')
 
     def get_username(self, instance) -> str | None:
         if instance.user is not None:
@@ -226,10 +228,11 @@ class ProjectSettingsSerializer(Serializer):
 class ProjectSerializer(ModelSerializer):
     url = HyperlinkedIdentityField(view_name='api:v2:project-detail')
     settings = ProjectSettingsSerializer(required=False)
+    is_favorite = BooleanField(required=False, default=False, write_only=True)
 
     class Meta:
         model = Project
-        fields = ('id', 'url', 'name', 'description', 'is_archive', 'icon', 'settings', 'is_private')
+        fields = ('id', 'url', 'name', 'description', 'is_archive', 'icon', 'settings', 'is_private', 'is_favorite')
 
 
 class ProjectRetrieveSerializer(ProjectSerializer):

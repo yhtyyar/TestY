@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 
-import { initInternalError } from "shared/libs"
+import { useAntdModals } from "shared/hooks"
 
 interface FormFields {
   entity: SelectData | null
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export const useMoveEntityModal = ({ isLoading: initIsLoading, onSubmit }: Props) => {
+  const { initInternalError } = useAntdModals()
   const [isLoading, setIsLoading] = useState(initIsLoading)
   const [isShow, setIsShow] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
@@ -57,11 +58,9 @@ export const useMoveEntityModal = ({ isLoading: initIsLoading, onSubmit }: Props
     }
   }
 
-  const handleSelectEntity = (value?: SelectData | null) => {
-    if (value) {
-      setValue("entity", value, { shouldDirty: true })
-      setSelectedEntity(value)
-    }
+  const handleSelectEntity = (value: SelectData | null) => {
+    setValue("entity", value, { shouldDirty: true })
+    setSelectedEntity(value)
   }
 
   useEffect(() => {

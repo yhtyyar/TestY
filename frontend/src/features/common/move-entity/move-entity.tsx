@@ -1,4 +1,4 @@
-import { Alert, Flex, Form, Modal } from "antd"
+import { Alert, Flex, Form } from "antd"
 import { FieldValues, Path } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -7,13 +7,14 @@ import { LazyGetTriggerType } from "app/export-types"
 import StickArrowIcon from "shared/assets/yi-icons/stick-arrow.svg?react"
 import { Button } from "shared/ui"
 import { LazyTreeSearchFormItem } from "shared/ui/form-items"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { useMoveEntityModal } from "./use-move-entity"
 
 interface Props<T, K extends FieldValues> {
   onSubmit: (plan: number, onLoading?: (toggle: boolean) => void) => Promise<void>
-  getEntities: LazyGetTriggerType<T>
-  getAncestor: LazyGetTriggerType<T>
+  getEntities: LazyGetTriggerType<PaginationResponse<T[]>>
+  getAncestor: LazyGetTriggerType<PaginationResponse<T[]>>
   name: Path<K>
   title: string
   label: string
@@ -56,7 +57,7 @@ export const MoveEntity = <T, K extends FieldValues>({
         <StickArrowIcon width={16} height={16} style={{ marginRight: 8 }} />
         {titleButton}
       </Flex>
-      <Modal
+      <NyModal
         title={title}
         open={isShow}
         onCancel={handleCancel}
@@ -99,7 +100,7 @@ export const MoveEntity = <T, K extends FieldValues>({
         {!!errors.length && (
           <Alert style={{ marginBottom: 0, marginTop: 16 }} description={errors} type="error" />
         )}
-      </Modal>
+      </NyModal>
     </>
   )
 }

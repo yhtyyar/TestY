@@ -1,13 +1,15 @@
+import { useTranslation } from "react-i18next"
+import { Link } from "react-router-dom"
 import { SystemMessages } from "widgets"
 
 import { useAppSelector } from "app/hooks"
 
-import { Auth } from "entities/auth/auth"
-
 import { selectThemeValue } from "entities/system/model/slice-theme"
 
+import { Auth } from "features/auth"
 import { ChangeLang, ChangeTheme } from "features/system"
 
+import DocumentationIcon from "shared/assets/icons/documentation.svg?react"
 import LogoDark from "shared/assets/logo/testy-dark.svg?react"
 import LogoLight from "shared/assets/logo/testy-light.svg?react"
 import { Copyright } from "shared/ui"
@@ -16,6 +18,7 @@ import styles from "./styles.module.css"
 
 export const LoginPage = () => {
   const themeValue = useAppSelector(selectThemeValue)
+  const { t } = useTranslation()
 
   return (
     <div className={styles.wrapper}>
@@ -23,6 +26,10 @@ export const LoginPage = () => {
         <SystemMessages />
       </div>
       <div className={styles.settingsBlock}>
+        <Link target="_blank" id="link-documentation" to="/docs/" className={styles.linkDocs}>
+          <DocumentationIcon style={{ width: 18 }} />
+          <span>{t("User manual")}</span>
+        </Link>
         <ChangeTheme variant="borderless" />
         <ChangeLang variant="borderless" />
       </div>

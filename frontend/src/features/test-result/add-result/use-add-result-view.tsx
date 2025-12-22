@@ -1,5 +1,5 @@
 import { useStatuses } from "entities/status/model/use-statuses"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -15,9 +15,8 @@ import { selectDrawerTest } from "entities/test/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useErrors } from "shared/hooks"
+import { useAntdModals, useErrors } from "shared/hooks"
 import { makeAttributesJson } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
 
 import { filterAttributesByStatus } from "../utils"
@@ -42,6 +41,7 @@ export const useAddResultView = ({
   onDirtyChange,
 }: CreateResultModalProps) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const project = useProjectContext()
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const [createResult, { isLoading }] = useCreateResultMutation()
@@ -88,7 +88,11 @@ export const useAddResultView = ({
     onAttributeRemove,
     resetAttributes,
   } = useAttributesTestResult({ mode: "create", setValue })
-  const attributes = filterAttributesByStatus(allAttributes, statuses, watchStatus)
+
+  const allAttributesSortedByStatus = useMemo(() => {
+    if (!allAttributes.length) return []
+    return filterAttributesByStatus(allAttributes, statuses, watchStatus)
+  }, [allAttributes, watchStatus, statuses])
 
   const [steps, setSteps] = useState<Record<number, number>>({})
   const { onHandleError } = useErrors<ErrorData>(setErrors)
@@ -120,7 +124,11 @@ export const useAddResultView = ({
     if (!drawerTest) return
     setErrors(null)
 
-    const { isSuccess, attributesJson, errors: attributesErrors } = makeAttributesJson(attributes)
+    const {
+      isSuccess,
+      attributesJson,
+      errors: attributesErrors,
+    } = makeAttributesJson(allAttributesSortedByStatus)
 
     if (!isSuccess) {
       setErrors({ attributes: JSON.stringify(attributesErrors) })
@@ -196,7 +204,7 @@ export const useAddResultView = ({
     attachments,
     attachmentsIds,
     control,
-    attributes,
+    attributes: allAttributesSortedByStatus,
     steps,
     errors,
     onLoad,

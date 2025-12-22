@@ -1,82 +1,85 @@
-import { Flex, Form, Tree } from "antd"
-import classNames from "classnames"
-import { useEffect, useState } from "react"
-import { Control, Controller } from "react-hook-form"
+import { ColumnDef } from "@tanstack/react-table"
+import { Flex, Form, Input, Switch, Typography } from "antd"
+import { useMemo } from "react"
+import { Control, Controller, UseFormWatch } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-import { useTestCaseFormLabels } from "entities/label/model"
+import { LabelFilter, LabelFilterCondition } from "entities/label/ui"
 
 import { useTestCasesSearch } from "entities/test-case/model"
 
-import { getTestCaseChangeResult } from "entities/test-plan/lib"
-
 import { TestCaseLabels } from "features/test-plan/change-test-plan/ui/test-cases-form-item/ui/test-case-labels/test-case-labels"
 
-import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
-import { TreeUtils } from "shared/libs"
-import { ArchivedTag, ContainerLoader } from "shared/ui"
+import SearchIcon from "shared/assets/yi-icons/search.svg?react"
+import { ArchivedTag, HighLighterTesty } from "shared/ui"
+import { BaseTreeNodeProps, DataTree, TreeNode } from "shared/ui/tree"
+import { objectToArrayOfString } from "shared/ui/tree/utils"
 
 import { ChangeTestPlanForm, ErrorData } from "../../use-change-test-plan"
 import styles from "./styles.module.css"
-import { useTestCasesFilter } from "./use-test-cases-filter"
 
 interface Props {
   errors: ErrorData | null
   control: Control<ChangeTestPlanForm>
+  watch: UseFormWatch<ChangeTestPlanForm>
+  type: "create" | "edit"
 }
 
-export const TestCasesFormItem = ({ errors, control }: Props) => {
+export const TestCasesFormItem = ({ errors, control, watch, type }: Props) => {
   const { t } = useTranslation()
-  const [selectedLables, setSelectedLabels] = useState<number[]>([])
-  const [lableCondition, setLableCondition] = useState<"and" | "or">("and")
-  const [showArchived, setShowArchived] = useState(false)
-  const [selectedCount, setSelectedCount] = useState<number>()
-
-  const handleConditionClick = () => {
-    setLableCondition(lableCondition === "and" ? "or" : "and")
-  }
-
-  const handleToggleArchived = () => {
-    setShowArchived(!showArchived)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-  const setLables = (_: string, values: any, data: any) => {
-    const v = values as { name: string; id?: number }[]
-    setSelectedLabels(v.map((i) => i.id).filter((i) => i !== undefined))
-  }
-
   const {
     searchText,
     treeData,
     expandedRowKeys,
     isLoading: isLoadingTreeData,
-    onSearch,
-    onRowExpand,
-  } = useTestCasesSearch({ isShow: true })
-
-  const labelProps = useTestCaseFormLabels({
-    setValue: setLables,
-    testCase: null,
-    isEditMode: false,
-    defaultLabels: selectedLables,
-    placeholder: t("Select label"),
-  })
-
-  const FilterForm = useTestCasesFilter({
-    labelProps,
-    searchText,
-    handleSearch: onSearch,
-    selectedLables,
-    lableCondition,
-    handleConditionClick,
+    labelFilter,
     showArchived,
-    handleToggleArchived,
-  })
+    onToggleArchived,
+    onRowExpand,
+    setSearchText,
+    onChangeLabelFilter,
+    onChangeLabelFilterCondition,
+  } = useTestCasesSearch({ isShow: true })
+  const selectedCount = objectToArrayOfString(watch("test_cases")).filter(
+    (item: string) => !item.startsWith("TS")
+  ).length
 
-  useEffect(() => {
-    onSearch(searchText, selectedLables, lableCondition, showArchived)
-  }, [selectedLables, lableCondition, showArchived])
+  const columns: ColumnDef<TreeNode<DataWithKey<SuiteWithCases>, BaseTreeNodeProps>>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        accessorKey: "name",
+        cell: ({ row }) => {
+          return (
+            <Flex vertical>
+              <Flex
+                data-testid={`test-case-title-${row.original.title}`}
+                gap={6}
+                align="center"
+                onClick={() => row.toggleSelected()}
+                className={styles.treeRow}
+              >
+                {row.original.data?.is_archive && (
+                  <ArchivedTag
+                    data-testid={`test-case-archived-tag-${row.original.title}`}
+                    size="sm"
+                  />
+                )}
+                <HighLighterTesty searchWords={searchText} textToHighlight={row.original.title} />
+              </Flex>
+              {!!row.original.data.labels?.length && (
+                <TestCaseLabels labels={row.original.data.labels} />
+              )}
+            </Flex>
+          )
+        },
+        meta: {
+          fullWidth: true,
+        },
+      },
+    ],
+    [searchText]
+  )
 
   return (
     <Form.Item
@@ -98,67 +101,58 @@ export const TestCasesFormItem = ({ errors, control }: Props) => {
       validateStatus={errors?.test_cases ? "error" : ""}
       help={errors?.test_cases ? errors.test_cases : ""}
     >
+      <div className={styles.form}>
+        <div className={styles.row}>
+          <Input
+            placeholder={t("Search")}
+            onChange={(e) => setSearchText(e.target.value)}
+            value={searchText}
+            data-testid="test-cases-filter-search"
+            suffix={<SearchIcon width={16} height={16} style={{ transform: "scaleX(-1)" }} />}
+            allowClear
+            onClear={() => setSearchText("")}
+          />
+          <Switch
+            defaultChecked
+            className={styles.switcher}
+            checked={showArchived}
+            onChange={onToggleArchived}
+            style={{ width: 40, margin: 0 }}
+            data-testid="test-cases-filter-switcher-archived"
+          />
+          <Typography.Text>{t("Show Archived")}</Typography.Text>
+        </div>
+        <div className={styles.labelsFilter}>
+          <LabelFilter value={labelFilter} onChange={onChangeLabelFilter} />
+          <div className={styles.labelsCondition}>
+            <LabelFilterCondition
+              value={labelFilter.labels_condition}
+              onChange={onChangeLabelFilterCondition}
+              disabled={labelFilter.labels.length + labelFilter.not_labels.length < 2}
+              styleBtn={{ height: 32 }}
+            />
+          </div>
+        </div>
+      </div>
       <Controller
         name="test_cases"
         control={control}
-        render={({ field }) => {
-          setSelectedCount(field.value.filter((item: string) => !item.startsWith("TS")).length)
-          return (
-            <>
-              {FilterForm}
-              {isLoadingTreeData && <ContainerLoader />}
-              {!isLoadingTreeData && (
-                <>
-                  <Tree
-                    data-testid="create-test-plan-tree"
-                    {...field}
-                    //@ts-ignore
-                    titleRender={(node: TestPlan) => {
-                      return (
-                        <>
-                          <Flex data-testid={`test-case-title-${node.name}`} gap={6} align="center">
-                            {node.is_archive && (
-                              <ArchivedTag
-                                data-testid={`test-case-archived-tag-${node.name}`}
-                                size="sm"
-                              />
-                            )}
-                            {node.title}
-                          </Flex>
-                          {node.labels ? <TestCaseLabels labels={node.labels} /> : null}
-                        </>
-                      )
-                    }}
-                    virtual={false}
-                    checkable
-                    switcherIcon={(node) => {
-                      return (
-                        <ChevronIcon
-                          className={classNames(styles.arrow, {
-                            [styles.expanded]: node.expanded,
-                          })}
-                        />
-                      )
-                    }}
-                    selectable={false}
-                    //@ts-ignore
-                    treeData={TreeUtils.deleteChildren<Suite>(treeData)}
-                    checkedKeys={field.value}
-                    onCheck={(checked, info) => {
-                      // @ts-ignore
-                      field.onChange(getTestCaseChangeResult(checked, info, field.value))
-                    }}
-                    expandedKeys={expandedRowKeys}
-                    onExpand={(_, record) => {
-                      onRowExpand(expandedRowKeys, String(record.node.key))
-                    }}
-                    className={styles.treeBlock}
-                  />
-                </>
-              )}
-            </>
-          )
-        }}
+        render={({ field }) => (
+          <DataTree
+            data={treeData}
+            columns={columns}
+            isLoading={isLoadingTreeData}
+            enableRowSelection
+            getNodeId={(row) => row.id}
+            state={{ rowSelection: field.value, expanded: expandedRowKeys }}
+            styles={{ container: { height: 600 } }}
+            onRowSelectionChange={field.onChange}
+            onExpandedChange={onRowExpand}
+            autoSelectParentIfAllSelected
+            enableVirtualization
+            data-testid={`${type}-test-cases-tree`}
+          />
+        )}
       />
     </Form.Item>
   )

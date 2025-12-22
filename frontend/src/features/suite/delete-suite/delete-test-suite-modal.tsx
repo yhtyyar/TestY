@@ -11,8 +11,7 @@ import {
 
 import { testPlanCasesIdsInvalidate } from "entities/test-plan/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]/modal-confirm-delete-archive"
@@ -26,6 +25,7 @@ interface Props {
 
 export const DeleteTestSuiteModal = ({ isShow, setIsShow, testSuite, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [deleteTestSuite, { isLoading: isLoadingDelete }] = useDeleteTestSuiteMutation()
   const { data, isLoading, status } = useGetSuiteDeletePreviewQuery(String(testSuite.id), {
     skip: !isShow,

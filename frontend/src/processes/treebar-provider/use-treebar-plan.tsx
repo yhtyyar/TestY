@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react"
+import { Row, Table } from "@tanstack/react-table"
+import { useMemo, useRef } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 
 import { useLazyGetTestPlanAncestorsQuery, useLazyGetTestPlansQuery } from "entities/test-plan/api"
@@ -6,11 +7,11 @@ import { useLazyGetTestPlanAncestorsQuery, useLazyGetTestPlansQuery } from "enti
 import { useProjectContext } from "pages/project"
 
 import { config } from "shared/config"
-import { LazyNodeProps, NodeId, TreeNodeFetcher } from "shared/libs/tree"
+import { useLazyAdvanced } from "shared/hooks"
+import { LazyTreeNodeParams, TreeNode } from "shared/ui/tree"
+import { makeTreeNodes } from "shared/ui/tree/utils"
 
 import { TreeSettings } from "widgets/[ui]/treebar/utils"
-
-import { makeNode } from "./utils"
 
 interface Props {
   treeSettings: TreeSettings
@@ -22,30 +23,47 @@ export const useTreebarPlan = ({ treeSettings, searchDebounce }: Props) => {
   const { testPlanId } = useParams<ParamTestPlanId>()
   const [searchParams] = useSearchParams()
 
-  const [getPlans] = useLazyGetTestPlansQuery()
-  const [getAncestors] = useLazyGetTestPlanAncestorsQuery()
+  const treebar = useRef<Table<TreeNode<TestPlan>>>(null)
 
-  const fetcher: TreeNodeFetcher<TestPlan, LazyNodeProps> = useCallback(
-    async (params, additionalParams) => {
-      const res = await getPlans(
-        {
-          project: project.id,
-          page: params.page,
-          parent: params.parent ? Number(params.parent) : null,
-          page_size: config.defaultTreePageSize,
-          ordering: `${treeSettings.plans.sortBy === "desc" ? "-" : ""}${treeSettings.plans.filterBy}`,
-          treesearch: searchDebounce,
-          is_archive: treeSettings.show_archived,
-          _n: params._n,
-          ...additionalParams,
-        },
-        true
-      ).unwrap()
-      const data = makeNode(res.results, params)
-      return { data, nextInfo: res.pages, _n: params._n }
-    },
-    [treeSettings.plans, treeSettings.show_archived, searchDebounce]
-  )
+  const [getPlans] = useLazyAdvanced(useLazyGetTestPlansQuery)
+  const [getAncestors] = useLazyAdvanced(useLazyGetTestPlanAncestorsQuery)
+
+  const loadChildren = async (row: Row<TreeNode<TestPlan>> | null, params: LazyTreeNodeParams) => {
+    const res = await getPlans(
+      {
+        project: project.id,
+        page: params.page,
+        parent: params.parent ? Number(params.parent) : null,
+        page_size: config.defaultTreePageSize,
+        ordering: `${treeSettings.plans.sortBy === "desc" ? "-" : ""}${treeSettings.plans.filterBy}`,
+        treesearch: searchDebounce,
+        is_archive: treeSettings.show_archived,
+        _n: params._n,
+      },
+      true
+    ).unwrap()
+
+    const nodes = makeTreeNodes(
+      res.results,
+      {
+        title: (result) => result.name,
+      },
+      (result) => ({
+        page: params.page,
+        parent: params.parent,
+        can_open: result.has_children,
+        _n: params._n?.toString(),
+      })
+    )
+
+    return {
+      data: nodes,
+      params: {
+        page: params.page,
+        hasMore: !!res.pages.next,
+      },
+    }
+  }
 
   const initDependencies = useMemo(() => {
     return [
@@ -56,13 +74,14 @@ export const useTreebarPlan = ({ treeSettings, searchDebounce }: Props) => {
     ]
   }, [treeSettings.show_archived, treeSettings.plans, searchDebounce, searchParams.get("rootId")])
 
-  const fetcherAncestors = (id: NodeId) => {
-    return getAncestors({ project: project.id, id: Number(id) }).unwrap()
+  const loadAncestors = async (rowId: string) => {
+    return getAncestors({ project: project.id, id: Number(rowId) }).unwrap()
   }
 
   return {
-    fetcher,
-    fetcherAncestors,
+    treebar,
+    loadChildren,
+    loadAncestors,
     initDependencies,
     skipInit: false,
     selectedId: testPlanId ?? null,

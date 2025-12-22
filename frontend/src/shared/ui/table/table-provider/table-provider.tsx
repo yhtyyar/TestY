@@ -2,6 +2,7 @@ import {
   ColumnFiltersState,
   ColumnOrderState,
   ColumnSizingState,
+  ExpandedState,
   Row,
   RowModel,
   SortingState,
@@ -9,6 +10,7 @@ import {
   Table as TableType,
   Updater,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -27,6 +29,7 @@ import {
 
 import { MAX_COLUMN_WIDTH } from "shared/constants"
 
+import { ColorType, LangType } from "../types"
 import {
   getTableOrderLS,
   getTableSizingLS,
@@ -36,6 +39,7 @@ import {
 
 interface BaseData {
   id: string | number
+  subRows?: BaseData[]
 }
 
 interface TableProviderContextType<T> {
@@ -45,24 +49,34 @@ interface TableProviderContextType<T> {
   enableColumnDragging: boolean
   columnOrder: string[]
   enableRowDragging: boolean
-  color: "linear" | "solid"
+  color: ColorType
+  lang: LangType
   updateColumnOrder: Dispatch<SetStateAction<string[]>>
   onDataChange?: (data: T[]) => void
 }
 
-type Props<T> = {
+export type TableProviderProps<T> = {
   tableRef?: MutableRefObject<TableType<T> | null>
   isLoading?: boolean
   enableColumnDragging?: boolean
   draggingColumnCacheKey?: string
   resizeColumnCacheKey?: string
   enableRowDragging?: boolean
+  paginationVisible?: boolean
+  tableHeadVisible?: boolean
+  tableBodyVisible?: boolean
+  paginationSizes?: number[]
+  rowBodyClassName?: string | ((row: Row<T>) => string)
+  formatTotalText?: (count: number) => string
+  emptyText?: string | null
   onRowClick?: (row: Row<T>) => void
   getCoreRowModel?: (table: TableType<T>) => () => RowModel<T>
   onDataChange?: (data: T[]) => void
-  color?: "linear" | "solid"
+  color?: ColorType
+  lang?: LangType
   children: (table: TableType<T>) => React.ReactNode
-} & Omit<TableOptions<T>, "getCoreRowModel">
+} & Omit<TableOptions<T>, "getCoreRowModel"> &
+  HTMLDataAttribute
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const TableProviderContext = createContext<TableProviderContextType<any> | null>(null)
@@ -78,8 +92,9 @@ export const TableProvider = <T extends Partial<BaseData>>({
   state,
   onDataChange,
   color = "solid",
+  lang = "en",
   ...tableOptions
-}: Props<T>) => {
+}: TableProviderProps<T>) => {
   const tableColumnsList = tableOptions.columns.map((c) => c.id!)
   const columnOrdersState =
     enableColumnDragging && draggingColumnCacheKey
@@ -94,6 +109,7 @@ export const TableProvider = <T extends Partial<BaseData>>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(state?.columnFilters ?? [])
   const [columnSorting, setColumnSorting] = useState<SortingState>(state?.sorting ?? [])
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(columnSizeState)
+  const [expanded, setExpanded] = useState<ExpandedState>({})
 
   const updateColumnOrder = (updater: Updater<ColumnOrderState>) => {
     if (typeof updater !== "function") return
@@ -130,6 +146,8 @@ export const TableProvider = <T extends Partial<BaseData>>({
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setColumnSorting,
     onColumnSizingChange: updateColumnSizing,
+    onExpandedChange: setExpanded,
+    getExpandedRowModel: getExpandedRowModel(),
     getRowId: (row, index) => (row?.id ? row.id.toString() : String(index)),
     state: {
       columnVisibility,
@@ -138,6 +156,7 @@ export const TableProvider = <T extends Partial<BaseData>>({
       columnFilters,
       sorting: columnSorting,
       columnSizing,
+      expanded,
       ...state,
     },
     enableRowSelection: true,
@@ -160,6 +179,7 @@ export const TableProvider = <T extends Partial<BaseData>>({
       columnOrder,
       enableRowDragging,
       color,
+      lang,
       updateColumnOrder,
       onDataChange,
     }
@@ -170,6 +190,7 @@ export const TableProvider = <T extends Partial<BaseData>>({
     columnOrder,
     enableRowDragging,
     color,
+    lang,
     updateColumnOrder,
     onDataChange,
   ])

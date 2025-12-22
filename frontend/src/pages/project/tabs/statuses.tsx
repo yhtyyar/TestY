@@ -10,11 +10,12 @@ import { CreateStatusButton } from "features/status"
 
 import { useProjectContext } from "pages/project"
 
-import { initInternalError } from "shared/libs"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange, Button } from "shared/ui"
 
 export const ProjectStatusesTabPage = () => {
   const { t } = useTranslation()
+  const { initInternalError } = useAntdModals()
   const project = useProjectContext()
   const [orderedStatuses, setOrderedStatuses] = useState<Status[]>([])
   const [updateProject] = useUpdateProjectJsonMutation()

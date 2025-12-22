@@ -26,19 +26,19 @@ export const TablePageChanger = ({
   ...props
 }: Props) => {
   const dataTestId = props["data-testid"] ? props["data-testid"] : BASE_DATA_TEST_ID
-  const [valuePage, setValuePage] = useState(current)
+  const [valuePage, setValuePage] = useState(current + 1)
 
   const pageCount = Math.max(Math.ceil(total / pageSize), 1)
 
-  const hasPreviousPage = current > 1
-  const hasNextPage = current < pageCount
+  const hasPreviousPage = valuePage > 1
+  const hasNextPage = valuePage < pageCount
 
   const firstPage = () => {
     onChangePage?.(0)
   }
 
   const lastPage = () => {
-    onChangePage?.(pageCount)
+    onChangePage?.(pageCount - 1)
   }
 
   const previousPage = () => {
@@ -49,8 +49,12 @@ export const TablePageChanger = ({
     onChangePage?.(current + 1)
   }
 
+  const goToPage = (page: number) => {
+    onChangePage?.(page - 1)
+  }
+
   useEffect(() => {
-    setValuePage(current)
+    setValuePage(current + 1)
   }, [current])
 
   return (
@@ -83,9 +87,7 @@ export const TablePageChanger = ({
         min={1}
         max={pageCount}
         onChange={setValuePage}
-        onAccept={(value) => {
-          onChangePage?.(value)
-        }}
+        onAccept={goToPage}
         data-testid={`${dataTestId}-current-page-input`}
       />
       <span>/</span>

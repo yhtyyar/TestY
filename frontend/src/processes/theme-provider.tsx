@@ -1,5 +1,5 @@
 import { StyleProvider } from "@ant-design/cssinjs"
-import { ConfigProvider } from "antd"
+import { App, ConfigProvider } from "antd"
 import { ThemeConfig } from "antd/lib"
 import en_US from "antd/lib/locale/en_US"
 import ru_RU from "antd/lib/locale/ru_RU"
@@ -142,10 +142,6 @@ const themeConfig: ThemeConfig = {
       footerBg: "var(--y-color-background)",
       colorIcon: "var(--y-color-secondary-inline)",
     },
-    Notification: {
-      colorBgElevated: "var(--y-color-control-background)",
-      colorIcon: "var(--y-color-secondary-inline)",
-    },
     Pagination: {
       itemActiveBg: "var(--y-color-control-background)",
     },
@@ -265,7 +261,7 @@ export const ThemeProvider = ({ children }: PropsWithChildren) => {
   return (
     <StyleProvider layer>
       <ConfigProvider theme={themeConfig} locale={locale}>
-        {children}
+        <App component={false}>{children}</App>
       </ConfigProvider>
     </StyleProvider>
   )

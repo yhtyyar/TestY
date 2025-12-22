@@ -44,7 +44,12 @@ from testy.core.choices import LabelsActionChoices
 from testy.core.models import Label, LabeledItem
 from testy.core.selectors.attachments import AttachmentSelector
 from testy.core.selectors.projects import ProjectSelector
-from testy.core.validators import BulkUpdateExcludeIncludeValidator, BulkUpdateLabelValidator, RecursionValidator
+from testy.core.validators import (
+    BulkUpdateExcludeIncludeValidator,
+    BulkUpdateLabelValidator,
+    LabelColorValidator,
+    RecursionValidator,
+)
 from testy.serializer_fields import EstimateField
 from testy.tests_description.models import TestCase, TestCaseStep, TestSuite
 from testy.tests_description.selectors.cases import TestCaseSelector, TestCaseStepSelector
@@ -127,18 +132,20 @@ class TestCaseBaseSerializer(serializers.ModelSerializer):
 class TestCaseLabelOutputSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source='label.id')
     name = serializers.CharField(source='label.name')
+    color = serializers.CharField(source='label.color')
 
     class Meta:
         model = LabeledItem
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'color')
 
 
 class TestCaseLabelInputSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    color = serializers.CharField(required=False, allow_blank=True, allow_null=True, validators=[LabelColorValidator()])
 
     class Meta:
         model = Label
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'color')
 
 
 class TestCaseInputBaseSerializer(TestCaseBaseSerializer):
@@ -510,9 +517,10 @@ class TestCaseUnionSerializer(TestCaseListSerializer):
 
 
 class TestSuiteUnionSerializer(TestSuiteOutputSerializer):
-    is_leaf = BooleanField()
-    has_children = BooleanField()
+    is_leaf = BooleanField(read_only=True)
+    has_children = BooleanField(read_only=True)
     url = None
+    union_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = TestSuite
@@ -531,6 +539,7 @@ class TestSuiteUnionSerializer(TestSuiteOutputSerializer):
             'has_children',
             'created_at',
             'suite_path',
+            'union_count',
         )
 
 
@@ -572,3 +581,16 @@ class BulkUpdateTestCasesSerializer(serializers.Serializer):
                 fields_to_validate=['current_suite', 'suite'],
             ),
         ]
+
+
+class BulkUpdateTestsCasesTreeSerializer(BulkUpdateTestCasesSerializer):
+    project = PrimaryKeyRelatedField(queryset=ProjectSelector().project_list_raw(), required=True, allow_null=False)
+    current_suite = None
+    excluded_cases = None
+    included_suites = PrimaryKeyRelatedField(
+        queryset=TestSuiteSelector.suite_list_raw(),
+        many=True,
+        allow_empty=True,
+        allow_null=False,
+        required=False,
+    )

@@ -106,7 +106,6 @@ export const UserSearchInput = ({
       labelInValue
       placeholder={placeholder ?? t("Search a user")}
       defaultActiveFirstOption={false}
-      showArrow
       filterOption={false}
       onSearch={handleSearch}
       onChange={handleChange}

@@ -86,6 +86,16 @@
 
   .ant-modal-confirm-btns .ant-btn-variant-solid {
     border-radius: 0 !important;
+    color: #fff;
+    background: var(--y-color-accent);
+  }
+
+  .ant-notification .ant-notification-notice-wrapper .ant-notification-notice-success {
+    background: var(--y-color-success-container);
+  }
+
+  .ant-modal-confirm-confirm .ant-modal-confirm-body > .anticon {
+    color: #faad14;
   }
 
   .ant-list-header {

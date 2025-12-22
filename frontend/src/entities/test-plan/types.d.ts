@@ -26,7 +26,7 @@ interface TestPlansQuery {
   test_created_before?: string
 }
 
-type TestPlansUnionQuery = TestPlansQuery & { search?: string }
+type TestPlansUnionQuery = TestPlansQuery & { search?: string; level: number }
 
 interface TestPlanQuery extends TestPlansQuery {
   testPlanId: string
@@ -47,12 +47,15 @@ interface TestPlan {
   is_archive: boolean
   url: string
   is_leaf: boolean
+  estimate: string | null
   has_children: boolean
-  labels?: string[]
+  labels: Pick<Label, "id" | "name" | "color">[]
   plan_path: string
   attributes: AttributesObject
   tests_progress_total?: number
   total_tests?: number
+  tests_count?: number
+  union_count: number
   started_at: string | null
   created_at: string
 }

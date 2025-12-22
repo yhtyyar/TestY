@@ -96,15 +96,17 @@ class TestProjectEndpoints:
             assert actual_dict == expected_dict
 
     @pytest.mark.parametrize('extension', ['.png', '.jpeg'], ids=['png', 'jpeg'])
-    def test_creation(self, superuser_client, create_file):
+    def test_creation(self, api_client, superuser, create_file):
+        api_client.force_login(superuser)
         allure.dynamic.title(f'Test project creation with {extension} icon')
         expected_number_of_parameters = 1
         project_dict = {
             'name': constants.PROJECT_NAME,
             'description': constants.DESCRIPTION,
             'icon': create_file,
+            'is_favorite': True,
         }
-        superuser_client.send_request(
+        api_client.send_request(
             self.view_name_list,
             project_dict,
             HTTPStatus.CREATED,
@@ -117,6 +119,8 @@ class TestProjectEndpoints:
                                                                              f'actual: "{Parameter.objects.count()}"'
         with allure.step('Validate icon added succefully'):
             assert os.path.isfile(Project.objects.first().icon.path)
+        superuser.refresh_from_db()
+        assert superuser.config['projects']['favorite']
 
     @pytest.mark.parametrize('extension', ['.png', '.jpeg'], ids=['png', 'jpeg'])
     def test_partial_update(self, superuser_client, project, create_file, extension):

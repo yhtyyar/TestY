@@ -1,0 +1,14 @@
+.arrowIcon {
+  color: var(--y-color-secondary-inline);
+  transition: all 0.1s ease-in;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin-bottom: auto;
+  transform: rotate(-90deg);
+}
+
+.arrowIconOpen {
+  color: var(--y-color-secondary-inline);
+  transform: rotate(0deg);
+}

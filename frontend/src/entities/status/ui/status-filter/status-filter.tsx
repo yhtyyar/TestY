@@ -53,7 +53,7 @@ export const StatusFilter = ({ value, onChange, onClose, onClear, ...props }: Pr
       onChange={handleChange}
       onClear={onClear}
       open={isOpen}
-      onDropdownVisibleChange={handleDropdownVisibleChange}
+      onOpenChange={handleDropdownVisibleChange}
       {...props}
     >
       <Select.Option key="untested" value="null" data-testid="status-filter-untested">

@@ -1,80 +1,40 @@
-import { Spin } from "antd"
+import { Row } from "@tanstack/react-table"
 import classNames from "classnames"
-import { MouseEvent } from "react"
 
-import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
-import { LazyNodeProps, LazyTreeNodeApi, NodeId, TreeBaseLoadMore } from "shared/libs/tree"
 import { HighLighterTesty } from "shared/ui"
+import { BaseTreeNodeProps, TreeNode } from "shared/ui/tree"
 
+import { BaseSearchEntity } from "./lazy-tree-search"
 import styles from "./styles.module.css"
 
-interface Props {
-  node: LazyTreeNodeApi<unknown, LazyNodeProps>
-  onSelect: (node: LazyTreeNodeApi<unknown, LazyNodeProps> | null) => void
-  selectedId?: NodeId | null
+interface Props<T extends BaseSearchEntity> {
+  node: Row<TreeNode<T, BaseTreeNodeProps>>
+  onSelect: (node: Row<TreeNode<T>> | null) => void
   searchText: string
 }
 
-export const LazyTreeSearchNode = ({ node, selectedId, searchText, onSelect }: Props) => {
-  const offset = node.props.level * 20
-
-  const handleOpenClick = async (e: MouseEvent<SVGElement>) => {
-    e.stopPropagation()
-    await node.open()
-  }
-
-  const handleMoreClick = async () => {
-    await node.more()
-  }
-
+export const LazyTreeSearchNode = <T extends BaseSearchEntity>({
+  node,
+  searchText,
+  onSelect,
+}: Props<T>) => {
   const handleSelect = () => {
-    if (node.tree.selectedId === node.id) {
-      node.tree.updateSelectId(null)
-      onSelect(null)
-      return
+    if (!node.getIsSelected()) {
+      node.toggleSelected(true)
+      onSelect(node)
     }
-    node.tree.updateSelectId(node.id)
-    onSelect(node)
   }
 
   return (
-    <>
-      <div
-        id={`${node.title}-${node.id}`}
-        key={`${node.title}-${node.id}-treeview-suite`}
-        style={{ paddingLeft: offset }}
-      >
-        <div
-          className={classNames(styles.nodeBody, {
-            [styles.activeNode]: selectedId === node.id,
-            [styles.isRoot]: node.isRoot,
-            [styles.isLast]: node.isLast,
-          })}
-          onClick={handleSelect}
-        >
-          <div className={styles.nodeLeftAction}>
-            {node.props.isLoading && <Spin size="small" className={styles.loader} />}
-            {!node.props.isLoading && node.props.canOpen && (
-              <ChevronIcon
-                className={classNames(styles.arrowIcon, {
-                  [styles.arrowIconOpen]: node.props.isOpen,
-                })}
-                onClick={handleOpenClick}
-              />
-            )}
-          </div>
-          <HighLighterTesty searchWords={searchText} textToHighlight={node.title} />
-        </div>
-      </div>
-      {node.parent?.props.hasMore && node.isLast && (
-        <TreeBaseLoadMore
-          isLoading={node.parent.props.isLoading}
-          node={node}
-          onMore={handleMoreClick}
-          isRoot={node.isRoot}
-          isLast={node.isLast}
-        />
-      )}
-    </>
+    <div
+      id={`${node.original.title}-${node.original.id}`}
+      key={`${node.original.title}-${node.original.id}-treeview-suite`}
+      className={classNames(styles.row, {
+        [styles.activeRow]: node.getIsSelected(),
+      })}
+      onClick={handleSelect}
+    >
+      <HighLighterTesty searchWords={searchText} textToHighlight={node.original.title} />
+    </div>
   )
 }

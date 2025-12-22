@@ -1,0 +1,24 @@
+.title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.title:hover .arrow {
+  color: var(--y-pending-hover);
+}
+
+.arrow {
+  min-width: 16px;
+  height: 16px;
+  color: var(--y-pending-block);
+  transition: all 0.2s;
+  transform: rotate(-90deg);
+  cursor: pointer;
+}
+
+.arrow.expanded {
+  transform: rotate(0deg);
+}

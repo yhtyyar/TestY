@@ -3,13 +3,13 @@ import { Flex, Space } from "antd"
 import { useGetStatusesQuery } from "entities/status/api"
 import { getStatusTypeTextByNumber } from "entities/status/lib"
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
 import { DeleteStatusButton, EditStatusButton, SetDefaultStatusButton } from "features/status"
 
 import { useProjectContext } from "pages/project"
 
+import { useMyTranslation } from "shared/hooks"
 import { Status, TableFilterSearch, TableSorting } from "shared/ui"
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 
 const columnHelper = createColumnHelper<Status>()
 export const StatusesTable = ({ onChangeOrder }: Props) => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const project = useProjectContext()
   const { data = [], isFetching } = useGetStatusesQuery({ project: project.id })
 
@@ -114,6 +114,8 @@ export const StatusesTable = ({ onChangeOrder }: Props) => {
       columns={columns}
       enableRowDragging
       onDataChange={handleDataChange}
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       data-testid="statuses-table"
     />
   )

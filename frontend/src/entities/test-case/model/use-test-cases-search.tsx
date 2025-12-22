@@ -1,107 +1,143 @@
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useParams } from "react-router"
+import { ExpandedState } from "@tanstack/react-table"
+import { useCallback, useEffect, useMemo, useState } from "react"
+
+import { LabelFilterValue } from "entities/label/ui"
 
 import { useLazySearchTestCasesQuery } from "entities/test-case/api"
 
-import { TreeUtils, makeTestSuitesWithCasesForTreeView } from "shared/libs"
+import { useProjectContext } from "pages/project"
+
+import { useDebounce, useLazyAdvanced } from "shared/hooks"
+import { TreeUtils, isAbortError, makeTestSuitesWithCasesForTreeView } from "shared/libs"
+import { BaseTreeNodeProps, TreeNode } from "shared/ui/tree"
+import { arrayOfStringToObject, makeTreeNodes } from "shared/ui/tree/utils"
 
 export const useTestCasesSearch = ({ isShow }: { isShow: boolean }) => {
-  const { projectId } = useParams<ParamProjectId>()
+  const project = useProjectContext()
+  const [isLoading, setIsLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
-  const [treeData, setTreeData] = useState<DataWithKey<Suite>[]>([])
-  const [searchTestCases, { isFetching: isLoading }] = useLazySearchTestCasesQuery()
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeRequestRef = useRef<any>(null)
+  const debouncedSearch = useDebounce(searchText, 250)
+  const [showArchived, setShowArchived] = useState(false)
+  const [labelFilter, setLabelFilter] = useState<LabelFilterValue>({
+    labels: [],
+    not_labels: [],
+    labels_condition: "and",
+  })
+
+  const [treeData, setTreeData] = useState<
+    TreeNode<DataWithKey<SuiteWithCases>, BaseTreeNodeProps>[]
+  >([])
+  const [expandedRowKeys, setExpandedRowKeys] = useState<ExpandedState>({})
+
+  const [searchTestCases] = useLazyAdvanced(useLazySearchTestCasesQuery)
 
   const fetchData = useCallback(
     async (params: SearchTestCasesQuery) => {
-      if (activeRequestRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        activeRequestRef.current.abort()
-      }
-
       try {
-        const res = searchTestCases(params)
-        activeRequestRef.current = res
-
-        const { data = [] } = await res
+        const data = await searchTestCases(params).unwrap()
         return makeTestSuitesWithCasesForTreeView(data)
       } catch (err) {
         console.error(err)
         return []
-      } finally {
-        activeRequestRef.current = null
       }
     },
-    [projectId, searchTestCases]
+    [searchTestCases]
   )
 
-  useEffect(() => {
-    if (!isShow || !projectId) return
-    const fetch = async () => {
-      const suitesWithKeys = await fetchData({ project: projectId })
-      setTreeData(suitesWithKeys as unknown as DataWithKey<Suite>[])
-    }
+  const onSearch = useCallback(
+    async (searchValue: string, searchLabels: LabelFilterValue, isArchive: boolean) => {
+      try {
+        setIsLoading(true)
+        const suitesWithKeys = await fetchData({
+          project: project.id.toString(),
+          search: searchValue,
+          labels: searchLabels.labels,
+          not_labels: searchLabels.not_labels,
+          labels_condition: searchLabels.labels_condition,
+          is_archive: isArchive,
+        })
 
-    fetch()
-  }, [isShow, projectId])
+        const [filteredRows, expandedRows] = TreeUtils.filterRows(suitesWithKeys, searchValue)
+        if (
+          searchValue.trim().length ||
+          searchLabels.labels.length ||
+          searchLabels.not_labels.length
+        ) {
+          setExpandedRowKeys(arrayOfStringToObject(expandedRows))
+        } else {
+          setExpandedRowKeys({})
+        }
 
-  const onSearch = async (
-    value: string,
-    labels: number[],
-    labels_condition: LabelCondition,
-    showArchived = false
-  ) => {
-    if (!projectId || !isShow) return
-    if (value !== searchText) {
-      setSearchText(value)
-    }
+        const nodes = makeTreeNodes(filteredRows, {
+          id: (item) => item.key,
+          title: (item) => item.title,
+          children: (item) => item?.children ?? [],
+        })
 
-    const suitesWithKeys = await fetchData({
-      project: projectId,
-      search: value,
-      labels,
-      labels_condition: labels.length > 1 ? labels_condition : undefined,
-      is_archive: showArchived,
-    })
-
-    const [filteredRows] = TreeUtils.filterRows(
-      suitesWithKeys as unknown as DataWithKey<Suite>[],
-      value,
-      {
-        isAllExpand: true,
-        isShowChildren: true,
+        setTreeData(nodes)
+        setIsLoading(false)
+      } catch (err) {
+        if (isAbortError(err)) {
+          return
+        }
+        throw err
       }
-    )
-
-    if (!value.trim().length && !labels.length) {
-      setExpandedRowKeys([])
-    }
-    setTreeData(filteredRows)
-  }
-
-  const onRowExpand = (expandedRows: string[], recordKey: string) => {
-    if (expandedRows.includes(recordKey)) {
-      setExpandedRowKeys(expandedRows.filter((key) => key !== recordKey))
-    } else {
-      setExpandedRowKeys([...expandedRows, recordKey])
-    }
-  }
+    },
+    []
+  )
 
   const onClearSearch = () => {
     setSearchText("")
     setTreeData([])
-    setExpandedRowKeys([])
+    setExpandedRowKeys({})
   }
+
+  const onToggleArchived = () => {
+    setShowArchived(!showArchived)
+  }
+
+  const onChangeLabelFilter = (value: LabelFilterValue) => {
+    setLabelFilter(value)
+  }
+
+  const onChangeLabelFilterCondition = (condition: LabelCondition) => {
+    setLabelFilter((prevState) => ({
+      ...prevState,
+      labels_condition: condition,
+    }))
+  }
+
+  const memoSearchParams = useMemo(() => {
+    return {
+      search: debouncedSearch,
+      labelFilter,
+      showArchived,
+    }
+  }, [debouncedSearch, labelFilter, showArchived])
+  const debouncedSearchParams = useDebounce(memoSearchParams, 250)
+
+  useEffect(() => {
+    if (!isShow) return
+
+    onSearch(
+      debouncedSearchParams.search,
+      debouncedSearchParams.labelFilter,
+      debouncedSearchParams.showArchived
+    )
+  }, [debouncedSearchParams, isShow])
 
   return {
     searchText,
     treeData,
     expandedRowKeys,
     isLoading,
-    onSearch,
-    onRowExpand,
+    setSearchText,
+    onRowExpand: setExpandedRowKeys,
     onClearSearch,
+    showArchived,
+    onToggleArchived,
+    labelFilter,
+    onChangeLabelFilter,
+    onChangeLabelFilterCondition,
   }
 }

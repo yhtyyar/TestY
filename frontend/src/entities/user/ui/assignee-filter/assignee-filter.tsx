@@ -181,14 +181,13 @@ export const AssigneeFilter = ({
       loading={isLoadingInitUsers || isLoading}
       placeholder={placeholder ?? t("Search a user")}
       defaultActiveFirstOption={false}
-      showArrow
       filterOption={false}
       onSearch={handleSearch}
       onChange={handleChange}
       onSelect={handleSelect}
       onClear={onClear}
       open={isOpen}
-      onDropdownVisibleChange={handleDropdownVisibleChange}
+      onOpenChange={handleDropdownVisibleChange}
       notFoundContent={
         <span style={{ color: "var(--y-color-control-placeholder)" }}>{t("No matches")}</span>
       }

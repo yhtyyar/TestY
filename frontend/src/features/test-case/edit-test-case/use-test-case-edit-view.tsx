@@ -5,8 +5,6 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 
 import { useAttachments } from "entities/attachment/model"
 
-import { useTestCaseFormLabels } from "entities/label/model"
-
 import { useGetTestSuitesQuery } from "entities/suite/api"
 
 import { useGetTestCaseByIdQuery, useUpdateTestCaseMutation } from "entities/test-case/api"
@@ -14,9 +12,8 @@ import { useAttributesTestCase } from "entities/test-case/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useConfirmBeforeRedirect, useErrors } from "shared/hooks"
+import { useAntdModals, useConfirmBeforeRedirect, useErrors } from "shared/hooks"
 import { makeAttributesJson } from "shared/libs"
-import { antdModalCloseConfirm, antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
 
 import { formattingAttachmentForSteps, sortingSteps } from "../utils"
@@ -44,6 +41,7 @@ type TabType = "general" | "attachments"
 
 export const useTestCaseEditView = () => {
   const { t } = useTranslation()
+  const { antdModalConfirm, antdModalCloseConfirm, antdNotification } = useAntdModals()
   const project = useProjectContext()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -122,13 +120,6 @@ export const useTestCaseEditView = () => {
     testSuiteId: String(selectedSuite?.value ?? testCase?.suite?.id ?? "") || null,
   })
 
-  const labelProps = useTestCaseFormLabels({
-    setValue,
-    testCase: testCase ?? null,
-    isEditMode: true,
-    defaultLabels: testCase?.labels.map((l) => Number(l.id)) ?? [],
-  })
-
   const { data: suites, isLoading: isLoadingSuites } = useGetTestSuitesQuery({
     project: project.id,
   })
@@ -153,8 +144,6 @@ export const useTestCaseEditView = () => {
     reset()
     onReset()
     setAttributes([])
-    labelProps.setLabels([])
-    labelProps.setSearchValue("")
   }
 
   const handleTabChange = (activeKey: string) => {
@@ -209,6 +198,7 @@ export const useTestCaseEditView = () => {
       const newTestCase = await updateTestCase({
         ...testCase,
         ...dataForm,
+        labels: dataForm.labels?.map((i) => ({ name: i.label, id: i.value })),
         attachments: dataForm.attachments,
         is_steps: !!dataForm.is_steps,
         scenario: dataForm.is_steps ? undefined : dataForm.scenario,
@@ -297,7 +287,7 @@ export const useTestCaseEditView = () => {
         estimate: testCase.estimate,
         steps: stepsSorted,
         is_steps: testCase.is_steps,
-        labels: testCase.labels,
+        labels: testCase.labels.map((i) => ({ label: i.name, value: i.id })),
         suite: Number(testCase.suite.id),
         attributes: attrs,
         attachments: testCaseAttachesWithUid.map((attach) => attach.id),
@@ -338,7 +328,6 @@ export const useTestCaseEditView = () => {
     handleSubmitFormAsNew: handleSubmit(onSubmitAsNewVersion),
     handleSubmitFormAsCurrent: handleSubmit(onSubmitWithoutNewVersion),
     register,
-    labelProps,
     handleTabChange,
     attributes,
     setAttributes,

@@ -7,8 +7,7 @@ import { useAppSelector } from "app/hooks"
 import { useUpdatePasswordMutation } from "entities/user/api"
 import { selectUserModal } from "entities/user/model"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 interface Inputs {
   password: string
@@ -42,6 +41,7 @@ const validatePassword = (value: string) => {
 
 export const useChangePassword = () => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const user = useAppSelector(selectUserModal)
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const {

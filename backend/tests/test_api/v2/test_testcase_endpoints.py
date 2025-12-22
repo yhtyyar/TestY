@@ -75,6 +75,7 @@ class TestCaseEndpoints:
     view_name_search = 'api:v2:testcase-search'
     view_name_delete_preview = 'api:v2:testcase-delete-preview'
     view_name_bulk_update = 'api:v2:testcase-bulk-update'
+    view_name_bulk_update_tree = 'api:v2:testcase-bulk-update-tree'
 
     @allure.title('Test list display')
     def test_list(self, superuser_client, test_case_factory, project):
@@ -1444,6 +1445,89 @@ class TestCaseEndpoints:
         with allure.step('Validate cases added to destination suite'):
             assert list(destination_suite.test_cases.values_list('pk', flat=True)) == dst_suite_expected
 
+    def test_bulk_update_cases_tree(
+        self,
+        api_client,
+        authorized_superuser,
+        project,
+        test_suite_factory,
+        test_case_factory,
+    ):
+        parent_suite = test_suite_factory(project=project)
+        include_suite = test_suite_factory(project=project, parent=parent_suite)
+        exclude_suite = test_suite_factory(project=project, parent=parent_suite)
+        new_suite = test_suite_factory(project=project)
+        affected_cases_ids = []
+        cases_in_payload = []
+        for _ in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
+            include_case = test_case_factory(project=project, suite=include_suite)
+            test_case_factory(project=project, suite=exclude_suite)
+            test_case = test_case_factory(project=project, suite=parent_suite)
+            affected_cases_ids.extend([include_case.pk, test_case.pk])
+            cases_in_payload.append(test_case.pk)
+
+        api_client.send_request(
+            self.view_name_bulk_update_tree,
+            {
+                'project': project.id,
+                'included_cases': cases_in_payload,
+                'included_suites': [include_suite.pk],
+                'suite': new_suite.pk,
+            },
+            HTTPStatus.OK,
+            RequestType.PUT,
+        )
+        actual_count = TestCase.objects.filter(pk__in=affected_cases_ids, suite=new_suite).count()
+        assert actual_count == len(affected_cases_ids)
+
+    def test_bulk_update_cases_tree_with_filters(
+        self,
+        api_client,
+        authorized_superuser,
+        project,
+        test_suite_factory,
+        test_case_factory,
+    ):
+        cases_name_template = 'MyCase'
+        parent_suite = test_suite_factory(project=project)
+        include_suite = test_suite_factory(project=project, parent=parent_suite)
+        new_suite = test_suite_factory(project=project)
+        affected_cases_ids = []
+        cases_in_payload = []
+        for idx in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
+            additional_payload = {'name': f'{cases_name_template}{idx}'} if idx % 2 else {}
+            include_case = test_case_factory(
+                project=project,
+                suite=include_suite,
+                **additional_payload,
+            )
+            test_case = test_case_factory(
+                project=project,
+                suite=parent_suite,
+                **additional_payload,
+            )
+
+            if idx % 2:
+                affected_cases_ids.extend([include_case.pk, test_case.pk])
+            cases_in_payload.append(test_case.pk)
+
+        api_client.send_request(
+            self.view_name_bulk_update_tree,
+            {
+                'project': project.id,
+                'included_cases': cases_in_payload,
+                'included_suites': [include_suite.pk],
+                'suite': new_suite.pk,
+                'filter_conditions': {'search': cases_name_template},
+            },
+            HTTPStatus.OK,
+            RequestType.PUT,
+        )
+        actual_cases = TestCase.objects.filter(pk__in=affected_cases_ids, suite=new_suite)
+        assert actual_cases.count() == len(affected_cases_ids)
+        for actual_case in actual_cases:
+            assert actual_case.id in affected_cases_ids
+
     @allure.title('Test moving cases to another suite with invalid project')
     def test_bulk_update_suite_to_another_project(
         self,
@@ -1496,6 +1580,7 @@ class TestCaseWithStepsEndpoints:
     view_name_list = 'api:v2:testcase-list'
     view_restore_version = 'api:v2:testcase-restore-version'
     view_name_copy = 'api:v2:testcase-copy'
+    view_name_bulk_update = 'api:v2:testcase-bulk-update'
 
     @allure.title('Test detail display')
     def test_retrieve(self, superuser_client, test_case_with_steps):
@@ -1955,7 +2040,6 @@ class TestCaseWithStepsEndpoints:
         with allure.step('Validate error message'):
             assert response.json()[_ERRORS][0] == FORBIDDEN_USER_TEST_CASE
 
-    @allure.link('https://j.yadro.com/browse/TMS-894')
     @allure.title('Regression migrating back steps')
     def test_migrating_steps(self, authorized_client, project, test_suite_factory):
         suite = test_suite_factory(project=project)
@@ -2020,6 +2104,52 @@ class TestCaseWithStepsEndpoints:
             reverse_kwargs={'pk': src_case_id},
         ).json()
         assert len(resp_body['steps']) == 2
+
+    @pytest.mark.parametrize('included', [True, False])
+    def test_bulk_update_with_steps(
+        self,
+        authorized_client,
+        test_case_with_steps_factory,
+        test_suite_factory,
+        project,
+        included,
+    ):
+        title = f'Test moving cases to another suite with {"included" if included else "excluded"} parameter'
+        allure.dynamic.title(title)
+        case_number = 3
+        source_suite = test_suite_factory(project=project)
+        destination_suite = test_suite_factory(project=project)
+        case_pks = []
+        old_histories = []
+        with allure.step('Create test cases'):
+            for _ in range(case_number):
+                case = test_case_with_steps_factory(project=project, suite=source_suite)
+                old_histories.append(case.history.latest().history_id)
+                case_pks.append(case.id)
+        with allure.step('Move cases to another suite'):
+            payload_key = 'included_cases' if included else 'excluded_cases'
+            authorized_client.send_request(
+                self.view_name_bulk_update,
+                {
+                    payload_key: case_pks[1:],
+                    'current_suite': source_suite.pk,
+                    'suite': destination_suite.pk,
+                    'project': project.pk,
+                },
+                HTTPStatus.OK,
+                RequestType.PUT,
+            )
+        source_suite_expected = [case_pks[0]] if included else case_pks[1:]
+        dst_suite_expected = case_pks[1:] if included else [case_pks[0]]
+        with allure.step('Validate cases removed from source suite'):
+            assert list(source_suite.test_cases.values_list('pk', flat=True)) == source_suite_expected
+        with allure.step('Validate cases added to destination suite'):
+            assert list(destination_suite.test_cases.values_list('pk', flat=True)) == dst_suite_expected
+        for case in destination_suite.test_cases.all():
+            case_last_history = case.history.latest().history_id
+            assert case_last_history not in old_histories
+            for step in case.steps.all():
+                assert step.test_case_history_id == case_last_history
 
     @classmethod
     @allure.step('Validate steps content')

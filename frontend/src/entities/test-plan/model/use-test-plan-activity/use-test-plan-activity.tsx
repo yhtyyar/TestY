@@ -19,6 +19,7 @@ import {
   TableFilterSearch,
   TableFilterSelect,
   TableSorting,
+  usePagination,
 } from "shared/ui"
 import { UntestedStatus } from "shared/ui/status"
 import { testySortRequestFormat } from "shared/ui/table/utils"
@@ -36,11 +37,7 @@ export const useTestPlanActivity = () => {
     isActivity: true,
   })
 
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
-
+  const { pagination, setPagination } = usePagination()
   const { renderBreadCrumbs } = useTestPlanActivityBreadcrumbs()
 
   const tableFilterRef = useRef<Table<TestPlanActivityResult> | null>(null)
@@ -64,8 +61,8 @@ export const useTestPlanActivity = () => {
   const { data, isFetching } = useGetTestPlanActivityQuery(
     {
       testPlanId: testPlanId ?? "",
-      page: paginationParams.pageIndex + 1,
-      page_size: paginationParams.pageSize,
+      page: pagination.pageIndex + 1,
+      page_size: pagination.pageSize,
       ordering,
       ...filterRequest,
     },
@@ -222,8 +219,8 @@ export const useTestPlanActivity = () => {
     data,
     isLoading: isFetching,
     columns,
-    paginationParams,
-    setPaginationParams,
+    paginationParams: pagination,
+    setPaginationParams: setPagination,
     globalColumnSorting,
     globalColumnFilters,
     clearFilters,

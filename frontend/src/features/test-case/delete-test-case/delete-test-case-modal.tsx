@@ -10,8 +10,7 @@ import { clearDrawerTestCase } from "entities/test-case/model"
 
 import { testPlanCasesIdsInvalidate } from "entities/test-plan/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]/modal-confirm-delete-archive"
@@ -25,6 +24,7 @@ interface Props {
 
 export const DeleteTestCaseModal = ({ isShow, setIsShow, testCase, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [deleteTestCase, { isLoading: isLoadingDelete }] = useDeleteTestCaseMutation()
   const { data, isLoading, status } = useGetTestCaseDeletePreviewQuery(String(testCase.id), {
     skip: !isShow,

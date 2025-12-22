@@ -1,15 +1,15 @@
 import { CopyOutlined } from "@ant-design/icons"
-import { Form, Input, Modal } from "antd"
+import { Form, Input } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
 import { useLazyGetTestSuitesQuery } from "entities/suite/api"
 
-import { LazyNodeProps, LazyTreeNodeApi } from "shared/libs/tree"
 import { Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
-import { BaseSearchEntity, LazyTreeSearch } from "widgets/lazy-tree-search/lazy-tree-search"
+import { LazyTreeSearch } from "widgets/lazy-tree-search/lazy-tree-search"
 
 import { useTestCaseCopyModal } from "./use-test-case-copy-modal"
 
@@ -40,7 +40,7 @@ export const CopyTestCase = ({ testCase, onSubmit, disabled = false }: Props) =>
       >
         {t("Copy")}
       </Button>
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
         wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
         title={
@@ -102,9 +102,8 @@ export const CopyTestCase = ({ testCase, onSubmit, disabled = false }: Props) =>
                   skipInit={!isShow}
                   placeholder={t("Search a test suite")}
                   projectId={String(projectId)}
-                  // @ts-ignore
-                  onSelect={(node: LazyTreeNodeApi<BaseSearchEntity, LazyNodeProps> | null) =>
-                    field.onChange(node ? { label: node.title, value: node.id as number } : null)
+                  onSelect={(node) =>
+                    field.onChange(node ? { label: node.title, value: Number(node.id) } : null)
                   }
                   selectedId={field.value?.value}
                 />
@@ -112,7 +111,7 @@ export const CopyTestCase = ({ testCase, onSubmit, disabled = false }: Props) =>
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </NyModal>
     </>
   )
 }

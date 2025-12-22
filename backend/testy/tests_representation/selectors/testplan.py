@@ -55,10 +55,12 @@ from django.db.models import (
 from django.db.models.functions import Concat
 from django.shortcuts import get_object_or_404
 from mptt.querysets import TreeQuerySet
+from rest_framework.request import Request
 
 from testy.fields import IntegerEstimateField
 from testy.root.querysets import SoftDeleteTreeQuerySet
 from testy.tests_description.selectors.suites import TestSuiteSelector
+from testy.tests_representation.filters.tests import UnionTestFilter
 from testy.tests_representation.models import Parameter, Test, TestPlan, TestResult
 from testy.tests_representation.selectors.results import TestResultSelector
 from testy.tests_representation.selectors.tests import TestSelector
@@ -111,7 +113,7 @@ class TestPlanSelector:  # noqa: WPS214
                 'parameters__data',
                 delimiter=', ',
                 output_field=TextField(),
-                ordering='parameters__data',
+                ordering='parameters__group_name',
             ),
             title=Case(
                 When(
@@ -413,6 +415,7 @@ class TestPlanSelector:  # noqa: WPS214
     def get_union_data(
         self,
         qs: QuerySet,
+        request: Request,
         test_serializer: 'type[TestUnionSerializer]',
         plan_serializer: 'type[TestPlanUnionSerializer]',
         estimate_map: dict[str, Any] | None = None,
@@ -427,7 +430,11 @@ class TestPlanSelector:  # noqa: WPS214
             else:
                 test_ids.append(elem[_ID])
 
-        plans = {plan.pk: plan for plan in self.plan_annotated_by_ids(plan_ids, estimate_map)}
+        annotated_plans = self.plan_annotated_by_ids(plan_ids, estimate_map)
+        annotated_plans = annotated_plans.annotate(
+            union_count=self._union_tests_count(request, include_descendants=True),
+        )
+        plans = {plan.pk: plan for plan in annotated_plans}
         tests = TestSelector().test_list_with_last_status(
             filter_condition={'pk__in': test_ids},
         ).annotate(is_leaf=Value(True))
@@ -621,3 +628,16 @@ class TestPlanSelector:  # noqa: WPS214
         if parameters := instance.parameters.all():
             return '{0} [{1}]'.format(instance.name, ', '.join([parameter.data for parameter in parameters]))
         return instance.name
+
+    @classmethod
+    def _union_tests_count(cls, request: Request, include_descendants: bool = False):
+        condition = Q(plan_id=_OUTER_REF_PK)
+        if include_descendants:
+            condition |= Q(plan__path__descendant=OuterRef(_PATH))
+        print(condition)
+        tests = UnionTestFilter(
+            request.query_params,
+            request=request,
+            queryset=Test.objects.select_related('plan').filter(condition),
+        ).qs
+        return SubCount(tests)

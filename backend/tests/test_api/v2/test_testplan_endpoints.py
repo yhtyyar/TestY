@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2025 KNS Group LLC (YADRO)
+# Copyright (C) 2022 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -1795,7 +1795,7 @@ class TestPlanEndpoints:
                 started_at += timedelta(hours=1)
                 plan = test_plan_factory(project=project, parent=root_plan, name=str(idx), started_at=started_at)
                 for _ in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
-                    test_factory(plan=plan, case=test_case_factory(estimate=idx + 1))
+                    test_factory(plan=plan, case=test_case_factory(estimate=idx + 1), project=project)
                 serialized_plan = model_to_dict_via_serializer(
                     plan,
                     TestPlanUnionMockSerializer,
@@ -1806,7 +1806,7 @@ class TestPlanEndpoints:
         with allure.step('Generate and sort tests'):
             expected_tests = []
             for idx in range(3):
-                suite = test_suite_factory(name=str(idx))
+                suite = test_suite_factory(name=str(idx), project=project)
                 test = model_to_dict_via_serializer(
                     test_factory(
                         case=test_case_factory(name=str(idx), suite=suite),

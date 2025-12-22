@@ -20,16 +20,20 @@
 
 .nameBlock {
   grid-area: Name;
-  height: 32px;
   display: flex;
   align-items: center;
   margin-bottom: 16px;
+}
+
+.iconBlock {
+  margin-bottom: auto;
 }
 
 .name {
   color: var(--y-color-text-secondary);
   font-size: 22px;
   font-weight: 600;
+  word-break: break-all;
 }
 
 .projectTitle {

@@ -1,0 +1,50 @@
+.tableCell {
+  vertical-align: middle;
+  padding: 8px;
+  position: relative;
+}
+
+.tableCellInner {
+  display: flex;
+  align-items: center;
+}
+
+.isPinnedLeft::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}
+
+.isPinnedRight::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--y-color-border);
+}
+
+/* COLOR SCHEME TREE-LINEAR */
+
+.tree-linear {
+  padding: 0;
+}
+
+.tree-linear .tableCellInnerBody {
+  padding: 8px 4px;
+}
+
+.tree-linear .tableCellInnerBody:first-child {
+  padding-left: 0;
+}
+
+/* COLOR SCHEME TABLE-LINEAR */
+
+.table-linear .tableCellInnerBody {
+  padding: 0;
+}

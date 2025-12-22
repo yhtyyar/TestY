@@ -26,7 +26,7 @@ import styles from "./styles.module.css"
 export const TestDetail = () => {
   const { t } = useTranslation()
   const project = useProjectContext()
-  const { testsTree } = useContext(TestsTreeContext)!
+  const { tree: testsTree } = useContext(TestsTreeContext)!
   const { testPlanId } = useParams<ParamTestPlanId>()
 
   const {
@@ -61,11 +61,10 @@ export const TestDetail = () => {
 
   const handleRefetch = async () => {
     if (String(drawerTest?.plan) === String(testPlanId)) {
-      await testsTree.current?.initRoot({ initParent: testPlanId })
+      testsTree.current?.initRoot()
       return
     }
-
-    await testsTree.current?.refetchNodeBy((node) => node.id === drawerTest?.plan)
+    await testsTree.current?.rowRefetch(drawerTest?.plan.toString())
   }
 
   const tabItems = useMemo(() => {

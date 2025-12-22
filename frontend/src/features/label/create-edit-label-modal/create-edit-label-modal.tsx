@@ -1,11 +1,16 @@
-import { Form, Input, Modal, Select } from "antd"
+import { CloseOutlined } from "@ant-design/icons"
+import { ColorPicker, Flex, Form, Input, Select } from "antd"
+import classNames from "classnames"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
+import ContextMenuIcon from "shared/assets/yi-icons/context-menu.svg?react"
 import { labelTypes } from "shared/config/label-types"
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
+import styles from "./styles.module.css"
 import {
   UseCreateEditLabelModalProps,
   useCreateEditLabelModal,
@@ -13,17 +18,25 @@ import {
 
 export const CreateEditLabelModal = (props: UseCreateEditLabelModalProps) => {
   const { t } = useTranslation()
-  const { title, isLoading, isDirty, control, errors, handleCancel, handleSubmitForm } =
-    useCreateEditLabelModal(props)
+  const {
+    title,
+    isLoading,
+    isDirty,
+    control,
+    errors,
+    BASE_COLORS,
+    handleCancel,
+    handleSubmitForm,
+  } = useCreateEditLabelModal(props)
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${props.mode}-label-modal-body` }}
       wrapProps={{ "data-testid": `${props.mode}-label-modal-wrapper` }}
       title={<span data-testid={`${props.mode}-label-modal-title`}>{title}</span>}
       open={props.isShow}
       onCancel={handleCancel}
-      width="600px"
+      width={404}
       centered
       footer={[
         <Button
@@ -80,8 +93,63 @@ export const CreateEditLabelModal = (props: UseCreateEditLabelModalProps) => {
               )}
             />
           </Form.Item>
+          <Form.Item
+            label={t("Color")}
+            validateStatus={errors?.color ? "error" : ""}
+            help={errors?.color ? errors.color : ""}
+          >
+            <Controller
+              name="color"
+              control={control}
+              render={({ field }) => (
+                <Flex align="center" justify="space-between">
+                  {BASE_COLORS.map((baseColor, index) => (
+                    <div
+                      key={index}
+                      className={classNames(styles.baseColorBox, {
+                        [styles.activeBox]: field.value === baseColor,
+                      })}
+                      onClick={() => field.onChange(baseColor)}
+                      data-testid={`${props.mode}-label-color-${baseColor}-button`}
+                    >
+                      <div
+                        className={styles.boxInner}
+                        style={{ backgroundColor: baseColor ? baseColor : "transparent" }}
+                      >
+                        {!baseColor ? <CloseOutlined style={{ fontSize: 18 }} /> : null}
+                      </div>
+                    </div>
+                  ))}
+                  <ColorPicker
+                    value={field.value}
+                    format="rgb"
+                    disabledAlpha
+                    onChangeComplete={(color) => {
+                      field.onChange(color.toRgbString())
+                    }}
+                    data-testid={`${props.mode}-label-color-picker-button`}
+                    getPopupContainer={(triggerNode) => {
+                      triggerNode.setAttribute("id", `${props.mode}-label-color-picker-popup`)
+                      return triggerNode
+                    }}
+                  >
+                    <div className={styles.baseColorBox}>
+                      <div
+                        className={styles.boxInner}
+                        style={{
+                          backgroundColor: field.value ?? "var(--y-color-background-alternative)",
+                        }}
+                      >
+                        <ContextMenuIcon width={24} />
+                      </div>
+                    </div>
+                  </ColorPicker>
+                </Flex>
+              )}
+            />
+          </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

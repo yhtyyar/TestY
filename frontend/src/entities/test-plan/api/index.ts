@@ -1,3 +1,4 @@
+import { AnyAction, ThunkDispatch } from "@reduxjs/toolkit"
 import { createApi } from "@reduxjs/toolkit/dist/query/react"
 
 import { baseQueryWithLogout } from "app/apiSlice"
@@ -102,29 +103,29 @@ export const testPlanApi = createApi({
       }),
       providesTags: (result, error, { testPlanId: id }) => [{ type: "TestPlan", id }],
     }),
-    deleteTestPlan: builder.mutation<void, number>({
-      query: (testPlanId) => ({
+    deleteTestPlan: builder.mutation<void, { testPlanId: number; projectId: number }>({
+      query: ({ testPlanId }) => ({
         url: `${rootPath}/${testPlanId}/`,
         method: "DELETE",
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ projectId }, { dispatch, queryFulfilled }) {
         await queryFulfilled
-        dispatch(systemStatsInvalidate)
+        updateTestPlanInvalidates(dispatch, { projectId })
       },
       invalidatesTags: [{ type: "TestPlan", id: "LIST" }],
     }),
-    archiveTestPlan: builder.mutation<void, number>({
-      query: (testPlanId) => ({
+    archiveTestPlan: builder.mutation<void, { testPlanId: number; projectId: number }>({
+      query: ({ testPlanId }) => ({
         url: `${rootPath}/${testPlanId}/archive/`,
         method: "POST",
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ testPlanId, projectId }, { dispatch, queryFulfilled }) {
         await queryFulfilled
-        dispatch(systemStatsInvalidate)
+        updateTestPlanInvalidates(dispatch, { testPlanId, projectId })
       },
-      invalidatesTags: (result, error, id) => [
+      invalidatesTags: (result, error, { testPlanId }) => [
         { type: "TestPlan", id: "LIST" },
-        { type: "TestPlan", id },
+        { type: "TestPlan", id: testPlanId },
       ],
     }),
     createTestPlan: builder.mutation<TestPlan[], TestPlanCreate>({
@@ -133,9 +134,9 @@ export const testPlanApi = createApi({
         method: "POST",
         body,
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        await queryFulfilled
-        dispatch(systemStatsInvalidate)
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled
+        updateTestPlanInvalidates(dispatch, { testPlanId: body.parent, projectId: data[0].project })
       },
       invalidatesTags: (result) => invalidatesList(result?.[0], "TestPlan"),
     }),
@@ -146,29 +147,9 @@ export const testPlanApi = createApi({
         body,
         redirect: "manual",
       }),
-      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         const { data } = await queryFulfilled
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanTest", id },
-            { type: "TestPlanTest", id: "LIST" },
-          ])
-        )
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanStatistics", id: `${data.project}-${id}` },
-          ])
-        )
-        dispatch(
-          testPlanApi.util.invalidateTags([
-            { type: "TestPlanHistogram", id: `${data.project}-${id}` },
-          ])
-        )
-        dispatch(testPlanApi.util.invalidateTags([{ type: "TestPlanLabels", id: "LIST" }]))
-        dispatch(testPlanApi.util.invalidateTags([{ type: "TestPlanCasesIds", id }]))
-        dispatch(testApi.util.invalidateTags([{ type: "Test", id: "LIST" }]))
-        dispatch(labelInvalidate)
-        dispatch(systemStatsInvalidate)
+        updateTestPlanInvalidates(dispatch, { testPlanId: data.id, projectId: data.project })
       },
       invalidatesTags: (result) => invalidatesList(result, "TestPlan"),
     }),
@@ -263,9 +244,9 @@ export const testPlanApi = createApi({
         method: "POST",
         body,
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
         await queryFulfilled
-        dispatch(systemStatsInvalidate)
+        updateTestPlanInvalidates(dispatch, { testPlanId: body.dst_plan })
       },
       invalidatesTags: [{ type: "TestPlan", id: "LIST" }],
     }),
@@ -283,7 +264,7 @@ export const testPlanApi = createApi({
       }),
     }),
     getTestPlanAssigneeProgress: builder.query<
-      PaginationResponse<TestPlan[] | Test[]>,
+      PaginationResponse<TestPlan[]>,
       TestPlanAssigneeProgressQuery
     >({
       query: (params) => ({
@@ -294,7 +275,44 @@ export const testPlanApi = createApi({
   }),
 })
 
-export const testPlanInvalidate = (id?: number) => {
+export const updateTestPlanInvalidates = (
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>,
+  {
+    testPlanId,
+    projectId,
+  }: {
+    testPlanId?: number | null
+    projectId?: number
+  }
+) => {
+  dispatch(testPlanInvalidate(testPlanId))
+  dispatch(testPlanTestsInvalidate())
+
+  if (projectId && testPlanId) {
+    dispatch(
+      testPlanApi.util.invalidateTags([
+        { type: "TestPlanStatistics", id: `${projectId}-${testPlanId}` },
+      ])
+    )
+
+    dispatch(
+      testPlanApi.util.invalidateTags([
+        { type: "TestPlanHistogram", id: `${projectId}-${testPlanId}` },
+      ])
+    )
+  }
+
+  if (testPlanId) {
+    dispatch(testPlanCasesIdsInvalidate(testPlanId))
+  }
+
+  dispatch(testApi.util.invalidateTags([{ type: "Test", id: "LIST" }]))
+  dispatch(testPlanLabelsInvalidate)
+  dispatch(labelInvalidate)
+  dispatch(systemStatsInvalidate)
+}
+
+export const testPlanInvalidate = (id?: number | null) => {
   return testPlanApi.util.invalidateTags(
     id ? [{ type: "TestPlan", id }] : [{ type: "TestPlan", id: "LIST" }]
   )

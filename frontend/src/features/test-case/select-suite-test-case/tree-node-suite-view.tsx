@@ -1,77 +1,33 @@
-import { Spin } from "antd"
+import { Row } from "@tanstack/react-table"
 import classNames from "classnames"
-import { MouseEvent } from "react"
 
-import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
-import { LazyNodeProps, LazyTreeNodeApi, TreeBaseLoadMore } from "shared/libs/tree"
+import { TreeNode } from "shared/ui/tree"
 
 import styles from "./styles.module.css"
 
 interface Props {
-  node: LazyTreeNodeApi<Suite, LazyNodeProps>
-  onSelect: (node: LazyTreeNodeApi<Suite, LazyNodeProps> | null) => void
-  selectedId?: number
+  row: Row<TreeNode<Suite>>
+  onSelectRow: (row: Row<TreeNode<Suite>>) => void
 }
-export const TreeNodeSuiteView = ({ node, onSelect, selectedId }: Props) => {
-  const offset = node.props.level * 20
 
-  const handleOpenClick = async (e: MouseEvent<SVGElement>) => {
-    e.stopPropagation()
-    await node.open()
-  }
-
-  const handleMoreClick = async () => {
-    await node.more()
-  }
-
+export const TreeNodeSuiteView = ({ row, onSelectRow }: Props) => {
   const handleSelect = () => {
-    if (node.tree.selectedId === node.id) {
-      node.tree.updateSelectId(null)
-      onSelect(null)
-      return
+    if (!row.getIsSelected()) {
+      row.toggleSelected(true)
+      onSelectRow(row)
     }
-    node.tree.updateSelectId(node.id)
-    onSelect(node)
   }
 
   return (
-    <>
-      <div
-        id={`${node.title}-${node.id}`}
-        key={`${node.title}-${node.id}-treeview-suite`}
-        style={{ paddingLeft: offset }}
-      >
-        <div
-          className={classNames(styles.nodeBody, {
-            [styles.activeNode]: selectedId === node.id,
-            [styles.isRoot]: node.isRoot,
-            [styles.isLast]: node.isLast,
-          })}
-          onClick={handleSelect}
-        >
-          <div className={styles.nodeLeftAction}>
-            {node.props.isLoading && <Spin size="small" className={styles.loader} />}
-            {!node.props.isLoading && node.props.canOpen && (
-              <ChevronIcon
-                className={classNames(styles.arrowIcon, {
-                  [styles.arrowIconOpen]: node.props.isOpen,
-                })}
-                onClick={handleOpenClick}
-              />
-            )}
-          </div>
-          <span>{node.data.name}</span>
-        </div>
-      </div>
-      {node.parent?.props.hasMore && node.isLast && (
-        <TreeBaseLoadMore
-          isLoading={node.parent.props.isLoading}
-          node={node}
-          onMore={handleMoreClick}
-          isRoot={node.isRoot}
-          isLast={node.isLast}
-        />
-      )}
-    </>
+    <div
+      id={`${row.original.title}-${row.original.id}`}
+      key={`${row.original.title}-${row.original.id}-treeview-suite`}
+      className={classNames(styles.row, {
+        [styles.activeRow]: row.getIsSelected(),
+      })}
+      onClick={handleSelect}
+    >
+      <span className={styles.name}>{row.original.data.name}</span>
+    </div>
   )
 }

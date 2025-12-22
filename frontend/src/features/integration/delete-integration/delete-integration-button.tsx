@@ -2,8 +2,7 @@ import { DeleteOutlined } from "@ant-design/icons"
 import { useDeleteIntegrationMutation } from "entities/integrations/api"
 import { useTranslation } from "react-i18next"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 interface Props {
@@ -12,6 +11,7 @@ interface Props {
 
 export const DeleteIntegrationButton = ({ integration }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const [deleteIntegration] = useDeleteIntegrationMutation()
 
   const handleDelete = () => {

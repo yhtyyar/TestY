@@ -1,11 +1,12 @@
 import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
 import { Checkbox } from "antd"
 import { useGetNotificationsListQuery, useMarkAsMutation } from "entities/notifications/api"
-import { useRef, useState } from "react"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
-import { initInternalError } from "shared/libs"
+import { useAntdModals } from "shared/hooks"
+import { usePagination } from "shared/ui"
 
 import styles from "./notifications-table.module.css"
 
@@ -28,20 +29,18 @@ const convertToLinkText = (record: NotificationData["message"]) => {
 
 export const useNotificationsTable = () => {
   const { t } = useTranslation()
+  const { initInternalError } = useAntdModals()
   const [markAs] = useMarkAsMutation()
 
   const tableRef = useRef<Table<NotificationData> | null>(null)
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
 
   const selectedRowKeys =
     tableRef.current?.getSelectedRowModel().rows.map((row) => row.original.id) ?? []
 
   const { data, isLoading, refetch } = useGetNotificationsListQuery({
-    page: paginationParams.pageIndex + 1,
-    page_size: paginationParams.pageSize,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
   })
 
   const columns = [
@@ -140,9 +139,9 @@ export const useNotificationsTable = () => {
     data: data?.results ?? [],
     total: data?.count ?? 0,
     columns,
-    paginationParams,
+    paginationParams: pagination,
     selectedRowKeys,
-    setPaginationParams,
+    setPaginationParams: setPagination,
     handleRead,
     handleUnread,
   }

@@ -1,0 +1,23 @@
+.tableCellInner,
+.tableCellInnerBody {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+/* COLOR SCHEME TREE-LINEAR */
+
+.tree-linear {
+  padding: 8px 4px;
+}
+
+.tree-linear:first-child {
+  padding-left: 0;
+}
+
+/* COLOR SCHEME TABLE-LINEAR */
+
+.table-linear {
+  padding: 0;
+}

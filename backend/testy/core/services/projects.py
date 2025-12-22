@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -38,6 +38,7 @@ from testy.core.services.media import MediaService
 from testy.users.models import User
 from testy.users.selectors.roles import RoleSelector
 from testy.users.services.roles import RoleService
+from testy.users.services.users import UserService
 
 
 class ProjectService(MediaService):
@@ -45,6 +46,7 @@ class ProjectService(MediaService):
 
     @transaction.atomic
     def project_create(self, data: dict[str, Any], user: User) -> Project:
+        is_favorite = data.pop('is_favorite', False)
         project = Project.model_create(
             fields=self.non_side_effect_fields + ['settings'],
             data=data,
@@ -55,6 +57,8 @@ class ProjectService(MediaService):
         if not user.is_superuser:
             role = RoleSelector.admin_user_role()
             RoleService.roles_assign(payload={'project': project, 'user': user, 'roles': [role]})
+        if is_favorite:
+            UserService.add_project_id_to_favorite(user=user, project_id=project.pk)
         return project
 
     def project_update(self, project: Project, data: dict[str, Any]) -> Project:

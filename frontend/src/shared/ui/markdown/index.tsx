@@ -1,3 +1,4 @@
+import cn from "classnames"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -14,11 +15,12 @@ export const Markdown = ({ content, pStyles = {}, ...props }: MarkdownProps) => 
   return (
     <ReactMarkdown
       children={content}
+      className="markdown"
       linkTarget="_blank"
       components={{
         img: ({ ...propsImg }) => (
-          <a href={propsImg.src} target="blank">
-            <img {...propsImg} />
+          <a href={propsImg.src} target="_blank" rel="noreferrer">
+            <img {...propsImg} className={cn(propsImg?.className, "markdown-image")} />
           </a>
         ),
         code: MarkdownCodeBlock,

@@ -1,3 +1,4 @@
+import { ColumnDef } from "@tanstack/react-table"
 import { Flex, Input, Popover, Tooltip, Typography } from "antd"
 import classNames from "classnames"
 import {
@@ -5,9 +6,9 @@ import {
   MAX_SMALLEST_SIZE,
   MAX_WITH_TREE_PERCENT,
   MIN_WITH_TREE,
-  TreebarContext,
-} from "processes"
-import { ChangeEvent, useContext, useEffect, useRef } from "react"
+  useTreebarProvider,
+} from "processes/treebar-provider"
+import { ChangeEvent, useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 
@@ -20,9 +21,8 @@ import CollapseIcon from "shared/assets/icons/arrows-in-simple.svg?react"
 import BackIcon from "shared/assets/yi-icons/back-icon.svg?react"
 import FilterIcon from "shared/assets/yi-icons/filter.svg?react"
 import { useResizebleBlock } from "shared/hooks"
-import { LazyTreeView } from "shared/libs/tree"
-import { LazyNodeProps, LazyTreeNodeApi, NodeId } from "shared/libs/tree/api"
 import { ArchivedTag, Button, ResizeLine } from "shared/ui"
+import { DataTree, TreeNode } from "shared/ui/tree"
 
 import styles from "./styles.module.css"
 import { TreebarBreadcrumbs } from "./treebar-breadcrumbs"
@@ -45,17 +45,16 @@ export const Treebar = () => {
     searchText,
     treeSettings,
     treebarWidth,
-    fetcher,
-    fetcherAncestors,
     initParent,
     selectedId,
     initDependencies,
-    skipInit,
     activeTab,
     updateTreeSettings,
     updateTreebarWidth,
     setSearchText,
-  } = useContext(TreebarContext)!
+    loadAncestors,
+    loadChildren,
+  } = useTreebarProvider()
 
   const TREE_TITLES = {
     suites: t("Test Suites & Cases"),
@@ -76,8 +75,6 @@ export const Treebar = () => {
     },
   })
 
-  const selectNodeId = testPlanId ?? testSuiteId ?? null
-
   const handleCollapsedTreeBar = () => {
     updateTreeSettings({ collapsed: !treeSettings.collapsed })
     const newWidth = !treeSettings.collapsed ? MIN_WITH_TREE : DEFAULT_WITH_TREE
@@ -97,7 +94,7 @@ export const Treebar = () => {
     }
   }
 
-  const handleSelectNode = (nodeId: NodeId) => {
+  const handleSelectNode = (nodeId: string) => {
     const urlParams = saveUrlParamByKeys(["rootId", "ordering", "is_archive"], searchParams)
 
     if (localStorage.getItem("isDrawerPinned") && searchParams.get("test_case")) {
@@ -110,7 +107,7 @@ export const Treebar = () => {
     })
   }
 
-  const handleRootNode = (nodeId: NodeId) => {
+  const handleRootNode = (nodeId: string) => {
     const urlParams = { ...Object.fromEntries([...searchParams]), rootId: String(nodeId) }
     const queryParams = new URLSearchParams(urlParams)
     navigate({
@@ -120,7 +117,7 @@ export const Treebar = () => {
   }
 
   const handleCloseAll = () => {
-    treebar.current?.closeAll()
+    treebar.current?.toggleAllRowsExpanded(false)
   }
 
   useEffect(() => {
@@ -130,6 +127,29 @@ export const Treebar = () => {
   }, [width, treebarWidth])
 
   const IS_MINIFY = width < MAX_SMALLEST_SIZE || treeSettings.collapsed
+
+  const columns: ColumnDef<TreeNode<Suite | TestPlan>>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        cell: ({ row, table }) => (
+          <TreebarNodeView
+            tree={table}
+            row={row}
+            type={activeTab}
+            projectId={project.id}
+            searchText={searchText}
+            onSelectRow={handleSelectNode}
+            onRoot={handleRootNode}
+          />
+        ),
+        meta: {
+          fullWidth: true,
+        },
+      },
+    ],
+    [activeTab, project, searchText, handleSelectNode, handleRootNode]
+  )
 
   return (
     <div
@@ -233,31 +253,34 @@ export const Treebar = () => {
             </Tooltip>
           </div>
         </div>
-        {activeTab && !treeSettings.collapsed && (
-          <div className={styles.treeViewBlock} data-testid={`tree-view-${activeTab}`}>
-            <LazyTreeView
-              // @ts-ignore // TODO fix forward ref type
-              ref={treebar}
-              cacheKey={`${project.id}-treebar-${activeTab}`}
-              fetcher={fetcher}
-              fetcherAncestors={fetcherAncestors}
-              skipInit={skipInit || treeSettings.collapsed}
-              initParent={initParent}
-              selectedId={selectedId}
-              initDependencies={initDependencies}
-              renderNode={(node) => (
-                <TreebarNodeView
-                  projectId={project.id}
-                  selectNodeId={selectNodeId}
-                  type={activeTab}
-                  searchText={searchText}
-                  node={node as LazyTreeNodeApi<TestPlan | Suite, LazyNodeProps>} // FIX IT cast type
-                  onSelect={handleSelectNode}
-                  onRoot={handleRootNode}
-                />
-              )}
-            />
-          </div>
+        {activeTab && !treeSettings.collapsed && !treeSettings.collapsed && (
+          <>
+            <div className={styles.treeViewBlock} data-testid={`tree-view-${activeTab}`}>
+              <DataTree
+                treeRef={treebar}
+                columns={columns}
+                type="lazy"
+                cacheExpandedKey={`${project.id}-treebar-${activeTab}`}
+                state={{ rowActive: selectedId }}
+                loadChildren={loadChildren}
+                loadAncestors={loadAncestors}
+                autoLoadRoot={{
+                  deps: initDependencies,
+                  additionalParams: {
+                    parent: initParent,
+                  },
+                }}
+                autoLoadParentsBySelected
+                autoOpenParentsBySelected
+                getRowCanExpand={(row) => row.original.props?.can_open ?? false}
+                enableRowSelection
+                showSelectionCheckboxes={false}
+                enableMultiRowSelection={false}
+                enableSubRowSelection={false}
+                data-testid={`treebar-${activeTab}`}
+              />
+            </div>
+          </>
         )}
       </div>
       {!IS_MINIFY && <ResizeLine onMouseDown={handleMouseDown} />}

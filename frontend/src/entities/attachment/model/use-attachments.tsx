@@ -7,14 +7,15 @@ import { useTranslation } from "react-i18next"
 
 import { useCreateAttachmentMutation } from "entities/attachment/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 
 const mutex = new Mutex()
 
 interface UploadFileExtend<T> extends UploadFile<T> {
   id?: number
   link?: string
+  filename?: string
+  size_humanize?: string
 }
 
 // prettier-ignore
@@ -24,6 +25,7 @@ export const useAttachments = <T, >(
   fieldName = "attachments"
 ) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [attachments, setAttachments] = useState<IAttachmentWithUid[]>([])
   const [createAttachment, { isLoading }] = useCreateAttachmentMutation()
   const {
@@ -63,6 +65,8 @@ export const useAttachments = <T, >(
       const response = await createAttachment(fmData).unwrap()
       fileFormat.id = response[0].id
       fileFormat.link = response[0].link
+      fileFormat.filename = response[0].filename
+      fileFormat.size_humanize = response[0].size_humanize
       onSuccess(t("Ok"))
     } catch (err) {
       const error = err as UploadRequestError
@@ -74,7 +78,7 @@ export const useAttachments = <T, >(
   }
 
   const onChange = (info: UploadChangeParam<UploadFileExtend<IAttachmentWithUid[]>>) => {
-    const fileList = (info.fileList as IAttachmentWithUid[]).map((f) => ({ ...f, filename: f.name }))
+    const fileList = (info.fileList as IAttachmentWithUid[]).map((f) => ({ ...f, filename: f.status === "uploading" ? f.name : f.filename }))
     setAttachments(fileList)
   }
 

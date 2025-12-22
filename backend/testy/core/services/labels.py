@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -49,7 +49,7 @@ _NAME = 'name'
 
 
 class LabelService:
-    non_side_effect_fields = [_NAME, 'user', 'project', 'type']
+    non_side_effect_fields = [_NAME, 'user', 'project', 'type', 'color']
 
     @classmethod
     def label_create(cls, data: dict[str, Any], commit: bool = True) -> Label:
@@ -98,7 +98,6 @@ class LabelService:
         user: User,
     ):
         content_type = ContentType.objects.get_for_model(content_model)
-        cls._force_create_history(content_objects, user, content_model)
         cls.add_labels_to_objects(labels, content_objects, content_type, project, user, is_recreate_existed=True)
 
     @classmethod
@@ -115,7 +114,6 @@ class LabelService:
             'object_id__in': [content_object.id for content_object in content_objects],
             'content_type': content_type,
         }
-        cls._force_create_history(content_objects, user, content_model)
         cls.clear(lookup_kwargs)
         cls.add_labels_to_objects(labels, content_objects, content_type, project, user)
 
@@ -128,7 +126,6 @@ class LabelService:
         user: User,
     ):
         content_type = ContentType.objects.get_for_model(content_model)
-        cls._force_create_history(content_objects, user, content_model)
         label_ids = [label['id'] for label in labels if label.get('id')]
         lookup_kwargs = {
             'object_id__in': [content_object.id for content_object in content_objects],
@@ -263,7 +260,13 @@ class LabelService:
                 continue
             labels_to_create.append(
                 cls.label_create(
-                    {_NAME: name, 'type': LabelTypes.CUSTOM, 'project': project, 'user': user},
+                    {
+                        _NAME: name,
+                        'type': LabelTypes.CUSTOM,
+                        'project': project,
+                        'user': user,
+                        'color': label.get('color'),
+                    },
                     commit=False,
                 ),
             )

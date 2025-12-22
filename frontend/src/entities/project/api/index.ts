@@ -6,6 +6,8 @@ import { systemStatsInvalidate } from "entities/system/api"
 
 import { testPlanInvalidate } from "entities/test-plan/api"
 
+import { usersApi } from "entities/user/api"
+
 import { invalidatesList } from "shared/libs"
 
 const rootPath = "projects"
@@ -41,6 +43,7 @@ export const projectApi = createApi({
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         await queryFulfilled
         dispatch(systemStatsInvalidate)
+        dispatch(usersApi.util.invalidateTags(["Config"]))
       },
       invalidatesTags: [{ type: "Project", id: "LIST" }],
     }),
@@ -50,6 +53,11 @@ export const projectApi = createApi({
         method: "PATCH",
         body,
       }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        await queryFulfilled
+        dispatch(systemStatsInvalidate)
+        dispatch(usersApi.util.invalidateTags(["Config"]))
+      },
       invalidatesTags: (result) => invalidatesList(result, "Project"),
     }),
     updateProjectJson: builder.mutation<Project, { id: Id; body: Partial<Project> }>({
@@ -68,6 +76,7 @@ export const projectApi = createApi({
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         await queryFulfilled
         dispatch(systemStatsInvalidate)
+        dispatch(usersApi.util.invalidateTags(["Config"]))
       },
       invalidatesTags: [{ type: "Project", id: "LIST" }],
     }),
@@ -80,6 +89,7 @@ export const projectApi = createApi({
         await queryFulfilled
         dispatch(systemStatsInvalidate)
         dispatch(testPlanInvalidate())
+        dispatch(usersApi.util.invalidateTags(["Config"]))
       },
       invalidatesTags: (result, error, id) => [
         { type: "Project", id: Number(id) },

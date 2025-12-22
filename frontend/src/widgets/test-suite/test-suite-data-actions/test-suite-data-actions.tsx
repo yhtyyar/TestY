@@ -1,15 +1,11 @@
-import { Divider, Dropdown, Flex, MenuProps, Tooltip, Typography } from "antd"
+import { Divider, Flex, Tooltip, Typography } from "antd"
 import { memo, useContext } from "react"
 import { useTranslation } from "react-i18next"
 
 import { useAppDispatch, useAppSelector } from "app/hooks"
 
-import { useLazyGetTestSuiteAncestorsQuery, useLazyGetTestSuitesQuery } from "entities/suite/api"
-
-import { useBulkUpdateMutation } from "entities/test-case/api"
 import {
   clearFilter,
-  selectFilter,
   selectFilterCount,
   selectSettings,
   updateFilterSettings,
@@ -17,28 +13,22 @@ import {
 } from "entities/test-case/model"
 
 import { ClearFilters } from "features/filter"
-import { ChangeBulkLabel } from "features/label"
 import { CreateTestCase } from "features/test-case"
 
-import { useProjectContext, useTestSuiteContext } from "pages/project"
+import { useTestSuiteContext } from "pages/project"
 
 import CollapseIcon from "shared/assets/icons/arrows-in-simple.svg?react"
-import ChevronIcon from "shared/assets/yi-icons/chevron.svg?react"
 import { saveVisibleColumns } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
-import { deleteEmptyParams } from "shared/libs/query-params"
 import { Button, DataViewSelect } from "shared/ui"
 
 import { SettingsColumnVisibility } from "widgets/settings-column-visibility/settings-column-visibility"
 import {
+  TestCaseBulkAction,
   TestCasesButtonFilterDrawer,
   TestCasesSavedFilters,
   TestCasesSorter,
   TestCasesTreeContext,
 } from "widgets/test-case"
-
-import { MoveEntity } from "../../../features/common"
-import styles from "./styles.module.css"
 
 interface Props {
   suite?: Suite
@@ -47,18 +37,13 @@ interface Props {
 
 export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
   const { t } = useTranslation(["translation", "entities"])
-  const { testCasesTree } = useContext(TestCasesTreeContext)!
+  const { tree: testCasesTree } = useContext(TestCasesTreeContext)!
   const { dataView, updateDataView } = useTestSuiteContext()
-  const [bulkUpdateTestCases, { isLoading }] = useBulkUpdateMutation()
-  const [getSuites] = useLazyGetTestSuitesQuery()
-  const [getAncestors] = useLazyGetTestSuiteAncestorsQuery()
-  const project = useProjectContext()
 
   const dispatch = useAppDispatch()
   const tableSettings = useAppSelector(selectSettings<TestCaseTableParams>("table"))
   const treeSettings = useAppSelector(selectSettings<BaseTreeParams>("tree"))
   const testCasesSelectedCount = useAppSelector(selectFilterCount)
-  const testCasesFilter = useAppSelector(selectFilter)
 
   const isList = dataView === "list"
   const visibleColumns = isList ? tableSettings.visibleColumns : treeSettings.visibleColumns
@@ -77,7 +62,7 @@ export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
     saveVisibleColumns(`test-cases-visible-cols-${key}`, newVisibleColumns)
   }
 
-  const resetSelectedRows = () => {
+  const resetSelectedTableRows = () => {
     dispatch(
       updateSettings({
         key: "table",
@@ -88,104 +73,28 @@ export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
     )
   }
 
-  const prepareBulkRequestData = () => {
-    const commonFilters: Partial<TestCaseGetFilters> = deleteEmptyParams({
-      is_archive: testCasesFilter.is_archive,
-      search: testCasesFilter.name_or_id,
-      labels: testCasesFilter.labels,
-      labels_condition: testCasesFilter.labels_condition,
-      suite: testCasesFilter.suites,
-      test_suite_created_before: testCasesFilter.test_suite_created_before,
-      test_suite_created_after: testCasesFilter.test_suite_created_after,
-      test_case_created_before: testCasesFilter.test_case_created_before,
-      test_case_created_after: testCasesFilter.test_case_created_after,
-    })
+  const resetSelectedTreeRows = () => {
+    dispatch(
+      updateSettings({
+        key: "tree",
+        settings: {
+          isResetSelection: true,
+          selectedLeafRows: [],
+          selectedRows: [],
+        },
+      })
+    )
+  }
 
-    const reqData: TestCaseBulkUpdate = {
-      filter_conditions: commonFilters,
-      included_cases: [] as number[],
-      excluded_cases: [] as number[],
-      current_suite: Number(suite?.id),
-      project: project.id,
-    }
-
-    if (tableSettings.isAllSelected) {
-      reqData.excluded_cases = tableSettings.excludedRows
-    } else {
-      reqData.included_cases = tableSettings.selectedRows
-    }
-
-    return reqData
+  const resetAllSelectedRows = () => {
+    resetSelectedTreeRows()
+    resetSelectedTableRows()
   }
 
   const handleClearFilter = () => {
     dispatch(updateFilterSettings({ selected: null }))
     dispatch(clearFilter())
   }
-
-  const handleMoveSubmit = async (selectedSuite: number, onLoading?: (toggle: boolean) => void) => {
-    const reqData = prepareBulkRequestData()
-    reqData.suite = selectedSuite
-    onLoading?.(true)
-    const result = await bulkUpdateTestCases(reqData)
-    //@ts-ignore
-    if (result.error) {
-      //@ts-ignore
-      throw new Error(result.error as unknown)
-    }
-    resetSelectedRows()
-    onLoading?.(false)
-    antdNotification.success("move-test-cases", {
-      description: t("entities:testCase.MoveSuccess"),
-    })
-  }
-
-  const handleBulkAddLabel = async (
-    labels: LabelInForm[],
-    operationType: ChangeLabelBulkOperationType
-  ) => {
-    const reqData = prepareBulkRequestData()
-    reqData.labels = labels
-    reqData.labels_action = operationType
-
-    const result = await bulkUpdateTestCases(reqData)
-    //@ts-ignore
-    if (result.error) {
-      //@ts-ignore
-      throw new Error(result.error as unknown)
-    }
-    resetSelectedRows()
-  }
-
-  const selectedCount =
-    tableSettings.isAllSelected && !tableSettings.excludedRows.length
-      ? tableSettings.count
-      : tableSettings.selectedRows.length
-
-  const bulkActions: MenuProps["items"] = [
-    {
-      key: "move",
-      label: (
-        <MoveEntity
-          onSubmit={handleMoveSubmit}
-          name="plan"
-          id="cases"
-          isLoading={isLoading}
-          title={t("Move cases to suite")}
-          label={t("Parent suite")}
-          placeholder={t("Search a test suite")}
-          // @ts-ignore
-          getEntities={getSuites}
-          // @ts-ignore
-          getAncestor={getAncestors}
-        />
-      ),
-    },
-    {
-      key: "addLabel",
-      label: <ChangeBulkLabel onSubmit={handleBulkAddLabel} selectedCount={selectedCount} />,
-    },
-  ]
 
   return (
     <Flex justify="space-between" align="center" style={{ width: "100%", marginBottom: 24 }}>
@@ -197,21 +106,7 @@ export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
           {t("Test Cases")}
         </Typography.Title>
         <CreateTestCase parentSuite={suite} loading={isFetching} />
-        {(tableSettings.isAllSelected || !!tableSettings.selectedRows.length) && (
-          <>
-            <Dropdown
-              menu={{ items: bulkActions }}
-              trigger={["click"]}
-              openClassName={styles.actionMenuButton}
-            >
-              <Button color="accent" style={{ gap: 4 }} data-testid="test-cases-actions-dropdown">
-                <span>{t("Actions")}</span>
-                <ChevronIcon width={16} height={16} className={styles.actionMenuArrow} />
-              </Button>
-            </Dropdown>
-            <span>{`${t("Items Selected")} ${selectedCount}`}</span>
-          </>
-        )}
+        <TestCaseBulkAction testSuiteId={suite?.id} resetSelectedRows={resetAllSelectedRows} />
       </Flex>
       <Flex gap={8} wrap justify="flex-end" align="center">
         <Flex gap={8} align="center">
@@ -224,7 +119,7 @@ export const TestSuiteDataActions = memo(({ suite, isFetching }: Props) => {
           <Tooltip title={t("Collapse All")}>
             <Button
               icon={<CollapseIcon width={18} height={18} color="var(--y-grey-35)" />}
-              onClick={() => testCasesTree.current?.closeAll()}
+              onClick={() => testCasesTree.current?.toggleAllRowsExpanded(false)}
               shape="square"
               color="secondary-linear"
               data-testid="test-cases-collapse-all-btn"

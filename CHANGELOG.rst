@@ -1,3 +1,56 @@
+Version 2.1.2
+--------------
+
+*Status: General availability*
+
+Release overview:
+
+Labels:
+
+* Implemented labels color coding, at the label creation user is allowed to choose label’s color which would be used for the label representation in another application's sections.
+* Refactored filtering by labels on the Test Plan creation screen. Starting from 2.1.2 version user can also filter by “Not” condition, the same as it can be done in other filters.
+
+Bulk Actions:
+
+* Added possibility to perform bulk actions from tree view for either Test Plans and Test Suites sections.
+
+Other:
+
+* Minor changes and bug fixes
+
+*Released: 19-12-2025*
+
+* Replace label filters on the test plan creation/editing form (TMS-1948)
+* Ability to collapse blocks in the Test Cases and Tests drawer (TMS-1977)
+* Enable bulk operations in the tree view (TMS-1978)
+* Add opening in a new browser tab for Attachments (TMS-1989)
+* Add a link to documentation on the login page (TMS-2018)
+
+Bug fixes:
+
+* Truncate the text in the label (TMS-1124)
+* Drop the image out of the description field (TMS-1697)
+* undefined when editing the test case after the session expires (TMS-1822)
+* Incorrect filter management when changing the currently selected one. (TMS-1830)
+* Tags are not displayed in text fields (TMS-1857)
+* Custom project attributes do not appear when editing the result (TMS-1858)
+* The tabular view of test plans is not updated when deleting a plan from the tree (TMS-1865)
+* The pictures in the description of test kits and plans do not scale to fit the screen (TMS-1866)
+* File extension disappears in the Attachments section when editing the test case (TMS-1868)
+* Long, loose names do not fit into the column (TMS-1878)
+* A small picture is scaled to the size of the viewing window (TMS-1914)
+* Pagination validation (TMS-1918)
+* The modal test set selection window freezes (TMS-1921)
+* The order of parameters is violated when creating parameterized test plans (TMS-1939)
+* Partial allocation is not removed when deleting the test case (TMS-1940)
+* Displays a panel with project icons on the general project screen (TMS-1951)
+* 504 when requesting a preview of a large test plan (TMS-1960)
+* The checkbox freezes when searching for labels. (TMS-1971)
+* Incorrect behavior of switches when calling the modal window again (TMS-1975)
+* The bulk operations button remains when changing the view (TMS-1984)
+* Long mark on the mass operation screen (TMS-1990)
+* Labels in the filter window are not displayed correctly (TMS-1991)
+
 Version 2.1.1
 --------------
 *Status: General availability*

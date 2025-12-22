@@ -1,7 +1,7 @@
 import { Space } from "antd"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 
 import { useUsersProjectAccessTable } from "./use-users-project-access-table"
@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const UsersProjectAccessTable = ({ isManageable = false }: Props) => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     columns,
     isLoading,
@@ -46,6 +46,8 @@ export const UsersProjectAccessTable = ({ isManageable = false }: Props) => {
         }}
         manualPagination
         manualFiltering
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="users-project-access-table"
       />
     </>

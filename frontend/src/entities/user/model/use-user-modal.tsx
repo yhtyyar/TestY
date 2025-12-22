@@ -12,8 +12,7 @@ import {
   selectUserModal,
 } from "entities/user/model"
 
-import { useErrors } from "shared/hooks"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 interface Inputs {
   username: string
@@ -39,6 +38,7 @@ interface ErrorData {
 
 export const useUserModal = () => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const dispatch = useAppDispatch()
   const isShow = useAppSelector(selectModalIsShow)
   const isEditMode = useAppSelector(selectModalIsEditMode)

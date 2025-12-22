@@ -58,7 +58,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-VERSION = '2.1.1'
+VERSION = '2.1.2'
 
 loaded_hosts = os.environ.get('ALLOWED_HOSTS', [])
 csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', [])

@@ -65,3 +65,19 @@
   height: 2px;
   background-color: var(--y-color-menu-background-active);
 }
+
+.logoWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nyHat {
+  position: absolute;
+  top: -16px;
+  right: -14px;
+  width: 40px;
+  height: auto;
+  pointer-events: none;
+}

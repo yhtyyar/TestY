@@ -1,0 +1,17 @@
+.tr {
+  height: 240px;
+}
+
+.emptyBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.emptyText {
+  color: var(--y-color-text-secondary);
+  line-height: 16px;
+  font-size: 14px;
+}

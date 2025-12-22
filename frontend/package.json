@@ -1,7 +1,7 @@
 {
   "name": "testy-frontend",
   "private": true,
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "scripts": {
     "start": "vite --host 0.0.0.0",
@@ -13,7 +13,7 @@
     "lint": "npm run lint:prettier && npm run lint:eslint",
     "lint:eslint": "eslint src",
     "lint:prettier": "prettier --check src",
-    "prepare": "cd ../ && husky install frontend/.husky",
+    "prepare": "husky install",
     "lint-staged": "lint-staged",
     "test": "vitest",
     "test:watch": "vitest --watch",
@@ -42,6 +42,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@reduxjs/toolkit": "^1.9.7",
     "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-virtual": "^3.13.12",
     "antd": "^5.24.5",
     "async-mutex": "^0.4.0",
     "dayjs": "^1.11.10",

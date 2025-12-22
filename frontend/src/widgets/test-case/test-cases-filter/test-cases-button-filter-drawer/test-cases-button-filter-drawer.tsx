@@ -151,7 +151,6 @@ export const TestCasesButtonFilterDrawer = () => {
           <FilterControl
             type="suites"
             filterData={testCasesFilter as unknown as Record<string, unknown>}
-            hasSomeFilter={!!testCasesFilterCount}
             filterSchema={filterTestCaseSchema}
             filterSettings={testCasesFilterSettings}
             updateFilter={handleUpdateFilterData}
@@ -211,6 +210,7 @@ export const TestCasesButtonFilterDrawer = () => {
                       field.onChange([])
                       triggerSubmit()
                     }}
+                    treeWrapperId="testcase-filter-drawer"
                   />
                 )}
               />

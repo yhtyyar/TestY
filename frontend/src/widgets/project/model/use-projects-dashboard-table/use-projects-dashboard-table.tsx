@@ -13,7 +13,7 @@ import { FolowProject, RequestProjectAccess } from "features/project"
 import DashboardIcon from "shared/assets/yi-icons/dashboard.svg?react"
 import TestPlansIcon from "shared/assets/yi-icons/test-plans.svg?react"
 import TestSuitesIcon from "shared/assets/yi-icons/test-suites.svg?react"
-import { ArchivedTag, HighLighterTesty, TableSorting } from "shared/ui"
+import { ArchivedTag, HighLighterTesty, TableSorting, usePagination } from "shared/ui"
 import { CheckedIcon } from "shared/ui/icons"
 import { testySortRequestFormat } from "shared/ui/table/utils"
 
@@ -33,10 +33,7 @@ export const useProjectsDashboardTable = ({ searchName }: { searchName: string }
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { userConfig } = useMeContext()
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
   const [columnSorting, setColumnSorting] = useState<SortingState>([
     { id: "is_private", desc: false },
   ])
@@ -47,8 +44,8 @@ export const useProjectsDashboardTable = ({ searchName }: { searchName: string }
     {
       is_archive: userConfig?.projects?.is_show_archived,
       favorites: userConfig?.projects?.is_only_favorite ?? false,
-      page: paginationParams.pageIndex + 1,
-      page_size: paginationParams.pageSize,
+      page: pagination.pageIndex + 1,
+      page_size: pagination.pageSize,
       name: searchName,
       ordering,
     },
@@ -181,9 +178,9 @@ export const useProjectsDashboardTable = ({ searchName }: { searchName: string }
     data: projects?.results ?? [],
     total: projects?.count ?? 0,
     isLoading: isFetching,
-    paginationParams,
+    paginationParams: pagination,
     columnSorting,
     setColumnSorting,
-    setPaginationParams,
+    setPaginationParams: setPagination,
   }
 }

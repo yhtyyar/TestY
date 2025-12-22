@@ -1,13 +1,14 @@
 import { createColumnHelper } from "@tanstack/react-table"
 import { Flex } from "antd"
 import dayjs from "dayjs"
-import { useState } from "react"
-import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
 import { useGetTestCaseHistoryChangesQuery } from "entities/test-case/api"
 
 import { UserAvatar, UserUsername } from "entities/user/ui"
+
+import { useMyTranslation } from "shared/hooks"
+import { usePagination } from "shared/ui"
 
 import { DataTable } from "widgets/data-table/data-table"
 
@@ -19,10 +20,9 @@ export const TestCaseHistoryChanges = ({
   testCase: TestCase
   onChangeVersion: (v: number) => Promise<void>
 }) => {
-  const { t } = useTranslation()
-  const [pagination, setPagination] = useState({
-    pageIndex: 0,
-    pageSize: 5,
+  const { t, language } = useMyTranslation(["translation", "common"])
+  const { pagination, setPagination } = usePagination({
+    defaultPageSize: 5,
   })
 
   const { data, isLoading } = useGetTestCaseHistoryChangesQuery({
@@ -94,6 +94,8 @@ export const TestCaseHistoryChanges = ({
       state={{
         pagination,
       }}
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       data-testid="history-tests-table"
     />
   )

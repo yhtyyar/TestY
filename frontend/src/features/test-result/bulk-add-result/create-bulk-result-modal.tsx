@@ -1,9 +1,10 @@
-import { Form, Modal } from "antd"
+import { Form } from "antd"
 import { useTranslation } from "react-i18next"
 
 import { useCreateBulkResultModal } from "features/test-result/bulk-add-result/use-create-bulk-result-modal"
 
 import { Button, Step, Stepper } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { AdditionalFieldsStepBody } from "./steps/additional-fields-step-body"
 import { CommonFieldsStepBody } from "./steps/common-fields-step-body"
@@ -53,7 +54,7 @@ export const CreateBulkResultModal = ({
   const isLastStep = currentStep === "additional"
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={
@@ -173,6 +174,6 @@ export const CreateBulkResultModal = ({
           </Step>
         </Stepper>
       </Form>
-    </Modal>
+    </NyModal>
   )
 }

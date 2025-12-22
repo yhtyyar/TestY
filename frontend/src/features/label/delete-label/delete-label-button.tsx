@@ -3,8 +3,7 @@ import { useTranslation } from "react-i18next"
 
 import { useDeleteLabelMutation } from "entities/label/api"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 interface Props {
@@ -13,6 +12,7 @@ interface Props {
 
 export const DeleteLabelButton = ({ label }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const [deleteLabel] = useDeleteLabelMutation()
 
   const handleDeleteLabel = () => {

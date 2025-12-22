@@ -1,5 +1,6 @@
 import { CloseOutlined, CopyOutlined } from "@ant-design/icons"
 import { Flex, message } from "antd"
+import { useTranslation } from "react-i18next"
 
 import FileLinear from "shared/assets/yi-icons/file-linear.svg?react"
 
@@ -16,6 +17,8 @@ export const AttachmentItemMin = ({
   handleAttachmentRemove,
   id,
 }: AttachmentItemProps) => {
+  const { t } = useTranslation()
+
   return (
     <Flex className={styles.row} align="center">
       <FileLinear className={styles.fileIcon} />
@@ -29,7 +32,7 @@ export const AttachmentItemMin = ({
           onClick={(e) => {
             e.stopPropagation()
             navigator.clipboard.writeText(attachment.link)
-            message.info("Attachment url copied to clipboard")
+            message.info(t("Attachment url copied to clipboard"))
           }}
           className={styles.copyBtn}
           data-testid={`attachment-copy-btn-${id}`}

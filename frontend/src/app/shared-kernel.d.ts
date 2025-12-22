@@ -1,5 +1,9 @@
 type Modify<T, R> = Omit<T, keyof R> & R
 
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
+}
+
 type Id = number
 type BaseParams = Record<string, string | undefined>
 interface ParamTestSuiteId extends BaseParams {
@@ -97,8 +101,7 @@ interface SelectData {
   label: React.ReactNode | string
   value: number
 }
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-type DataWithKey<T> = T & BaseData & { key: Key }
+type DataWithKey<T> = T & BaseData & { key: string }
 interface BaseResponse {
   id: string | Id
   name: string
@@ -158,4 +161,8 @@ type BaseTableParams<T> = T & {
 type BaseTreeParams<T = object> = T & {
   columns: ColumnParam[]
   visibleColumns: ColumnParam[]
+  selectedLeafRows: number[]
+  selectedRows: number[]
+  selectedCount: number
+  isResetSelection: boolean
 }

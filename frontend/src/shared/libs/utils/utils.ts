@@ -1,7 +1,4 @@
 import { UploadFile } from "antd/lib/upload"
-import i18n from "i18next"
-
-import { antdNotification } from "../antd-modals/antd-modals"
 
 export const getNumberToFixed = (value: number, fixed: number) => {
   return Number(value.toFixed(fixed))
@@ -18,13 +15,6 @@ export const fileReader = async (file: UploadFile<unknown>) => {
     url: imgUrl,
     file: file.originFileObj,
   }
-}
-
-export const initInternalError = (err: unknown) => {
-  console.error(err)
-  antdNotification.error("init-internal-error", {
-    description: i18n.t("Internal server error. Showing in console log."),
-  })
 }
 
 export const capitalizeFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
@@ -150,4 +140,8 @@ export const objectToArrayNumber = (obj: Record<string, boolean>) => {
 export const getByPath = (obj: unknown, path: string): unknown => {
   // @ts-ignore
   return path.split(".").reduce((acc, key) => acc?.[key], obj)
+}
+
+export const isAbortError = (error: unknown): boolean => {
+  return !!error && typeof error === "object" && "name" in error && error.name === "AbortError"
 }

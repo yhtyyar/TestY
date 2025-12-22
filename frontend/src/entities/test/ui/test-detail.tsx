@@ -5,7 +5,6 @@ import { Label, LabelList } from "entities/label/ui"
 
 import { AssignTo } from "features/test-result"
 
-import { colors } from "shared/config"
 import { Attachment, AttributesObjectView, Field, FieldWithHide, Steps } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -30,10 +29,10 @@ export const TestDetailInfo = ({
       <Flex justify="space-between" style={{ marginBottom: 20 }}>
         <div style={{ marginRight: 40 }}>
           <p className={styles.listLabel}>{t("Labels")}</p>
-          <LabelList showCount id={`${id}-labels`} rowCount={1} counterCls={styles.label}>
-            {testCase.labels?.map(({ name, id: labelId }) => (
+          <LabelList showCount id={`${id}-labels`} rowCount={1}>
+            {testCase.labels?.map(({ name, id: labelId, color }) => (
               <li key={labelId} data-testid={`${id}-label-item`}>
-                <Label content={name} color={colors.accent} className={styles.label} />
+                <Label content={name} color={color} truncate />
               </li>
             ))}
           </LabelList>

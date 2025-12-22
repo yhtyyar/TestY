@@ -1,5 +1,5 @@
 import { useStatuses } from "entities/status/model/use-statuses"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
@@ -11,9 +11,8 @@ import { useAttributesTestResult } from "entities/result/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useErrors } from "shared/hooks"
+import { useAntdModals, useErrors } from "shared/hooks"
 import { makeAttributesJson } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
 
 import { filterAttributesByStatus } from "../utils"
@@ -40,6 +39,7 @@ export const useEditCloneResultModal = ({
   onDirtyChange,
 }: UseEditResultModalProps) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const project = useProjectContext()
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const {
@@ -64,7 +64,7 @@ export const useEditCloneResultModal = ({
   const watchSteps = watch("steps") ?? {}
 
   const { testPlanId } = useParams<ParamTestPlanId>()
-  const { statuses, getStatusById, defaultStatus, statusesOptions } = useStatuses({
+  const { statuses, getStatusById, statusesOptions } = useStatuses({
     project: project.id,
   })
   const {
@@ -87,7 +87,7 @@ export const useEditCloneResultModal = ({
 
   const {
     attributes: allAttributes,
-    isLoading: isLoadingAttributes,
+    initAttributes,
     setAttributes,
     addAttribute,
     onAttributeChangeName,
@@ -97,7 +97,10 @@ export const useEditCloneResultModal = ({
     getAttributeJson,
   } = useAttributesTestResult({ mode: "edit", setValue })
 
-  const attributes = filterAttributesByStatus(allAttributes, statuses, watchStatus)
+  const allAttributesSortedByStatus = useMemo(() => {
+    if (!allAttributes.length) return []
+    return filterAttributesByStatus(allAttributes, statuses, watchStatus)
+  }, [allAttributes, watchStatus, statuses])
 
   const isStatusAvailable = (status: number) => !!getStatusById(status)
 
@@ -106,60 +109,41 @@ export const useEditCloneResultModal = ({
   }, [isDirty])
 
   useEffect(() => {
-    const resultSteps: Record<string, number> = {}
-    testResult.steps_results.forEach((result) => {
-      const stepId = String(result.id)
-      if (isStatusAvailable(result.status)) {
-        resultSteps[stepId] = result.status
-      }
-    })
-
-    const testResultAttachesWithUid = testResult.attachments.map((attach) => ({
-      ...attach,
-      uid: String(attach.id),
-    }))
-
-    if (testResultAttachesWithUid.length) {
+    // Set attachments if exists
+    if (testResult.attachments) {
+      const testResultAttachesWithUid = testResult.attachments.map((attach) => ({
+        ...attach,
+        uid: String(attach.id),
+      }))
       setAttachments(testResultAttachesWithUid)
+      setValue(
+        "attachments",
+        testResult.attachments.map((i) => i.id)
+      )
     }
 
-    const attrs = getAttributeJson(testResult.attributes)
-    setAttributes(attrs)
-
-    reset({
-      comment: testResult.comment,
-      status: getStatusById(testResult.status) ? testResult.status : undefined,
-      attributes: attrs,
-      steps: resultSteps,
-      attachments: testResult.attachments.map((i) => i.id),
-    })
-  }, [isClone, testResult, statuses])
-
-  useEffect(() => {
-    if (isLoadingAttributes) return
-
-    const shouldSetDefaultStatus = defaultStatus && !watchStatus
-    if (shouldSetDefaultStatus) {
-      setValue("status", defaultStatus.id, { shouldDirty: true })
-
-      const newSteps = testResult.steps_results.reduce(
-        (acc, result) => {
-          if (result.id) {
-            acc[result.id] = isStatusAvailable(result.status) ? result.status : defaultStatus.id
+    // Set steps if exists
+    if (testResult.steps_results.length && statuses.length) {
+      const resultSteps = testResult.steps_results.reduce(
+        (acc, stepResult) => {
+          if (isStatusAvailable(stepResult.status)) {
+            acc[String(stepResult.id)] = stepResult.status
           }
           return acc
         },
         {} as Record<string, number>
       )
 
-      reset({
-        comment: testResult.comment,
-        status: testResult.status,
-        attributes: getAttributeJson(testResult.attributes),
-        steps: newSteps,
-      })
+      setValue("steps", resultSteps)
     }
-  }, [defaultStatus, watchStatus, testResult.steps_results, isLoadingAttributes])
+
+    // Set attributes if exists
+    if (initAttributes.length) {
+      const attrs = getAttributeJson(testResult.attributes)
+      setAttributes(attrs)
+      setValue("attributes", attrs)
+    }
+  }, [testResult, statuses, initAttributes])
 
   const onCloseView = () => {
     onCancel()
@@ -185,7 +169,11 @@ export const useEditCloneResultModal = ({
     if (!testResult) return
     setErrors(null)
 
-    const { isSuccess, attributesJson, errors: attributesErrors } = makeAttributesJson(attributes)
+    const {
+      isSuccess,
+      attributesJson,
+      errors: attributesErrors,
+    } = makeAttributesJson(allAttributesSortedByStatus)
 
     if (!isSuccess) {
       setErrors({ attributes: JSON.stringify(attributesErrors) })
@@ -270,7 +258,7 @@ export const useEditCloneResultModal = ({
     setValue,
     handleCancel,
     register,
-    attributes,
+    attributes: allAttributesSortedByStatus,
     setAttributes,
     addAttribute,
     onAttributeChangeType,

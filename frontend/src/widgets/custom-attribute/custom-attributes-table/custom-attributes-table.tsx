@@ -2,7 +2,6 @@ import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
 import { Flex, Space } from "antd"
 import { useGetCustomAttributesQuery } from "entities/custom-attribute/api"
 import { useRef } from "react"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
 import { ChangeCustomAttribute, DeleteCustomAttribute } from "features/custom-attribute"
@@ -10,11 +9,12 @@ import { ChangeCustomAttribute, DeleteCustomAttribute } from "features/custom-at
 import { useProjectContext } from "pages/project"
 
 import { customAttributeTypes, customAttributesObject } from "shared/config/custom-attribute-types"
+import { useMyTranslation } from "shared/hooks"
 import { Button, TableFilterSearch, TableFilterSelect, TableSorting } from "shared/ui"
 
 const columnHelper = createColumnHelper<CustomAttribute>()
 export const CustomAttributesTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const project = useProjectContext()
 
   const { data = [], isFetching } = useGetCustomAttributesQuery({ project: project.id.toString() })
@@ -100,6 +100,8 @@ export const CustomAttributesTable = () => {
         isLoading={isFetching}
         data={data}
         columns={columns}
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="custom-attributes-table"
       />
     </>

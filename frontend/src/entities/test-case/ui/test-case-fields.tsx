@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 
 import { Label, LabelList } from "entities/label/ui"
 
-import { colors } from "shared/config"
 import { Attachment, AttributesObjectView, Field, FieldWithHide, Steps } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -19,10 +18,10 @@ export const TestCaseFields = ({ testCase }: TestCaseFieldsProps) => {
       {!!testCase.labels.length && (
         <div style={{ marginBottom: 8 }}>
           <div className={styles.listLabel}>{t("Labels")}</div>
-          <LabelList showCount id="test-case-labels" rowCount={2} counterCls={styles.label}>
-            {testCase.labels.map(({ name, id }) => (
+          <LabelList showCount id="test-case-labels" rowCount={2}>
+            {testCase.labels.map(({ name, id, color }) => (
               <li key={id} data-testid={`${id}-label-item`}>
-                <Label content={name} color={colors.accent} className={styles.label} />
+                <Label content={name} color={color} truncate />
               </li>
             ))}
           </LabelList>

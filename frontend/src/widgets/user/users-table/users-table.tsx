@@ -1,13 +1,13 @@
 import { Space } from "antd"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 
 import { useUsersTable } from "./use-users-table"
 
 export const UsersTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     tableRef,
     total,
@@ -42,6 +42,8 @@ export const UsersTable = () => {
         }}
         manualPagination
         manualFiltering
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="users-table"
       />
     </>

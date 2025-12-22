@@ -35,6 +35,7 @@ export const ProjectSettingsTabPage = () => {
 
       <div style={{ padding: 8 }}>
         <Field
+          id="is-editable"
           title={t("Is Editable")}
           value={
             <TagBoolean
@@ -43,8 +44,11 @@ export const ProjectSettingsTabPage = () => {
               falseText={t("No")}
             />
           }
+          colapsable={false}
         />
-        {project.settings.is_result_editable && <Field title={t("Edit time")} value={editTime} />}
+        {project.settings.is_result_editable && (
+          <Field id="edit-time" title={t("Edit time")} value={editTime} colapsable={false} />
+        )}
       </div>
     </>
   )

@@ -19,8 +19,7 @@ import { useAppDispatch, useAppSelector } from "app/hooks"
 
 import { UserSearchOption } from "entities/user/ui"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 interface UpdateData {
   user: string
@@ -29,6 +28,7 @@ interface UpdateData {
 
 export const useUserProjectAccessModal = () => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { projectId } = useParams<ParamProjectId>()
   const [selectedUser, setSelectedUser] = useState<SelectData | null>(null)
   const isOpenned = useAppSelector(selectIsRoleModalOpen)

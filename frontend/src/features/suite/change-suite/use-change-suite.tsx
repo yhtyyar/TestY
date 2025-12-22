@@ -1,5 +1,5 @@
-import { TreebarContext } from "processes"
-import { useContext, useEffect, useState } from "react"
+import { useTreebarProvider } from "processes/treebar-provider"
+import { useEffect, useState } from "react"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
@@ -11,19 +11,15 @@ import { useGetParametersQuery } from "entities/parameter/api"
 import {
   useCreateSuiteMutation,
   useLazyGetSuiteQuery,
-  useLazyGetTestSuiteAncestorsQuery,
   useUpdateTestSuiteMutation,
 } from "entities/suite/api"
 import { useAttributesTestSuite } from "entities/suite/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useConfirmBeforeRedirect, useErrors } from "shared/hooks"
+import { useAntdModals, useConfirmBeforeRedirect, useErrors } from "shared/hooks"
 import { makeAttributesJson, makeParametersForTreeView } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
-
-import { refetchNodeAfterCreateOrCopy, refetchNodeAfterEdit } from "widgets/[ui]/treebar/utils"
 
 type TabType = "general" | "attachments"
 
@@ -59,12 +55,13 @@ const formDefaultValues = {
 
 export const useChangeTestSuite = ({ type }: Props) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const project = useProjectContext()
   const navigate = useNavigate()
   const state = location.state as LocationState | null
-  const { treebar } = useContext(TreebarContext)!
+  const { treebar } = useTreebarProvider()
 
   const {
     handleSubmit,
@@ -116,34 +113,28 @@ export const useChangeTestSuite = ({ type }: Props) => {
 
   const { data: parameters } = useGetParametersQuery(project.id)
   const [getTestSuite, { isLoading: isLoadingGetTestSuite }] = useLazyGetSuiteQuery()
-  const [getAncestors] = useLazyGetTestSuiteAncestorsQuery()
   const [createTestSuite, { isLoading: isLoadingCreateTestSuite }] = useCreateSuiteMutation()
   const [updateTestSuite, { isLoading: isLoadingUpdateTestSuite }] = useUpdateTestSuiteMutation()
 
   const refetchParentAfterCreate = async (updatedEntity: Suite) => {
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterCreateOrCopy(treebar.current, updatedEntity)
+    await treebar.current.rowRefetch(
+      !updatedEntity.parent ? null : updatedEntity.parent.id.toString()
+    )
   }
 
   const refetchParentAfterEdit = async (updatedEntity: SuiteResponseUpdate, oldEntity: Suite) => {
-    if (!treebar.current) {
+    if (!updatedEntity.parent || !oldEntity.parent) {
+      await treebar.current.initRoot()
       return
     }
 
-    const fetchAncestors = (id: number) => {
-      return getAncestors(
-        {
-          id,
-          project: oldEntity.project,
-        },
-        false
-      ).unwrap()
+    if (updatedEntity.parent.id === oldEntity.parent.id) {
+      await treebar.current.rowRefetch(updatedEntity.parent.id.toString())
+      return
     }
 
-    await refetchNodeAfterEdit(treebar.current, updatedEntity, oldEntity, fetchAncestors)
+    await treebar.current.rowRefetch(updatedEntity.parent.id.toString())
+    await treebar.current.rowRefetch(oldEntity.parent.id.toString())
   }
 
   const handleTabChange = (activeKey: string) => {

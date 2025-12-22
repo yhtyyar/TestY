@@ -1,11 +1,17 @@
 import { HighLighterTesty } from "shared/ui"
 
+interface TreeParent {
+  id: number
+  name: string
+}
+
 export interface FilterWithKey extends TestPlanSuite {
   key: string
   value: string
   title: string | React.ReactNode
   titleText: string
   children: FilterWithKey[]
+  parent: TreeParent | null
 }
 
 export interface FilterFormat<T> {
@@ -21,7 +27,7 @@ export interface BaseTreeFilterNode {
   title?: string
   name?: string
   children: BaseTreeFilterNode[]
-  parent?: BaseTreeFilterNode
+  parent?: TreeParent
 }
 
 export const treeFilterFormat = <T extends BaseTreeFilterNode>({
@@ -45,6 +51,7 @@ export const treeFilterFormat = <T extends BaseTreeFilterNode>({
     titleText: node[titleKey] ?? "",
     name: node[titleKey] ?? "",
     children,
+    parent: node.parent ?? null,
   })
 
   for (const node of data) {

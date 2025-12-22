@@ -4,7 +4,7 @@ project = 'Testy'
 copyright = f'{datetime.now().year}, KNS Group LLC (YADRO)'
 
 # Версия и релиз
-version = '2.1.0'
+version = '2.1.2'
 
 # Имя rst файла
 master_doc = 'index'

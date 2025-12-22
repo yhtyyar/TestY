@@ -1,0 +1,4 @@
+.labelFilterSelect :global(.ant-select-selection-overflow) {
+  column-gap: 6px;
+  row-gap: 4px;
+}

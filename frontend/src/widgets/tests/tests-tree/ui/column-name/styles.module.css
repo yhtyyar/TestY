@@ -1,0 +1,19 @@
+.name {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  min-width: 120px;
+}
+
+.entityName {
+  line-height: 24px;
+  font-size: 14px;
+  color: var(--y-color-text-primary);
+}
+
+.activeLink {
+  font-weight: 600;
+  color: var(--y-color-accent-hover);
+}

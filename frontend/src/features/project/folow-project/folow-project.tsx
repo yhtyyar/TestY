@@ -4,11 +4,12 @@ import { useTranslation } from "react-i18next"
 
 import BookmarkIcon from "shared/assets/yi-icons/bookmark.svg?react"
 import BookmarkFillIcon from "shared/assets/yi-icons/bookmark_fill.svg?react"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 export const FolowProject = ({ project }: { project: Project }) => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { userConfig, updateConfig } = useMeContext()
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {

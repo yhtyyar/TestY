@@ -1,14 +1,14 @@
 import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 
 import styles from "./notifications-table.module.css"
 import { useNotificationsTable } from "./use-noitifications-table"
 
 export const NotificationsTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     tableRef,
     isLoading,
@@ -59,6 +59,8 @@ export const NotificationsTable = () => {
         }}
         rowBodyClassName={(row) => (row.original.unread ? styles.unreadRow : styles.readRow)}
         manualPagination
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="notifications-table"
       />
     </>

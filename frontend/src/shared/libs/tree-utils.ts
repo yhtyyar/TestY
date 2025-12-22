@@ -11,11 +11,6 @@ interface Node<T> {
   children: T[]
 }
 
-interface FilterRowsOptions {
-  isAllExpand?: boolean
-  isShowChildren?: boolean
-}
-
 export class TreeUtils {
   static deleteChildren = <T extends { children?: T[] }>(arr: T[]): T[] => {
     const childs = arr
@@ -47,14 +42,7 @@ export class TreeUtils {
       })
   }
 
-  static filterRows<T extends Data<T>>(
-    tableRows: T[],
-    searchText: string,
-    options: FilterRowsOptions = {
-      isAllExpand: true,
-      isShowChildren: true,
-    }
-  ): [T[], string[] | number[]] {
+  static filterRows<T extends Data<T>>(tableRows: T[], searchText: string): [T[], string[]] {
     const searchTextLower = searchText.toLowerCase()
 
     const filterNodes = (result: T[], currentNode: T): T[] => {
@@ -76,7 +64,7 @@ export class TreeUtils {
         } else if (titleLower.includes(searchTextLower)) {
           result.push({
             ...currentNode,
-            children: options.isShowChildren ? currentNode.children : [],
+            children: currentNode.children,
           })
         }
       }
@@ -85,21 +73,8 @@ export class TreeUtils {
     }
 
     const expandRows = (result: string[], currentRow: T): string[] => {
-      const titleLower = currentRow.title.toLowerCase()
-
-      if (titleLower.includes(searchTextLower) && !currentRow.children?.length) {
-        result.push(String(currentRow.key))
-        return result
-      }
-
       if (currentRow.children?.length) {
         const nodes = currentRow.children.reduce(expandRows, [])
-        // if need expand result push
-        // if need no expand just return result
-        if (!nodes.length) {
-          if (options.isAllExpand) result.push(String(currentRow.key))
-          return result
-        }
         result.push(String(currentRow.key), ...nodes)
       }
 
@@ -111,4 +86,52 @@ export class TreeUtils {
 
     return [filteredRows, expandedRows]
   }
+}
+
+export function filterRowsFunc<T extends Data<T>>(
+  tableRows: T[],
+  searchText: string
+): [T[], string[]] {
+  const searchTextLower = searchText.toLowerCase()
+
+  const filterNodes = (result: T[], currentNode: T): T[] => {
+    const titleLower = currentNode.title.toLowerCase()
+
+    if (titleLower.includes(searchTextLower) && !currentNode.children?.length) {
+      result.push(currentNode)
+      return result
+    }
+
+    if (currentNode.children?.length) {
+      const nodes = currentNode.children.reduce(filterNodes, [])
+
+      if (nodes.length) {
+        result.push({
+          ...currentNode,
+          children: nodes,
+        })
+      } else if (titleLower.includes(searchTextLower)) {
+        result.push({
+          ...currentNode,
+          children: currentNode.children,
+        })
+      }
+    }
+
+    return result
+  }
+
+  const expandRows = (result: string[], currentRow: T): string[] => {
+    if (currentRow.children?.length) {
+      const nodes = currentRow.children.reduce(expandRows, [])
+      result.push(String(currentRow.key), ...nodes)
+    }
+
+    return result
+  }
+
+  const filteredRows = tableRows.reduce(filterNodes, [])
+  const expandedRows = filteredRows.reduce(expandRows, [])
+
+  return [filteredRows, expandedRows]
 }

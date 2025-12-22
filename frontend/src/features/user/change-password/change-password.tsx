@@ -1,10 +1,11 @@
-import { Form, Input, Modal } from "antd"
+import { Form, Input } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import LockIcon from "shared/assets/yi-icons/lock-linear.svg?react"
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { useChangePassword } from "./use-change-password"
 
@@ -36,7 +37,7 @@ export const ChangePassword = () => {
       >
         <LockIcon width={20} height={20} />
       </Button>
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
         wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
         title={<span data-testid={`${TEST_ID}-modal-title`}>{t("Change password")}</span>}
@@ -109,7 +110,7 @@ export const ChangePassword = () => {
         {errors ? (
           <AlertError error={errors as ErrorObj} skipFields={["password", "confirm"]} />
         ) : null}
-      </Modal>
+      </NyModal>
     </>
   )
 }

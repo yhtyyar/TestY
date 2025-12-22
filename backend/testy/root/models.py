@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -137,6 +137,11 @@ class ServiceModelMixin(models.Model):
 
         for related_manager_name in related_managers:
             related_manager = getattr(self_copy, related_manager_name, None)
+            if related_manager_name == 'labeled_items':
+                cloned_related_objects[related_manager_name] = self._clone_labeled_items(
+                    related_manager=related_manager,
+                )
+                continue
             if not related_manager:
                 model_class = type(self_copy)
                 logger.warning(f'No manager {related_manager_name} on model {model_class}')
@@ -167,7 +172,15 @@ class ServiceModelMixin(models.Model):
             updated_at=self.updated_at,
         )
         for related_manager_name, instances in cloned_related_objects.items():
-            getattr(self_copy, related_manager_name).set(instances)
+            if related_manager_name == 'labeled_items':
+                for instance in instances:
+                    instance.object_id = self_copy.pk
+                    instance.content_object_history_id = (
+                        self_copy.history.first().history_id if hasattr(self_copy, 'history') else None
+                    )
+                    instance.save()
+            else:
+                getattr(self_copy, related_manager_name).set(instances)
         return self_copy
 
     @classmethod
@@ -180,6 +193,18 @@ class ServiceModelMixin(models.Model):
         for src_attach, cloned_attach in zip(related_manager.all(), cloned_objects):
             mapping[src_attach.id] = cloned_attach.id
         return mapping
+
+    @classmethod
+    def _clone_labeled_items(cls, related_manager):
+        old_labeled_items = related_manager.all()
+        new_labeled_items = []
+        for item in old_labeled_items:
+            new_item = deepcopy(item)
+            new_item.pk = None
+            new_item.object_id = None
+            new_item.content_object_history_id = None
+            new_labeled_items.append(new_item)
+        return new_labeled_items
 
 
 class SoftDeleteManager(models.Manager):

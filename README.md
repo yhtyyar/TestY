@@ -137,9 +137,10 @@ Compiled HTML documentation is available on running TestY by `/docs/` endpoint.
 
 <span style="color:red;">*<u>Note: before any upgrade please always back up database and attachments!</u>*</span>
 
-TestY supports two ways of upgrade procedure:
-* Upgrade from latest version of 1.x versions: 1.3.4 -> *LATEST* 
-* Upgrade from any previous version for same minor releases, for now it is 2.0.X -> *LATEST*
+TestY supports upgrade procedure for following cases:
+
+* Upgrade from latest version of 2.0.x versions: 2.0.x -> LATEST
+* Upgrade from latest version of 2.1.x versions: 2.1.x -> LATEST
 
 Other upgrade configurations may work but not tested by TestY Team.
 

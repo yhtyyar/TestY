@@ -6,14 +6,14 @@ import {
   useGetNotificationSettingsQuery,
 } from "entities/notifications/api"
 import { useState } from "react"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
-import { initInternalError } from "shared/libs"
+import { useAntdModals, useMyTranslation } from "shared/hooks"
 
 const columnHelper = createColumnHelper<NotificationSetting>()
 export const NotificationSettingsTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
+  const { initInternalError } = useAntdModals()
   const { data = [], isFetching } = useGetNotificationSettingsQuery()
   const [enableSetting] = useEnableNotificationMutation()
   const [disableSetting] = useDisableNotificationMutation()
@@ -65,6 +65,8 @@ export const NotificationSettingsTable = () => {
       isLoading={isFetching || isEnableLoading}
       data={data}
       columns={columns}
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       data-testid="notification-settings-table"
     />
   )

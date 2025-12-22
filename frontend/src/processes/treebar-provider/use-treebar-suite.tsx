@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react"
+import { Row, Table } from "@tanstack/react-table"
+import { useMemo, useRef } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 
 import { useLazyGetTestSuiteAncestorsQuery, useLazyGetTestSuitesQuery } from "entities/suite/api"
@@ -6,11 +7,11 @@ import { useLazyGetTestSuiteAncestorsQuery, useLazyGetTestSuitesQuery } from "en
 import { useProjectContext } from "pages/project"
 
 import { config } from "shared/config"
-import { LazyNodeProps, NodeId, TreeNodeFetcher } from "shared/libs/tree"
+import { useLazyAdvanced } from "shared/hooks"
+import { LazyTreeNodeParams, TreeNode } from "shared/ui/tree"
+import { makeTreeNodes } from "shared/ui/tree/utils"
 
 import { TreeSettings } from "widgets/[ui]/treebar/utils"
-
-import { makeNode } from "./utils"
 
 interface Props {
   treeSettings: TreeSettings
@@ -22,41 +23,59 @@ export const useTreebarSuite = ({ treeSettings, searchDebounce }: Props) => {
   const { testSuiteId } = useParams<ParamTestSuiteId>()
   const [searchParams] = useSearchParams()
 
-  const [getSuites] = useLazyGetTestSuitesQuery()
-  const [getAncestors] = useLazyGetTestSuiteAncestorsQuery()
+  const treebar = useRef<Table<TreeNode<Suite>>>(null)
 
-  const fetcher: TreeNodeFetcher<Suite, LazyNodeProps> = useCallback(
-    async (params, additionalParams) => {
-      const res = await getSuites(
-        {
-          project: project.id,
-          page: params.page,
-          parent: params.parent ? Number(params.parent) : null,
-          page_size: config.defaultTreePageSize,
-          ordering: `${treeSettings.suites.sortBy === "desc" ? "-" : ""}${treeSettings.suites.filterBy}`,
-          treesearch: searchDebounce,
-          _n: params._n,
-          ...additionalParams,
-        },
-        true
-      ).unwrap()
-      const data = makeNode(res.results, params)
-      return { data, nextInfo: res.pages, _n: params._n }
-    },
-    [treeSettings.suites, searchDebounce]
-  )
+  const [getSuites] = useLazyAdvanced(useLazyGetTestSuitesQuery)
+  const [getAncestors] = useLazyAdvanced(useLazyGetTestSuiteAncestorsQuery)
+
+  const loadChildren = async (row: Row<TreeNode<Suite>> | null, params: LazyTreeNodeParams) => {
+    const res = await getSuites(
+      {
+        project: project.id,
+        page: params.page,
+        parent: params.parent ? Number(params.parent) : null,
+        page_size: config.defaultTreePageSize,
+        ordering: `${treeSettings.suites.sortBy === "desc" ? "-" : ""}${treeSettings.suites.filterBy}`,
+        treesearch: searchDebounce,
+        _n: params._n,
+      },
+      true
+    ).unwrap()
+
+    const nodes = makeTreeNodes(
+      res.results,
+      {
+        title: (result) => result.name,
+      },
+      (result) => ({
+        page: params.page,
+        parent: params.parent,
+        can_open: result.has_children,
+        _n: params._n?.toString(),
+      })
+    )
+
+    return {
+      data: nodes,
+      params: {
+        page: params.page,
+        hasMore: !!res.pages.next,
+      },
+    }
+  }
 
   const initDependencies = useMemo(() => {
     return [searchParams.get("rootId"), searchDebounce, treeSettings.suites]
   }, [treeSettings.suites, searchDebounce, searchParams.get("rootId")])
 
-  const fetcherAncestors = (id: NodeId) => {
-    return getAncestors({ project: project.id, id: Number(id) }).unwrap()
+  const loadAncestors = async (rowId: string) => {
+    return getAncestors({ project: project.id, id: Number(rowId) }).unwrap()
   }
 
   return {
-    fetcher,
-    fetcherAncestors,
+    treebar,
+    loadChildren,
+    loadAncestors,
     initDependencies,
     skipInit: false,
     selectedId: testSuiteId ?? null,

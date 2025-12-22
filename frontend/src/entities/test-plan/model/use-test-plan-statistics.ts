@@ -1,3 +1,4 @@
+import { Row } from "@tanstack/react-table"
 import { useMeContext } from "processes"
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
@@ -13,7 +14,13 @@ import {
 
 import { NOT_ASSIGNED_FILTER_VALUE } from "shared/constants"
 import { useDebounce } from "shared/hooks"
-import { LazyNodeProps, TreeNodeUpdate } from "shared/libs/tree"
+import { TreeNode } from "shared/ui/tree"
+
+interface VisibleTests {
+  id: number
+  title: string
+  isRoot: boolean
+}
 
 interface UseTestPlanStatisticsProps {
   testPlanId: number | undefined
@@ -21,9 +28,7 @@ interface UseTestPlanStatisticsProps {
 }
 
 export const useTestPlanStatistics = ({ testPlanId, view }: UseTestPlanStatisticsProps) => {
-  const [visibleTests, setVisibleTests] = useState<
-    { id: number; title: string; isRoot: boolean }[]
-  >([])
+  const [visibleTests, setVisibleTests] = useState<VisibleTests[]>([])
   const debouncedVisibleTests = useDebounce(visibleTests, 1000)
   const [childStatistics, setChildStatistics] = useState<Record<string, ChildStatisticData>>({})
   const { projectId } = useParams<ParamProjectId>()
@@ -32,17 +37,17 @@ export const useTestPlanStatistics = ({ testPlanId, view }: UseTestPlanStatistic
   const { userConfig } = useMeContext()
   const period: EstimatePeriod = userConfig?.ui?.test_plan_estimate_everywhere_period ?? "minutes"
 
-  const onUpdate = (data: TreeNodeUpdate<Test | TestPlan, LazyNodeProps>[]) => {
+  const onUpdate = (data: Row<TreeNode<Test | TestPlan>>[]) => {
     if (view !== "tree") {
       return
     }
 
     const finalData = data
-      .filter(({ props }) => !props.isLeaf)
-      .map(({ data: nodeData, props }) => ({
-        id: nodeData.id,
-        title: nodeData.title,
-        isRoot: props.level === 0,
+      .filter((row) => !row.original.data.is_leaf)
+      .map((row) => ({
+        id: Number(row.original.id),
+        title: row.original.title,
+        isRoot: row.depth === 0,
       }))
     setVisibleTests(finalData)
   }

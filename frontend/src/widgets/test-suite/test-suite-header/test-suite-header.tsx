@@ -9,7 +9,6 @@ import { ChangeTestSuite, CopySuite, DeleteSuite } from "features/suite"
 
 import { useTestSuiteContext } from "pages/project"
 
-import { refetchNodeAfterCreateOrCopy, refetchNodeAfterDelete } from "widgets/[ui]/treebar/utils"
 import { TestCasesTreeContext } from "widgets/test-case"
 
 import styles from "./styles.module.css"
@@ -19,27 +18,20 @@ export const TestSuiteHeader = () => {
   const { t } = useTranslation()
   const { testSuiteId } = useParams<ParamTestSuiteId>()
   const { treebar } = useContext(TreebarContext)!
-  const { testCasesTree } = useContext(TestCasesTreeContext)!
+  const { tree: testCasesTree } = useContext(TestCasesTreeContext)!
   const { suite, isFetching } = useTestSuiteContext()
 
-  const refetchParentAfterCreateOrCopy = async (updatedEntity: CopySuiteResponse) => {
-    const id = updatedEntity?.parent?.id ?? null
-    await testCasesTree.current?.refetchNodeBy((node) => node.id === id && !node.props.isLeaf)
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterCreateOrCopy(treebar.current, updatedEntity)
+  const refetchParentAfterCopy = async (updatedEntity: CopySuiteResponse) => {
+    const id = updatedEntity?.parent?.id.toString() ?? null
+    await testCasesTree.current?.rowRefetch(id, (row) => !row.original.data.is_leaf)
+    treebar.current.rowRefetch(updatedEntity.parent?.id.toString())
   }
 
   const refetchParentAfterDelete = async (updatedEntity: Suite) => {
-    const id = updatedEntity?.parent?.id ?? null
-    await testCasesTree.current?.refetchNodeBy((node) => node.id === id && !node.props.isLeaf)
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterDelete(treebar.current, updatedEntity)
+    const id = updatedEntity?.parent?.id.toString() ?? null
+    await testCasesTree.current?.rowRefetch(id, (row) => !row.original.data.is_leaf)
+    const foundTreeRow = treebar.current?.getRow(updatedEntity.id.toString())
+    foundTreeRow.delete()
   }
 
   if (!testSuiteId) return null
@@ -72,7 +64,7 @@ export const TestSuiteHeader = () => {
       </Flex>
       <Flex wrap gap={8} style={{ marginBottom: 8 }}>
         <ChangeTestSuite suite={suite} type="create" />
-        <CopySuite suite={suite} onSubmit={refetchParentAfterCreateOrCopy} />
+        <CopySuite suite={suite} onSubmit={refetchParentAfterCopy} />
         <ChangeTestSuite suite={suite} type="edit" />
         <DeleteSuite suite={suite} onSubmit={refetchParentAfterDelete} />
       </Flex>

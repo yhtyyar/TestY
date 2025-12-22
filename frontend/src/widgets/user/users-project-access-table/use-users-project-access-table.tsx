@@ -12,7 +12,7 @@ import { UserAvatar } from "entities/user/ui/user-avatar/user-avatar"
 
 import { useProjectContext } from "pages/project"
 
-import { TableFilterSearch } from "shared/ui"
+import { TableFilterSearch, usePagination } from "shared/ui"
 
 import { DeleteUsetProjectAccess } from "../user-project-access-modal/delete-user-project-access"
 import { EditUserProjectAccess } from "../user-project-access-modal/edit-user-project-access"
@@ -22,10 +22,7 @@ export const useUsersProjectAccessTable = (isManageable: boolean) => {
   const { t } = useTranslation()
   const project = useProjectContext()
   const dispatch = useAppDispatch()
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const filterRequest = useMemo(() => {
@@ -42,8 +39,8 @@ export const useUsersProjectAccessTable = (isManageable: boolean) => {
     refetch,
   } = useGetMembersQuery({
     id: project.id,
-    page: paginationParams.pageIndex + 1,
-    page_size: paginationParams.pageSize,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
     ...filterRequest,
   })
 
@@ -164,10 +161,10 @@ export const useUsersProjectAccessTable = (isManageable: boolean) => {
     total: users?.pages.total ?? 0,
     isLoading,
     columns,
-    paginationParams,
+    paginationParams: pagination,
     columnFilters,
     setColumnFilters,
-    setPaginationParams,
+    setPaginationParams: setPagination,
     clearAll,
   }
 }

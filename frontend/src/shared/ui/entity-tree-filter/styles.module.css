@@ -7,14 +7,23 @@
   height: 100%;
 }
 
-.tree :global(.ant-tree-switcher) {
-  height: fit-content;
-}
-
 .arrow {
-  transition: transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.1s;
 }
 
 .arrow.expanded {
-  transform: rotate(0deg);
+  transform: rotate(90deg);
+}
+
+.treeRow {
+  cursor: pointer;
+}
+
+.treeRow:hover {
+  background-color: var(--y-color-background-alternative);
 }

@@ -1,7 +1,8 @@
-import { Select } from "antd"
 import classNames from "classnames"
-import { useTranslation } from "react-i18next"
+import { useMemo } from "react"
 
+import { localizationTable } from "../localization"
+import { useTableProvider } from "../table-provider/table-provider"
 import styles from "./styles.module.css"
 
 const BASE_DATA_TEST_ID = "table-page-sizer"
@@ -12,6 +13,7 @@ type Props = React.ComponentProps<"div"> &
     rowCount: number
     setPageSize: (value: number) => void
     currentSize: number
+    formatTotalText?: (count: number) => string
   }
 
 export const TablePageSizer = ({
@@ -20,11 +22,23 @@ export const TablePageSizer = ({
   rowCount,
   setPageSize,
   currentSize,
+  formatTotalText,
   ...props
 }: Props) => {
-  const { t } = useTranslation("common")
+  const { lang } = useTableProvider()
   const dataTestId = props["data-testid"] ? props["data-testid"] : BASE_DATA_TEST_ID
-  const options = sizes.map((i) => ({ label: i, value: i }))
+  const baseTotalText = localizationTable[lang].paginationTotal.replace(
+    "{{count}}",
+    String(rowCount)
+  )
+
+  const sizesList = useMemo(() => {
+    const foundInSizes = sizes.find((size) => size === currentSize)
+    if (!foundInSizes) {
+      return [currentSize, ...sizes].sort((a, b) => a - b)
+    }
+    return sizes
+  }, [sizes, currentSize])
 
   return (
     <div
@@ -32,16 +46,22 @@ export const TablePageSizer = ({
       data-testid={dataTestId}
       {...props}
     >
-      <Select
-        value={currentSize}
-        defaultValue={sizes[0]}
-        options={options}
-        onChange={setPageSize}
-        style={{ width: 66 }}
-        data-testid={`${dataTestId}-select`}
-      />
+      <div className={styles.selectWrapper}>
+        <select
+          className={styles.nativeSelect}
+          value={currentSize}
+          onChange={(e) => setPageSize(Number(e.target.value))}
+          data-testid={`${dataTestId}-select`}
+        >
+          {sizesList.map((size) => (
+            <option key={size} value={size}>
+              {size}
+            </option>
+          ))}
+        </select>
+      </div>
       <span data-testid={`${dataTestId}-total-count`}>
-        {t("paginationTotal", { count: rowCount })}
+        {formatTotalText ? formatTotalText(rowCount) : baseTotalText}
       </span>
     </div>
   )

@@ -1,6 +1,7 @@
-import "@tanstack/table-core"
+import "@tanstack/react-table"
+import { CSSProperties } from "react"
 
-declare module "@tanstack/table-core" {
+declare module "@tanstack/react-table" {
   interface TableState {
     rowActiveKey?: number
   }
@@ -9,5 +10,7 @@ declare module "@tanstack/table-core" {
     responsiveSize?: boolean
     fullWidth?: boolean
     useInDataTestId?: boolean
+    align?: "left" | "center" | "right"
+    wordBreak?: CSSProperties["wordBreak"]
   }
 }

@@ -12,7 +12,7 @@ import { UserAvatar } from "entities/user/ui/user-avatar/user-avatar"
 
 import { DeleteUser, EditUser } from "features/user"
 
-import { TableFilterSearch, TableFilterSelect } from "shared/ui"
+import { TableFilterSearch, TableFilterSelect, usePagination } from "shared/ui"
 import { CheckedIcon } from "shared/ui/icons"
 
 const columnHelper = createColumnHelper<User>()
@@ -20,10 +20,7 @@ export const useUsersTable = () => {
   const { t } = useTranslation()
   const user = useAppSelector(selectUser)
   const tableRef = useRef<Table<User> | null>(null)
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const filterRequest = useMemo(() => {
@@ -35,8 +32,8 @@ export const useUsersTable = () => {
   }, [columnFilters])
 
   const { data: users, isLoading } = useGetUsersQuery({
-    page: paginationParams.pageIndex + 1,
-    page_size: paginationParams.pageSize,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
     ...filterRequest,
   })
 
@@ -171,10 +168,10 @@ export const useUsersTable = () => {
     total: users?.pages.total ?? 0,
     isLoading,
     columns,
-    paginationParams,
+    paginationParams: pagination,
     columnFilters,
     setColumnFilters,
-    setPaginationParams,
+    setPaginationParams: setPagination,
     clearAll,
   }
 }

@@ -3,8 +3,7 @@ import { useState } from "react"
 import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 interface Props {
   onSubmit: (id: string) => Promise<void>
@@ -16,6 +15,7 @@ export interface UpdateData {
 
 export const useAssignToCommon = ({ onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { me } = useMeContext()
 
   const [selectedUser, setSelectedUser] = useState<SelectData | null>(null)

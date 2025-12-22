@@ -50,7 +50,6 @@ export const filterTestsSchema = z.object({
   test_plan_created_after: z.string().optional(),
   test_created_before: z.string().optional(),
   test_created_after: z.string().optional(),
-  _n: z.number().optional(),
 })
 
 export type TestDataFilters = z.infer<typeof filterTestsSchema>

@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -28,6 +28,7 @@
 # if any, to sign a "copyright disclaimer" for the program, if necessary.
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
+import re
 from typing import Any, Iterable, Protocol
 
 from core.choices import LabelsActionChoices
@@ -219,3 +220,19 @@ class BulkUpdateExcludeIncludeValidator:
     def __call__(self, attrs):
         if all([attrs.get(self.include_key), attrs.get(self.exclude_key)]):
             raise ValidationError(self.err_msg)
+
+
+class LabelColorValidator:
+    color_regex = [
+        '^#(?:[0-9a-fA-F]{3}){1,2}$',
+        r'^(rgb)?\(?([01]?\d\d?|2[0-4]\d|25[0-5])(\W+)([01]?\d\d?|2[0-4]\d|25[0-5])\W+(([01]?\d\d?|2[0-4]\d|25[0-5])\)?)$',  # noqa: E501
+        r'^(rgba)?\(([01]?\d\d?|2[0-4]\d|25[0-5])\W+([01]?\d\d?|2[0-4]\d|25[0-5])\W+([01]?\d\d?|2[0-4]\d|25[0-5])\W+?(1|0|0\.[0-9]+|\.[0-9]+)\)$',   # noqa: E501
+    ]
+
+    def __call__(self, color: str | None):
+        if not color:
+            return
+        for expression in self.color_regex:
+            if bool(re.search(expression, color, re.IGNORECASE)):
+                return
+        raise ValidationError('Invalid color expression.')

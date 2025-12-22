@@ -35,7 +35,7 @@ from typing import Any, Iterable
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.expressions import ArraySubquery
 from django.db.models import F, Func, IntegerField, OuterRef, Q, QuerySet, Value, Window
-from django.db.models.functions import RowNumber
+from django.db.models.functions import JSONObject, RowNumber
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 from utilities.sql import SubCount
@@ -67,9 +67,17 @@ class TestCaseSelector(BulkUpdateSelector):  # noqa: WPS214
         ).select_related(_SUITE).order_by('name')
         return self.annotate_versions(test_cases)
 
-    def case_list_with_label_names(self, filter_condition: dict[str, Any] | None = None) -> QuerySet[TestCase]:
+    def case_list_with_labels_annotation(self, filter_condition: dict[str, Any] | None = None) -> QuerySet[TestCase]:
         return self.case_list(filter_condition=filter_condition).annotate(
-            labels=ArrayAgg('labeled_items__label__name', distinct=True, filter=Q(labeled_items__is_deleted=False)),
+            labels=ArrayAgg(
+                JSONObject(
+                    name='labeled_items__label__name',
+                    id='labeled_items__label_id',
+                    color='labeled_items__label__color',
+                ),
+                filter=Q(labeled_items__is_deleted=False),
+                distinct=True,
+            ),
             label_ids=F('label__ids'),
         ).order_by('name')
 
@@ -287,7 +295,7 @@ class TestCaseStepSelector:
         return TestCaseStep.objects.filter(id=step_id).exists()
 
     @classmethod
-    def steps_by_ids_list(cls, ids: list[int], field_name: str) -> QuerySet[TestCaseStep]:
+    def steps_by_ids_list(cls, ids: Iterable[int], field_name: str) -> QuerySet[TestCaseStep]:
         return TestCaseStep.objects.filter(**{f'{field_name}__in': ids}).order_by(_ID)
 
     @classmethod

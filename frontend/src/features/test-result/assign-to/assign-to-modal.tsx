@@ -1,4 +1,4 @@
-import { Form, Modal } from "antd"
+import { Form } from "antd"
 import { useTranslation } from "react-i18next"
 
 import { UserSearchInput } from "entities/user/ui"
@@ -6,6 +6,7 @@ import { UserSearchInput } from "entities/user/ui"
 import { useProjectContext } from "pages/project"
 
 import { Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import styles from "./styles.module.css"
 import { UpdateData } from "./use-assign-to-common"
@@ -44,7 +45,7 @@ export const AssingToModal = ({
   const project = useProjectContext()
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={<span data-testid={`${TEST_ID}-modal-title`}>{t("entities:user.AssignTo")}</span>}
@@ -100,6 +101,6 @@ export const AssingToModal = ({
           </button>
         </Form.Item>
       </Form>
-    </Modal>
+    </NyModal>
   )
 }

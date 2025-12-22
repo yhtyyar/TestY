@@ -90,6 +90,10 @@ const initialState: TestCaseState = {
     tree: {
       columns: baseTreeColumns,
       visibleColumns: getVisibleColumns("test-cases-visible-cols-tree") ?? baseTreeColumns,
+      isResetSelection: false,
+      selectedCount: 0,
+      selectedLeafRows: [],
+      selectedRows: [],
     },
   },
 }

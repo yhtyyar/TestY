@@ -3,8 +3,9 @@ import { useNavigate, useParams } from "react-router-dom"
 
 import { useDeleteTestPlanMutation, useGetTestPlanDeletePreviewQuery } from "entities/test-plan/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useProjectContext } from "pages/project"
+
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]/modal-confirm-delete-archive"
@@ -18,6 +19,8 @@ interface Props {
 
 export const DeleteTestPlanModal = ({ isShow, setIsShow, testPlan, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
+  const { id: projectId } = useProjectContext()
   const { testPlanId } = useParams<ParamTestPlanId>()
   const [deleteTestPlan, { isLoading: isLoadingDelete }] = useDeleteTestPlanMutation()
   const { data, isLoading, status } = useGetTestPlanDeletePreviewQuery(String(testPlan.id), {
@@ -32,7 +35,7 @@ export const DeleteTestPlanModal = ({ isShow, setIsShow, testPlan, onSubmit }: P
 
   const handleDelete = async () => {
     try {
-      await deleteTestPlan(testPlan.id).unwrap()
+      await deleteTestPlan({ testPlanId: testPlan.id, projectId }).unwrap()
       antdNotification.success("delete-test-plan", {
         description: (
           <AlertSuccessChange

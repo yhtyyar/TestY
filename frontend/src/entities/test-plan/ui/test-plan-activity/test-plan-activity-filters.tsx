@@ -1,9 +1,9 @@
 import { Space, Typography } from "antd"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
 import { useTestPlanActivity, useTestPlanActivityFilters } from "entities/test-plan/model"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 
 export const TestPlanActivityFilters = ({
@@ -11,7 +11,7 @@ export const TestPlanActivityFilters = ({
 }: {
   testPlanActivity: ReturnType<typeof useTestPlanActivity>
 }) => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     filters,
     columnFilters,
@@ -63,6 +63,8 @@ export const TestPlanActivityFilters = ({
         manualSorting
         paginationVisible={false}
         tableBodyVisible={false}
+        lang={language}
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
         data-testid="test-plan-activity-filters"
       />
     </div>

@@ -56,7 +56,8 @@ from testy.tests_description.api.v2.serializers import (
     TestSuiteRetrieveSerializer,
     TestSuiteSerializer,
 )
-from testy.tests_description.models import TestSuite
+from testy.tests_description.filters.cases import UnionCaseFilter
+from testy.tests_description.models import TestCase, TestSuite
 from testy.tests_representation.api.v2.serializers import (
     TestPlanOutputSerializer,
     TestPlanUnionSerializer,
@@ -64,6 +65,7 @@ from testy.tests_representation.api.v2.serializers import (
     TestSerializer,
     TestUnionSerializer,
 )
+from testy.tests_representation.filters.tests import UnionTestFilter
 from testy.tests_representation.models import Test, TestPlan
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.utilities.time import WorkTimeProcessor
@@ -157,6 +159,7 @@ class TestPlanUnionMockSerializer(TestPlanUnionSerializer):
     has_children = SerializerMethodField()
     title = SerializerMethodField()
     estimate = SerializerMethodField()
+    union_count = SerializerMethodField()
 
     def get_is_leaf(self, instance):
         return False
@@ -168,6 +171,15 @@ class TestPlanUnionMockSerializer(TestPlanUnionSerializer):
         if parameters := instance.parameters.all().order_by('id'):
             return '{0} [{1}]'.format(instance.name, ', '.join([parameter.data for parameter in parameters]))
         return instance.name
+
+    def get_union_count(self, instance):
+        request = self.context.get('request')
+        descendants_ids = instance.get_descendants(include_self=True).values('id')
+        return UnionTestFilter(
+            request.GET,
+            request=request,
+            queryset=Test.objects.filter(plan_id__in=descendants_ids),
+        ).qs.count()
 
     def get_estimate(self, instance: TestPlan):
         estimate_sum = (
@@ -226,6 +238,7 @@ class TestUnionMockSerializer(TestUnionSerializer):
 class TestSuiteUnionMockSerializer(TestSuiteMockOutputSerializer):
     is_leaf = SerializerMethodField()
     has_children = SerializerMethodField()
+    union_count = SerializerMethodField()
     url = None
 
     def get_is_leaf(self, instance):
@@ -233,6 +246,15 @@ class TestSuiteUnionMockSerializer(TestSuiteMockOutputSerializer):
 
     def get_has_children(self, instance):
         return instance.child_test_suites.exists() or instance.test_cases.exists()
+
+    def get_union_count(self, instance):
+        request = self.context.get('request')
+        descendants_ids = instance.get_descendants(include_self=True).values('id')
+        return UnionCaseFilter(
+            request.GET,
+            request=request,
+            queryset=TestCase.objects.filter(suite_id__in=descendants_ids),
+        ).qs.count()
 
     class Meta:
         model = TestSuite
@@ -251,6 +273,7 @@ class TestSuiteUnionMockSerializer(TestSuiteMockOutputSerializer):
             'has_children',
             'created_at',
             'suite_path',
+            'union_count',
         )
 
 

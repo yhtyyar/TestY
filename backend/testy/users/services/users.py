@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -39,6 +39,7 @@ from testy.users.models import User
 UserModel = get_user_model()
 
 _AVATAR = 'avatar'
+_PROJECTS = 'projects'
 
 
 class UserService(MediaService):
@@ -94,3 +95,16 @@ class UserService(MediaService):
         user.full_clean(exclude=['password'])
         user.save()
         return user.config
+
+    @classmethod
+    def add_project_id_to_favorite(cls, user: User, project_id: int) -> None:
+        user_config = user.config or {}
+        if _PROJECTS not in user_config:
+            user_config[_PROJECTS] = {}
+        projects_config = user_config[_PROJECTS]
+        if favorite_projects := projects_config.get('favorite'):
+            favorite_projects.append(project_id)
+        else:
+            projects_config['favorite'] = [project_id]
+        user.config = user_config
+        user.save(update_fields=['config'])

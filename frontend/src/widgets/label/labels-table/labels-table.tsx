@@ -1,22 +1,23 @@
 import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
 import { Flex, Space } from "antd"
 import { useRef } from "react"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
 import { useGetLabelsQuery } from "entities/label/api"
 import { getLabelTypeTextByNumber } from "entities/label/lib"
+import { Label } from "entities/label/ui"
 
 import { DeleteLabelButton, EditLabelButton } from "features/label"
 
 import { useProjectContext } from "pages/project"
 
+import { useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 import { TableFilterSearch, TableFilterSelect, TableSorting } from "shared/ui"
 
 const columnHelper = createColumnHelper<Label>()
 export const LabelsTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const project = useProjectContext()
 
   const { data: labels = [], isFetching } = useGetLabelsQuery({ project: project.id.toString() })
@@ -50,6 +51,7 @@ export const LabelsTable = () => {
           </Flex>
         </Flex>
       ),
+      cell: ({ row, getValue }) => <Label content={getValue()} color={row.original.color} />,
       meta: {
         responsiveSize: true,
       },
@@ -109,6 +111,8 @@ export const LabelsTable = () => {
         data={labels}
         columns={columns}
         isLoading={isFetching}
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="labels-table"
       />
     </>

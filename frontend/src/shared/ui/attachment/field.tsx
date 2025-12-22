@@ -2,6 +2,7 @@ import { FileOutlined } from "@ant-design/icons"
 import { Col, Divider, Row } from "antd"
 import { useTranslation } from "react-i18next"
 
+import { AttachmentItemInfo } from "./item/item-info"
 import styles from "./styles.module.css"
 
 interface IAttachmentsFieldProps {
@@ -35,27 +36,7 @@ export const AttachmentField = ({
             <Col flex="0 1 40px" style={{ padding: 8 }}>
               <FileOutlined style={{ color: "#096dd9", fontSize: 32 }} />
             </Col>
-            <Col
-              flex="1 1"
-              style={{
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <a target="blank" href={attachment.link} style={{ margin: 0, fontSize: 13 }}>
-                {attachment.filename}
-              </a>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  color: "#828282",
-                }}
-              >
-                {attachment.size_humanize}
-              </p>
-            </Col>
+            <AttachmentItemInfo attachment={attachment} />
           </Row>
         )
       })}

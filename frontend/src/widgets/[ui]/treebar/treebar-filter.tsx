@@ -1,6 +1,5 @@
 import { Divider, Flex, Radio, Space, Typography } from "antd"
-import { TreebarContext } from "processes"
-import { useContext } from "react"
+import { useTreebarProvider } from "processes/treebar-provider"
 import { useTranslation } from "react-i18next"
 
 import { Toggle } from "shared/ui"
@@ -11,7 +10,7 @@ interface Props {
 
 export const TreebarFilter = ({ activeTab }: Props) => {
   const { t } = useTranslation()
-  const { treeSettings, updateTreeSettings } = useContext(TreebarContext)!
+  const { treeSettings, updateTreeSettings } = useTreebarProvider()
 
   const BASE_PLANS_FILTER_OPTIONS = [
     { value: "name", label: t("Name") },

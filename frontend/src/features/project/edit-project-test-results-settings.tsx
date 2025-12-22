@@ -1,5 +1,5 @@
 import { EditOutlined } from "@ant-design/icons"
-import { Form, Input, Modal, Switch, Tooltip, notification } from "antd"
+import { Form, Input, Switch, Tooltip, notification } from "antd"
 import { useEffect, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -9,6 +9,7 @@ import { useUpdateProjectJsonMutation } from "entities/project/api"
 import { config } from "shared/config"
 import { ErrorObj, useErrors } from "shared/hooks"
 import { AlertError, AlertSuccessChange, Button, InfoTooltipBtn } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 interface Props {
   project: Project
@@ -94,7 +95,7 @@ export const EditProjectTestResultsSettings = ({ project }: Props) => {
       <Button color="secondary-linear" icon={<EditOutlined />} onClick={() => setIsShow(true)}>
         {t("Edit")}
       </Button>
-      <Modal
+      <NyModal
         className="edit-test-results-settings-modal"
         title={t("Edit project test results settings")}
         open={isShow}
@@ -170,7 +171,7 @@ export const EditProjectTestResultsSettings = ({ project }: Props) => {
             )}
           </Form>
         </>
-      </Modal>
+      </NyModal>
     </>
   )
 }

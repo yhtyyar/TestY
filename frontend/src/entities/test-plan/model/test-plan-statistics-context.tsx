@@ -1,11 +1,13 @@
+import { Row } from "@tanstack/react-table"
 import { ReactNode, createContext, useContext } from "react"
 
-import { LazyNodeProps, TreeNodeUpdate } from "shared/libs/tree"
+import { TreeNode } from "shared/ui/tree"
 
 interface TestPlanStatisticsContextType {
   childStatistics?: Record<string, ChildStatisticData>
   isLoading: boolean
-  onUpdate?: (data: TreeNodeUpdate<Test | TestPlan, LazyNodeProps>[]) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdate?: (data: Row<TreeNode<Test | TestPlan, any>>[]) => void
 }
 
 const TestPlanStatisticsContext = createContext<TestPlanStatisticsContextType | undefined>(

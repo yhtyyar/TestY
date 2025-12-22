@@ -28,32 +28,44 @@
 # if any, to sign a "copyright disclaimer" for the program, if necessary.
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
-from core.constants import CUSTOM_ATTRIBUTE_SUITE_SPECIFIC
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django_filters import rest_framework as filters
 from notifications.models import Notification
 from rest_framework.filters import OrderingFilter, SearchFilter
 
+from testy.core.constants import CUSTOM_ATTRIBUTE_SUITE_SPECIFIC
 from testy.core.models import Attachment, CustomAttribute, Label, NotificationSetting, Project, ProjectIntegration
-from testy.core.selectors.projects import ProjectSelector
 from testy.filters import ArchiveFilterMixin, SearchView, case_insensitive_filter, ordering_filter, project_filter
 from testy.utilities.request import get_user_favorites
 from testy.utilities.string import parse_int
 
+_NAME = 'name'
+_ID = 'id'
 
-class ProjectOrderingFilter(OrderingFilter):
+
+class FavoriteProjectAnnotationMixin:
+    @classmethod
+    def favorites_annotation(cls, favorite_conditions: Q) -> Case:
+        return Case(
+            When(favorite_conditions, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+
+
+class ProjectOrderingFilter(OrderingFilter, FavoriteProjectAnnotationMixin):
 
     def filter_queryset(self, request, queryset, view):
         ordering = self.get_ordering(request, queryset, view)
         favorite_conditions = Q(pk__in=get_user_favorites(request))
         if ordering:
-            queryset = queryset.annotate(priority=ProjectSelector.favorites_annotation(favorite_conditions))
+            queryset = queryset.annotate(priority=self.favorites_annotation(favorite_conditions))
             return queryset.order_by('priority', *ordering)
 
         return queryset
 
 
-class ProjectFilter(ArchiveFilterMixin, filters.FilterSet):
+class ProjectFilter(ArchiveFilterMixin, FavoriteProjectAnnotationMixin, filters.FilterSet):
     name = case_insensitive_filter()
     favorites = filters.BooleanFilter(
         'pk',
@@ -63,20 +75,18 @@ class ProjectFilter(ArchiveFilterMixin, filters.FilterSet):
 
     class Meta:
         model = Project
-        fields = ('name', 'favorites')
+        fields = (_NAME, 'favorites')
 
     def display_favorites(self, queryset, field_name, only_favorites):
         favorite_conditions = Q(**{f'{field_name}__in': get_user_favorites(self.request)})
 
         if only_favorites:
-            return queryset.filter(favorite_conditions).order_by('name')
+            return queryset.filter(favorite_conditions).order_by(_NAME)
 
         return (
             queryset
-            .annotate(
-                priority=ProjectSelector.favorites_annotation(favorite_conditions),
-            )
-            .order_by('priority', 'name')
+            .annotate(priority=self.favorites_annotation(favorite_conditions))
+            .order_by('priority', _NAME)
         )
 
 
@@ -93,8 +103,8 @@ class LabelFilter(filters.FilterSet):
 
     ordering = ordering_filter(
         fields=(
-            ('id', 'id'),
-            ('name', 'name'),
+            (_ID, _ID),
+            (_NAME, _NAME),
             ('type', 'type'),
         ),
     )
@@ -134,7 +144,7 @@ class CustomAttributeFilter(filters.FilterSet):
 class NotificationFilter(filters.FilterSet):
     ordering = ordering_filter(
         fields=(
-            ('id', 'id'),
+            (_ID, _ID),
             ('unread', 'unread'),
         ),
     )
@@ -181,4 +191,4 @@ class ProjectIntegrationFilterSet(filters.FilterSet):
 
     class Meta:
         model = ProjectIntegration
-        fields = ('project', 'name', 'page_type')
+        fields = ('project', _NAME, 'page_type')

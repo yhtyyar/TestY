@@ -19,7 +19,7 @@ import { Label } from "entities/label/ui"
 
 import { useGetSuiteTestCasesQuery } from "entities/suite/api"
 
-import { useGetTestPlanTestCasesQuery } from "entities/test-case/api"
+import { useGetTestSuiteTestCasesQuery } from "entities/test-case/api"
 import {
   selectDrawerTestCase,
   selectFilter,
@@ -31,7 +31,6 @@ import {
 
 import { useProjectContext } from "pages/project"
 
-import { colors } from "shared/config"
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH } from "shared/constants"
 import { useRowSelection } from "shared/hooks"
 import { ArchivedTag, HighLighterTesty } from "shared/ui"
@@ -84,20 +83,22 @@ export const useTestCasesTable = () => {
     }
   }, [testSuiteId])
 
-  const queryParams = {
-    project: project.id.toString(),
-    suite: testCasesFilter.suites,
-    is_archive: testCasesFilter.is_archive,
-    labels: testCasesFilter.labels,
-    not_labels: testCasesFilter.not_labels,
-    labels_condition: testCasesFilter.labels_condition,
-    page: tableSettings.page,
-    page_size: tableSettings.page_size,
-    ordering: testCasesOrdering,
-    search: testCasesFilter.name_or_id,
-    show_descendants: true,
-    _n: testCasesFilter._n,
-  }
+  const queryParams = useMemo(
+    () => ({
+      project: project.id.toString(),
+      suite: testCasesFilter.suites,
+      is_archive: testCasesFilter.is_archive,
+      labels: testCasesFilter.labels,
+      not_labels: testCasesFilter.not_labels,
+      labels_condition: testCasesFilter.labels_condition,
+      page: tableSettings.page,
+      page_size: tableSettings.page_size,
+      ordering: testCasesOrdering,
+      search: testCasesFilter.name_or_id,
+      show_descendants: true,
+    }),
+    [project.id, testCasesFilter, tableSettings, testCasesOrdering]
+  )
 
   const { data: suitesData, isFetching: isSuitesFetching } = useGetSuiteTestCasesQuery(
     {
@@ -109,7 +110,7 @@ export const useTestCasesTable = () => {
     }
   )
   const { data: suitesFromRoot, isFetching: isSuitesFromRootFetching } =
-    useGetTestPlanTestCasesQuery(queryParams, {
+    useGetTestSuiteTestCasesQuery(queryParams, {
       skip: !!testSuiteId || isWaitingForChangeSuite,
     })
 
@@ -137,6 +138,10 @@ export const useTestCasesTable = () => {
         )
       },
     })
+
+  useEffect(() => {
+    resetAll()
+  }, [data])
 
   useEffect(() => {
     if (data) {
@@ -256,7 +261,7 @@ export const useTestCasesTable = () => {
           <ul className={styles.list}>
             {getValue().map((label) => (
               <li key={label.id}>
-                <Label content={label.name} color={colors.accent} />
+                <Label content={label.name} color={label.color} truncate />
               </li>
             ))}
           </ul>

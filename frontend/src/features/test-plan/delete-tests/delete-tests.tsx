@@ -2,8 +2,7 @@ import { DeleteOutlined } from "@ant-design/icons"
 import { Flex, Input } from "antd"
 import { useTranslation } from "react-i18next"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 
 interface Props {
   onSubmit: () => Promise<void>
@@ -12,6 +11,7 @@ interface Props {
 
 export const DeleteTests = ({ onSubmit, count }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
 
   const handleModalConfirm = async () => {
     try {

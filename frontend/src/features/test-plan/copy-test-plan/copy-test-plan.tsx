@@ -1,5 +1,5 @@
 import { CopyOutlined } from "@ant-design/icons"
-import { Alert, Checkbox, Form, Input, Modal } from "antd"
+import { Alert, Checkbox, Form, Input } from "antd"
 import dayjs from "dayjs"
 import { ReactNode, memo } from "react"
 import { Controller } from "react-hook-form"
@@ -10,6 +10,7 @@ import { useLazyGetTestPlanAncestorsQuery, useLazyGetTestPlansQuery } from "enti
 
 import { Button, DateFormItem } from "shared/ui"
 import { LazyTreeSearchFormItem } from "shared/ui/form-items"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import styles from "./styles.module.css"
 import { useTestPlanCopyModal } from "./use-copy-test-plan"
@@ -62,7 +63,7 @@ export const CopyTestPlan = memo(({ as, testPlan, onSubmit }: Props) => {
           {t("Copy")}
         </Button>
       )}
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
         wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
         title={
@@ -171,7 +172,7 @@ export const CopyTestPlan = memo(({ as, testPlan, onSubmit }: Props) => {
         {!!errors.length && (
           <Alert style={{ marginBottom: 0, marginTop: 16 }} description={errors} type="error" />
         )}
-      </Modal>
+      </NyModal>
     </>
   )
 })

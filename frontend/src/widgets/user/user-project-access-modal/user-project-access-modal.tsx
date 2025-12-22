@@ -1,4 +1,4 @@
-import { Form, Modal, Select } from "antd"
+import { Form, Select } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -6,6 +6,7 @@ import { UserSearchInput } from "entities/user/ui"
 
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { useUserProjectAccessModal } from "./use-user-project-access-modal"
 
@@ -30,7 +31,7 @@ export const UserProjectAccessModal = () => {
   } = useUserProjectAccessModal()
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={<span data-testid={`${TEST_ID}-modal-title`}>{title}</span>}
@@ -107,6 +108,6 @@ export const UserProjectAccessModal = () => {
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

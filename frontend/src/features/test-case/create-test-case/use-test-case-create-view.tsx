@@ -5,8 +5,6 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
 import { useAttachments } from "entities/attachment/model"
 
-import { useTestCaseFormLabels } from "entities/label/model"
-
 import { useLazyGetSuiteQuery } from "entities/suite/api"
 
 import { useCreateTestCaseMutation } from "entities/test-case/api"
@@ -14,9 +12,8 @@ import { useAttributesTestCase } from "entities/test-case/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useConfirmBeforeRedirect, useErrors } from "shared/hooks"
+import { useAntdModals, useConfirmBeforeRedirect, useErrors } from "shared/hooks"
 import { makeAttributesJson } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertSuccessChange } from "shared/ui"
 
 import { formattingAttachmentForSteps, sortingSteps } from "../utils"
@@ -65,6 +62,7 @@ const getDefaultValues = (projectId: number) => ({
 
 export const useTestCaseCreateView = () => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const project = useProjectContext()
   const location = useLocation()
   const navigate = useNavigate()
@@ -104,11 +102,6 @@ export const useTestCaseCreateView = () => {
     onChange,
     onReset,
   } = useAttachments<TestCaseFormData>(control, project.id)
-  const labelProps = useTestCaseFormLabels({
-    setValue,
-    testCase: null,
-    isEditMode: false,
-  })
 
   const {
     attributes,
@@ -154,8 +147,6 @@ export const useTestCaseCreateView = () => {
     reset()
     onReset()
     resetAttributes()
-    labelProps.setLabels([])
-    labelProps.setSearchValue("")
   }
 
   const handleTabChange = (activeKey: string) => {
@@ -192,6 +183,7 @@ export const useTestCaseCreateView = () => {
 
       const newTestCase = await createTestCase({
         ...dataForm,
+        labels: dataForm.labels?.map((i) => ({ name: i.label, id: i.value })),
         project: project.id,
         is_steps: !!dataForm.is_steps,
         scenario: dataForm.is_steps ? undefined : dataForm.scenario,
@@ -271,7 +263,6 @@ export const useTestCaseCreateView = () => {
     tab,
     attributes,
     selectedSuite,
-    labelProps,
     onLoad,
     onRemove,
     onChange,

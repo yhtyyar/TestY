@@ -1,24 +1,21 @@
-import { FileDoneOutlined, FolderOpenOutlined } from "@ant-design/icons"
-
 export const makeTestSuitesWithCasesForTreeView = (
   items: SuiteWithCases[],
   testCases: TestCase[] = []
-): DataWithKey<SuiteWithCases[]> => {
+): DataWithKey<SuiteWithCases>[] => {
   const testSuitesTreeView: SuiteWithCases[] = items.map((item) => {
     return {
       ...item,
       key: `TS${item.id}`,
       title: item.name,
-      icon: <FolderOpenOutlined />,
       children: makeTestSuitesWithCasesForTreeView(item.children, item.test_cases),
     }
   })
 
   const testCasesTreeView = testCases.map((item) => {
     return {
+      id: String(item.id),
       key: String(item.id),
       title: item.name,
-      icon: <FileDoneOutlined />,
       labels: item.labels,
       is_archive: item.is_archive,
     }

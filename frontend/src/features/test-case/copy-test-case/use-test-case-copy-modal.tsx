@@ -5,8 +5,7 @@ import { useParams } from "react-router-dom"
 
 import { useCopyTestCaseMutation } from "entities/test-case/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 interface FormTestCaseCopy {
@@ -21,6 +20,7 @@ interface Props {
 
 export const useTestCaseCopyModal = ({ testCase, onSubmit: cbOnSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
   const { testSuiteId } = useParams<ParamProjectId & ParamTestSuiteId>()
   const [isShow, setIsShow] = useState(false)
   const [copyTestCase, { isLoading }] = useCopyTestCaseMutation()

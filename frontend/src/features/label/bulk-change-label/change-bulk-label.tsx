@@ -7,7 +7,7 @@ import { useModal } from "shared/hooks"
 import { ChangeBulkLabelModal } from "./change-bulk-label-modal"
 
 interface Props {
-  onSubmit: (labels: LabelInForm[], operationType: ChangeLabelBulkOperationType) => Promise<void>
+  onSubmit: (labels: SelectedLabel[], operationType: ChangeLabelBulkOperationType) => Promise<void>
   selectedCount: number
 }
 

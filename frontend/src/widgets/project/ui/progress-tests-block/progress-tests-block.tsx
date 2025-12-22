@@ -1,13 +1,14 @@
 import { Typography } from "antd"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
+
+import { useMyTranslation } from "shared/hooks"
 
 import { useProjectOverviewProgress } from "widgets/project/model/use-project-overview-progress"
 
 import styles from "./styles.module.css"
 
 export const ProjectTestsProgressBlock = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const { columns, data, isFetching, total, columnFilters, setColumnFilters } =
     useProjectOverviewProgress()
 
@@ -27,6 +28,8 @@ export const ProjectTestsProgressBlock = () => {
             columnFilters,
           }}
           manualFiltering
+          formatTotalText={(count) => t("common:paginationTotal", { count })}
+          lang={language}
           data-testid="projects-overview-table"
         />
       </div>

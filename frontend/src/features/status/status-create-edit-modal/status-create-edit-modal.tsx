@@ -1,4 +1,4 @@
-import { ColorPicker, Flex, Form, Input, Modal } from "antd"
+import { ColorPicker, Flex, Form, Input } from "antd"
 import classNames from "classnames"
 import { useAdministrationStatusModal } from "entities/status/model"
 import { Controller } from "react-hook-form"
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next"
 import ContextMenuIcon from "shared/assets/yi-icons/context-menu.svg?react"
 import { ErrorObj } from "shared/hooks/use-alert-error"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import styles from "./styles.module.css"
 
@@ -33,7 +34,7 @@ export const StatusCreateEditModal = ({ data }: Props) => {
   } = data
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={<span data-testid={`${TEST_ID}-modal-title`}>{title}</span>}
@@ -132,6 +133,6 @@ export const StatusCreateEditModal = ({ data }: Props) => {
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

@@ -34,6 +34,7 @@ import {
   ProjectCustomAttributesTabPage,
   ProjectIntegrationsTabPage,
   ProjectLabelsTabPage,
+  ProjectLayout,
   ProjectMainPage,
   ProjectOverviewTabPage,
   ProjectParametersTabPage,
@@ -50,7 +51,6 @@ import {
   TestSuitesCustomAttributesTab,
   TestSuitesOverviewTab,
 } from "pages/project"
-import { ProjectLayout } from "pages/project/tabs/project-layout/project-layout"
 
 import { config } from "shared/config"
 import { getLang } from "shared/libs"

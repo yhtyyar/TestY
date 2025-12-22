@@ -1,11 +1,10 @@
-import { useTranslation } from "react-i18next"
+import { CustomTagProps } from "rc-select/lib/BaseSelect"
+import { useCallback, useEffect, useState } from "react"
 
 import { useGetLabelsQuery } from "entities/label/api"
-import { LabelList } from "entities/label/ui"
+import { LabelList, LabelSelect } from "entities/label/ui"
 
 import { useProjectContext } from "pages/project"
-
-import { colors } from "shared/config"
 
 import { Label } from "../label"
 
@@ -21,55 +20,124 @@ interface Props {
 }
 
 export const LabelFilter = ({ value, onChange }: Props) => {
-  const { t } = useTranslation()
   const project = useProjectContext()
-  const { data, isLoading } = useGetLabelsQuery({ project: project.id.toString() })
+  const { data = [], isFetching } = useGetLabelsQuery({ project: project.id.toString() })
+  const [selectedLabels, setSelectedLabels] = useState<SelectedLabel[]>([])
 
-  const handleLableClick = (label: LabelInForm) => {
-    const labelId = Number(label.id)
-    const findLabel = value.labels.find((i) => i === labelId)
-    const findNotLabel = value.not_labels.find((i) => i === labelId)
-
-    if (!findLabel && !findNotLabel) {
-      const newState = { ...value, labels: [...value.labels, labelId] }
-      onChange(newState)
-      return
-    }
-
-    if (findLabel) {
-      const newState = {
-        ...value,
-        labels: value.labels.filter((i) => i !== labelId),
-        not_labels: [...value.not_labels, labelId],
-      }
-      onChange(newState)
-      return
-    }
-
-    if (findNotLabel) {
-      const newState: LabelFilterValue = {
-        ...value,
-        labels: value.labels.filter((i) => i !== labelId),
-        not_labels: value.not_labels.filter((i) => i !== labelId),
-      }
-      onChange(newState)
-      return
-    }
+  const handleLabelPopupClick = (label: Label) => {
+    setSelectedLabels((prevState) => [
+      ...prevState,
+      { value: label.id, label: label.name, color: label.color },
+    ])
+    handleLabelSelectClick(label.id)
   }
 
-  return (
-    <LabelList id="label-filter" isLoading={isLoading} showMore={{ text: t("Show more") }}>
-      {(data ?? []).map((label) => {
-        const hasInLabels = value.labels.some((i) => i === label.id)
-        const hasInNotLabels = value.not_labels.some((i) => i === label.id)
-        const color = hasInLabels ? colors.accent : hasInNotLabels ? "line-through" : undefined
+  const handleLabelSelectClick = (labelId: number) => {
+    const isInLabels = value.labels.includes(labelId)
 
-        return (
-          <li key={label.id} data-testid={`label-filter-label-${label.name}`}>
-            <Label content={label.name} color={color} onClick={() => handleLableClick(label)} />
-          </li>
-        )
-      })}
-    </LabelList>
+    const newState = {
+      ...value,
+      labels: isInLabels ? value.labels.filter((id) => id !== labelId) : [...value.labels, labelId],
+      not_labels: isInLabels
+        ? [...value.not_labels, labelId]
+        : value.not_labels.filter((id) => id !== labelId),
+    }
+    onChange(newState)
+  }
+
+  const handleLabelRemove = (labelId: number) => {
+    const newState = {
+      ...value,
+      labels: value.labels.filter((i) => i !== labelId),
+      not_labels: value.not_labels.filter((i) => i !== labelId),
+    }
+    onChange(newState)
+    setSelectedLabels((prevState) => prevState.filter((i) => i.value !== labelId))
+  }
+
+  const handleChange = (values: SelectedLabel[]) => {
+    const lastLabel = selectedLabels[selectedLabels.length - 1]
+    const newState = {
+      ...value,
+      labels: values.length ? value.labels.filter((i) => i !== lastLabel.value) : [],
+      not_labels: values.length ? value.not_labels.filter((i) => i !== lastLabel.value) : [],
+    }
+    onChange(newState)
+    setSelectedLabels(values)
+  }
+
+  const tagRender = useCallback(
+    ({ label, value: labelId }: CustomTagProps) => {
+      const onPreventMouseDown = (event: React.MouseEvent<HTMLSpanElement>) => {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
+      const hasInNotLabels = value.not_labels.some((i) => i === labelId)
+      const foundLabel = data.find((i) => i.id === Number(labelId))
+
+      return (
+        <div onMouseDown={onPreventMouseDown}>
+          <Label
+            content={String(label)}
+            color={foundLabel?.color ?? null}
+            lineThrough={hasInNotLabels}
+            onClick={() => handleLabelSelectClick(Number(labelId))}
+            onDelete={() => handleLabelRemove(Number(labelId))}
+            truncate
+            tooltip
+          />
+        </div>
+      )
+    },
+    [value, handleLabelRemove, handleLabelSelectClick]
+  )
+
+  useEffect(() => {
+    const allLabelIds = [...value.labels, ...value.not_labels]
+    if (allLabelIds.length === 0) {
+      setSelectedLabels([])
+      return
+    }
+
+    const needsUpdate =
+      allLabelIds.length !== selectedLabels.length ||
+      selectedLabels.some((sl) => sl.label === "" && data.length > 0)
+
+    if (needsUpdate && data.length > 0) {
+      setSelectedLabels(
+        allLabelIds.map((labelId) => {
+          const label = data.find((item) => item.id === labelId)
+          return { value: labelId, label: label?.name ?? "", color: label?.color ?? "" }
+        })
+      )
+    }
+  }, [value, data])
+
+  return (
+    <LabelSelect
+      data={data}
+      isLoading={isFetching}
+      value={!isFetching ? selectedLabels : []}
+      onChange={handleChange}
+      tagRender={tagRender}
+      popupRender={(list) => (
+        <LabelList id="label-filter" isLoading={isFetching} showAll>
+          {list.map((label) => {
+            return (
+              <li key={label.id} data-testid={`label-filter-label-${label.name}`}>
+                <Label
+                  content={label.name}
+                  color={label.color}
+                  onClick={() => handleLabelPopupClick(label)}
+                  truncate={false}
+                  tooltip={false}
+                />
+              </li>
+            )
+          })}
+        </LabelList>
+      )}
+    />
   )
 }

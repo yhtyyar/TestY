@@ -23,7 +23,7 @@ const rootPath = "cases"
 export const testCaseApi = createApi({
   reducerPath: "testCaseApi",
   baseQuery: baseQueryWithLogout,
-  tagTypes: ["TestCase", "TestCaseHistoryChanges", "TestCaseTestsList", "TestPlanTestCases"],
+  tagTypes: ["TestCase", "TestCaseHistoryChanges", "TestCaseTestsList", "TestSuiteTestCases"],
   endpoints: (builder) => ({
     searchTestCases: builder.query<SuiteWithCases[], SearchTestCasesQuery>({
       query: (params) => ({
@@ -43,6 +43,7 @@ export const testCaseApi = createApi({
         dispatch(testPlanLabelsInvalidate)
         dispatch(suiteInvalidate())
         dispatch(systemStatsInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
       },
       invalidatesTags: [{ type: "TestCase", id: "LIST" }],
     }),
@@ -59,10 +60,11 @@ export const testCaseApi = createApi({
         dispatch(systemStatsInvalidate)
         dispatch(testPlanTestsInvalidate)
         dispatch(testInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
       },
       invalidatesTags: [
         { type: "TestCase", id: "LIST" },
-        { type: "TestPlanTestCases", id: "LIST" },
+        { type: "TestSuiteTestCases", id: "LIST" },
       ],
     }),
     updateTestCase: builder.mutation<TestCase, TestCaseUpdate>({
@@ -76,6 +78,7 @@ export const testCaseApi = createApi({
           const { data } = await queryFulfilled
           dispatch(labelInvalidate)
           dispatch(testPlanLabelsInvalidate)
+          dispatch(testSuiteTestCasesInvalidate)
           dispatch(suiteInvalidate())
           dispatch(setDrawerTestCase(data))
         } catch (error) {
@@ -100,11 +103,26 @@ export const testCaseApi = createApi({
         method: "PUT",
         body,
       }),
-      invalidatesTags: [{ type: "TestPlanTestCases", id: "LIST" }],
+      invalidatesTags: [{ type: "TestSuiteTestCases", id: "LIST" }],
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         await queryFulfilled
         dispatch(suiteInvalidate())
         dispatch(labelInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
+      },
+    }),
+    bulkTreeUpdate: builder.mutation<TestCase[], TestCaseBulkUpdate>({
+      query: (body) => ({
+        url: `${rootPath}/bulk-update-tree/`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: [{ type: "TestSuiteTestCases", id: "LIST" }],
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        await queryFulfilled
+        dispatch(suiteInvalidate())
+        dispatch(labelInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
       },
     }),
     archiveTestCase: builder.mutation<void, number>({
@@ -121,6 +139,7 @@ export const testCaseApi = createApi({
           await queryFulfilled
           dispatch(setDrawerTestCaseIsArchive(true))
           dispatch(systemStatsInvalidate)
+          dispatch(testSuiteTestCasesInvalidate)
           dispatch(suiteInvalidate())
         } catch (error) {
           console.error(error)
@@ -170,6 +189,7 @@ export const testCaseApi = createApi({
         await queryFulfilled
         dispatch(labelInvalidate)
         dispatch(testPlanLabelsInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
         dispatch(suiteInvalidate())
       },
       invalidatesTags: [{ type: "TestCase", id: "LIST" }],
@@ -204,13 +224,14 @@ export const testCaseApi = createApi({
         const { data } = await queryFulfilled
         dispatch(labelInvalidate)
         dispatch(testPlanLabelsInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
         dispatch(suiteInvalidate())
         dispatch(setDrawerTestCase(data))
       },
       invalidatesTags: [{ type: "TestCase", id: "LIST" }],
     }),
-    getTestPlanTestCases: builder.query<PaginationResponse<TestCase[]>, SearchTestCasesQuery>({
-      providesTags: [{ type: "TestPlanTestCases", id: "LIST" }],
+    getTestSuiteTestCases: builder.query<PaginationResponse<TestCase[]>, SearchTestCasesQuery>({
+      providesTags: [{ type: "TestSuiteTestCases", id: "LIST" }],
       query: (params) => ({
         url: `${rootPath}/`,
         params: {
@@ -221,6 +242,10 @@ export const testCaseApi = createApi({
     }),
   }),
 })
+
+export const testSuiteTestCasesInvalidate = testCaseApi.util.invalidateTags([
+  { type: "TestSuiteTestCases", id: "LIST" },
+])
 
 export const {
   useLazySearchTestCasesQuery,
@@ -236,6 +261,7 @@ export const {
   useGetTestCaseTestsListQuery,
   useGetTestCaseArchivePreviewQuery,
   useRestoreTestCaseMutation,
-  useGetTestPlanTestCasesQuery,
+  useGetTestSuiteTestCasesQuery,
   useBulkUpdateMutation,
+  useBulkTreeUpdateMutation,
 } = testCaseApi

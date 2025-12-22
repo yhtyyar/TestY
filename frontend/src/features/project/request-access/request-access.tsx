@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 
 import { useRequestAccessMutation } from "entities/project/api"
 
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 import styles from "./styles.module.css"
@@ -18,6 +18,7 @@ interface Props {
 
 export const RequestProjectAccess = ({ project, type = "default" }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm } = useAntdModals()
   const [form] = useForm<{ reason: string }>()
   const [requestAccess] = useRequestAccessMutation()
 

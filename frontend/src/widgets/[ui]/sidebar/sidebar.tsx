@@ -81,7 +81,7 @@ export const Sidebar = memo(() => {
 
   return (
     <div className={styles.wrapper}>
-      <Link id="logo" to="/">
+      <Link id="logo" to="/" className={styles.logoWrapper}>
         <TestyIcon width={40} height={40} />
       </Link>
       {lastProjectId && (

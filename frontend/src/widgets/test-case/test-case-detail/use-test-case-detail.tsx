@@ -9,16 +9,16 @@ import { useLazyGetTestCaseByIdQuery, useRestoreTestCaseMutation } from "entitie
 import { selectDrawerTestCase, setDrawerTestCase } from "entities/test-case/model"
 
 import { updateVersionEvent } from "shared/events/update-version-event"
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { TestCasesTreeContext } from "../test-cases-tree"
 
 export const useTestCaseDetail = () => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const { testSuiteId } = useParams<ParamTestSuiteId>()
-  const { testCasesTree } = useContext(TestCasesTreeContext)!
+  const { tree: testCasesTree } = useContext(TestCasesTreeContext)!
 
   const dispatch = useAppDispatch()
   const drawerTestCase = useAppSelector(selectDrawerTestCase)
@@ -156,7 +156,7 @@ export const useTestCaseDetail = () => {
       return
     }
 
-    await testCasesTree.current?.refetchNodeBy((node) => node.id === testCase.suite.id)
+    await testCasesTree.current?.rowRefetch(testCase.suite.id.toString())
   }
 
   const handleArchiveTestCase = async (testCase: TestCase) => {

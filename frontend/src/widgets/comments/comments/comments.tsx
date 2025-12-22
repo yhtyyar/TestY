@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 
 import { AddComment } from "features/comments"
 
-import { Button, ContainerLoader, TablePageChanger } from "shared/ui"
+import { Button, ContainerLoader, TablePageChanger, usePagination } from "shared/ui"
 
 import { CommentList } from ".."
 import styles from "./styles.module.css"
@@ -22,17 +22,14 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
   const [isShowAdd, setIsShowAdd] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const orderingRequest = ordering === "asc" ? "created_at" : "-created_at"
-  const [pagination, setPagination] = useState({
-    page: 0,
-    page_size: 5,
-  })
+  const { pagination, setPage } = usePagination({ defaultPageSize: 5 })
   const comment_id = window.location.hash.split("#comment-")[1]
   const { data, isFetching } = useGetCommentsQuery({
     comment_id,
     model,
     object_id,
-    page: pagination.page + 1,
-    page_size: pagination.page_size,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
     ordering: orderingRequest,
   })
 
@@ -73,15 +70,10 @@ export const Comments = ({ model, object_id, ordering, onUpdateCommentsCount }: 
           </Button>
         )}
         <TablePageChanger
-          current={pagination.page + 1}
-          pageSize={pagination.page_size}
+          current={pagination.pageIndex}
+          pageSize={pagination.pageSize}
           total={data.count}
-          onChangePage={(page) => {
-            setPagination((prevState) => ({
-              ...prevState,
-              page: page - 1,
-            }))
-          }}
+          onChangePage={setPage}
         />
       </div>
       {isShowAdd && <AddComment model={model} object_id={object_id} setIsShowAdd={setIsShowAdd} />}

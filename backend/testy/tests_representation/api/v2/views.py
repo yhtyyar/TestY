@@ -80,6 +80,7 @@ from testy.tests_description.selectors.cases import TestCaseSelector
 from testy.tests_description.selectors.suites import TestSuiteSelector
 from testy.tests_representation.api.v2.serializers import (
     BulkUpdateTestsSerializer,
+    BulkUpdateTestsTreeSerializer,
     ParameterSerializer,
     ResultStatusSerializer,
     TestInputSerializer,
@@ -99,7 +100,7 @@ from testy.tests_representation.api.v2.serializers import (
     TestUnionSerializer,
 )
 from testy.tests_representation.exceptions import InvalidStatisticQueryParam
-from testy.tests_representation.filters import (
+from testy.tests_representation.filters.plans import (
     ActivityFilter,
     ParameterFilter,
     PlanAssigneeProgressFilter,
@@ -108,12 +109,16 @@ from testy.tests_representation.filters import (
     PlanUnionFilter,
     PlanUnionFilterNoSearch,
     PlanUnionOrderingFilter,
+)
+from testy.tests_representation.filters.results import (
     ResultStatusFilter,
     ResultUnionOrderingFilter,
-    TestFilter,
-    TestOrderingFilter,
     TestResultByPlanFilter,
     TestResultFilter,
+)
+from testy.tests_representation.filters.tests import (
+    TestFilter,
+    TestOrderingFilter,
     TestsByPlanFilter,
     TestWithoutProjectFilter,
     UnionTestFilter,
@@ -411,6 +416,7 @@ class TestPlanViewSet(TestyModelViewSet, TestyArchiveMixin):
         context = self.get_serializer_context()
         data = TestPlanSelector().get_union_data(
             page,
+            request,
             partial(TestUnionSerializer, context=context),
             partial(TestPlanUnionSerializer, context=context),
             estimate_map,
@@ -654,7 +660,7 @@ class TestViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin):
     def filterset_class(self):
         if self.action == _LIST:
             return TestFilter
-        if self.action == 'bulk_update_tests':
+        if self.action in {'bulk_update_tests', 'bulk_update_tests_tree'}:
             return TestWithoutProjectFilter
 
     def perform_update(self, serializer: TestSerializer):
@@ -677,6 +683,8 @@ class TestViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin):
     def get_serializer_class(self):
         if self.action == 'bulk_update_tests':
             return BulkUpdateTestsSerializer
+        if self.action == 'bulk_update_tests_tree':
+            return BulkUpdateTestsTreeSerializer
         if self.action == 'create':
             return TestInputSerializer
         return TestSerializer
@@ -709,6 +717,33 @@ class TestViewSet(TestyModelViewSet, TestyArchiveMixin, PayloadFiltersMixin):
             queryset=queryset,
             included_objects=serializer.validated_data.pop('included_tests', None),
             excluded_objects=serializer.validated_data.pop('excluded_tests', None),
+        )
+        test_ids = list(queryset.values_list('id', flat=True))
+        response = Response()
+        if is_async:
+            bulk_update_tests.delay(test_ids=test_ids, payload=serializer.validated_data, user_id=request.user.id)
+            return response
+        tests = TestService().bulk_update_tests(test_ids, serializer.validated_data, request.user.id, is_async=is_async)
+        tests = TestSuiteSelector.annotate_suite_path(tests, 'case__suite__path')
+        response.data = TestSerializer(tests, many=True, context=self.get_serializer_context()).data
+        return response
+
+    @swagger_auto_schema(responses={status.HTTP_200_OK: TestSerializer(many=True)})
+    @action(methods=['put'], url_path='bulk-update-tree', url_name='bulk-update-tree', detail=False)
+    def bulk_update_tests_tree(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data.pop('project')
+        is_async = serializer.validated_data.pop('is_async', False)
+        queryset = TestSelector.test_list_by_parent_plan_and_project(project)
+        filter_conditions = serializer.validated_data.pop('filter_conditions', {})
+        if filter_conditions:
+            queryset = self._filter_queryset_from_request_payload(queryset, filter_conditions)
+        queryset = TestSelector.list_for_bulk_operation_tree(
+            queryset=queryset,
+            related_field='plan_id',
+            included_related_objects=serializer.validated_data.pop('included_plans', None),
+            included_objects=serializer.validated_data.pop('included_tests', None),
         )
         test_ids = list(queryset.values_list('id', flat=True))
         response = Response()

@@ -30,6 +30,10 @@
   background-color: transparent;
 }
 
+.tree td:first-child {
+  padding: 0;
+}
+
 .solid th {
   background-color: var(--y-color-datatable-header-background);
 }

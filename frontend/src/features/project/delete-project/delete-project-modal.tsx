@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom"
 
 import { useDeleteProjectMutation, useGetProjectDeletePreviewQuery } from "entities/project/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]/modal-confirm-delete-archive"
@@ -17,6 +16,7 @@ interface Props {
 
 export const DeleteProjectModal = ({ isShow, setIsShow, project }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
 
   const navigate = useNavigate()
   const [deleteProject, { isLoading: isLoadingDelete }] = useDeleteProjectMutation()

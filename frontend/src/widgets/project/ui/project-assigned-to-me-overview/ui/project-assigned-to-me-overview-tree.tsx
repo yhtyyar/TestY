@@ -1,7 +1,7 @@
-import { Flex, Input, Popover, Tooltip } from "antd"
+import { ColumnDef, Row } from "@tanstack/react-table"
+import { Flex, Input, Popover, Progress, Tooltip } from "antd"
 import { useMeContext } from "processes"
-import { makeNode } from "processes/treebar-provider/utils"
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import {
@@ -15,14 +15,9 @@ import { useProjectContext } from "pages/project"
 import SorterIcon from "shared/assets/yi-icons/sort.svg?react"
 import { config } from "shared/config"
 import { useDebounce } from "shared/hooks"
-import {
-  LazyNodeProps,
-  LazyTreeNodeApi,
-  LazyTreeView,
-  NodeId,
-  TreeNodeFetcher,
-} from "shared/libs/tree"
-import { Button, SortBy, TreeTable, TreeTableLoadMore } from "shared/ui"
+import { Button, SortBy } from "shared/ui"
+import { DataTree, LazyTreeNodeParams, TreeNode } from "shared/ui/tree"
+import { makeTreeNodes } from "shared/ui/tree/utils"
 
 const TEST_ID = "assigned-to-me-stats"
 
@@ -42,38 +37,86 @@ export const ProjectAssignedToMeOverviewTree = () => {
     { value: "created_at", label: t("Created At") },
   ]
 
-  const fetcher: TreeNodeFetcher<Test | TestPlan, LazyNodeProps> = useCallback(
-    async (params) => {
-      const res = await getAssigneeProgress(
-        {
-          project: project.id,
-          page: params.page,
-          parent: params.parent ? Number(params.parent) : null,
-          page_size: config.defaultTreePageSize,
-          assignee: me?.id ? me.id : undefined,
-          treesearch: searchDebounce,
-          ordering,
-          _n: params._n,
-        },
-        false
-      ).unwrap()
+  const loadChildren = async (row: Row<TreeNode<TestPlan>> | null, params: LazyTreeNodeParams) => {
+    const res = await getAssigneeProgress(
+      {
+        project: project.id,
+        page: params.page,
+        parent: params.parent ? Number(params.parent) : null,
+        page_size: config.defaultTreePageSize,
+        assignee: me?.id ? me.id : undefined,
+        treesearch: searchDebounce,
+        ordering,
+        _n: params._n,
+      },
+      true
+    ).unwrap()
 
-      const data = makeNode<Test | TestPlan>(res.results, params, (item) => ({
-        isOpen: false,
-        isLeaf: item.is_leaf,
-      }))
-      return { data, nextInfo: res.pages, _n: params._n }
-    },
-    [searchDebounce, ordering]
-  )
+    const nodes = makeTreeNodes(
+      res.results,
+      {
+        title: (result) => result.title,
+      },
+      {
+        parent: params.parent ?? null,
+        page: params.page,
+        _n: params._n?.toString(),
+      }
+    )
 
-  const fetcherAncestors = (id: NodeId) => {
+    return {
+      data: nodes,
+      params: {
+        page: params.page,
+        hasMore: !!res.pages.next,
+      },
+    }
+  }
+
+  const loadAncestors = (id: string) => {
     return getAncestors({ project: project.id, id: Number(id) }).unwrap()
   }
 
+  const columns: ColumnDef<TreeNode<TestPlan>>[] = [
+    {
+      id: "title",
+      cell: ({ row }) => <TestPlanTreeOverviewNodeView row={row} projectId={project.id} />,
+      meta: {
+        responsiveSize: true,
+      },
+    },
+    {
+      id: "progress",
+      cell: ({ row }) => {
+        const testsProgressTotal = row.original.data.tests_progress_total ?? 0
+        const totalTests = row.original.data.total_tests ?? 0
+        const progressPercent =
+          totalTests > 0 ? Math.round((testsProgressTotal / totalTests) * 100) : 0
+
+        return (
+          <Flex vertical>
+            <Flex justify="space-between">
+              <span>
+                {testsProgressTotal} / {totalTests}
+              </span>
+              <span>{progressPercent}%</span>
+            </Flex>
+            <Progress
+              percent={progressPercent}
+              status={progressPercent === 100 ? "success" : "normal"}
+              showInfo={false}
+            />
+          </Flex>
+        )
+      },
+    },
+  ]
+
+  const styleSizes = { width: 24, height: 24, minWidth: 24 }
+
   return (
     <div style={{ width: "100%", marginTop: 24 }}>
-      <Flex justify="space-between" gap={16} style={{ marginBottom: 24 }}>
+      <Flex justify="space-between" gap={16} style={{ marginBottom: 8 }}>
         <Input
           placeholder={t("Search")}
           value={searchText}
@@ -105,24 +148,23 @@ export const ProjectAssignedToMeOverviewTree = () => {
           </Popover>
         </Tooltip>
       </Flex>
-      <TreeTable visibleColumns={[]} hasAddResult={false} bordered={false}>
-        <LazyTreeView
-          fetcher={fetcher}
-          fetcherAncestors={fetcherAncestors}
-          rootId={null}
-          cacheKey={`${TEST_ID}-${project.id}`}
-          initDependencies={[searchDebounce, ordering]}
-          renderNode={(node) => (
-            <TestPlanTreeOverviewNodeView
-              node={node as LazyTreeNodeApi<Test | TestPlan, LazyNodeProps>} // FIX IT cast type
-              projectId={project.id}
-            />
-          )}
-          renderLoadMore={({ isLoading, onMore }) => (
-            <TreeTableLoadMore isLast isRoot isLoading={isLoading} onMore={onMore} />
-          )}
-        />
-      </TreeTable>
+      <DataTree
+        columns={columns}
+        type="lazy"
+        loadChildren={loadChildren}
+        loadAncestors={loadAncestors}
+        autoLoadRoot={{
+          deps: [searchDebounce, ordering],
+        }}
+        color="table-linear"
+        getRowCanExpand={(row) => row.original.data.has_children}
+        styles={{
+          placeholder: styleSizes,
+          loader: styleSizes,
+          expander: styleSizes,
+        }}
+        data-testid={`${TEST_ID}-tree`}
+      />
     </div>
   )
 }

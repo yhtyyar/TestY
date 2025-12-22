@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -38,7 +38,7 @@ from testy.core.models import Project
 from testy.tests_representation.models import Test, TestCase, TestPlan, TestResult
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestArchiveEndpoints:
     archive_preview_view_name = 'api:v2:{0}-archive-preview'
     archive_view_name = 'api:v2:{0}-archive-commit'
@@ -64,7 +64,7 @@ class TestArchiveEndpoints:
     )
     def test_data_cascade_recovery(
         self, api_client, authorized_superuser, data_for_cascade_tests_behaviour,
-        instances_key, expected_objects_diff, idxs_for_deletion,
+        instances_key, expected_objects_diff, idxs_for_deletion, mock_create_histories,
     ):
         expected_objects, objects_count = data_for_cascade_tests_behaviour
         expected_objects.pop('testsuite')
@@ -106,7 +106,7 @@ class TestArchiveEndpoints:
     )
     def test_archive_preview(
         self, api_client, authorized_superuser, data_for_cascade_tests_behaviour,
-        instances_key, expected_objects_diff, idx_for_deletion, use_dummy_cache_backend,
+        instances_key, expected_objects_diff, idx_for_deletion, use_dummy_cache_backend, mock_create_histories,
     ):
         expected_objects, objects_count = data_for_cascade_tests_behaviour
         expected_objects.pop('testsuite')

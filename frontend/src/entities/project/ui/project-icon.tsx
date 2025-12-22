@@ -16,6 +16,7 @@ export const ProjectIcon = ({ icon, name, size = 40, dataTestId = "project-icon"
         verticalAlign: "middle",
         width: size,
         height: size,
+        minWidth: size,
         fontSize: size / 2.7,
         lineHeight: `${size}px`,
         userSelect: "none",

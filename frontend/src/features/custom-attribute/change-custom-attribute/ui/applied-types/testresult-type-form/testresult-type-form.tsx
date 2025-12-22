@@ -110,6 +110,8 @@ export const TestResultTypeForm = ({ value, onChange }: Props) => {
             handleChange([])
           }}
           showFullOnly
+          enableSubRowSelection={false}
+          treeWrapperId="testresult-custom-attribute-tree"
         />
       )}
     </div>

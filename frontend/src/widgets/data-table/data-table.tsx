@@ -1,5 +1,4 @@
-import { Row, RowModel, TableOptions, Table as TableType, flexRender } from "@tanstack/react-table"
-import { MutableRefObject } from "react"
+import { flexRender } from "@tanstack/react-table"
 
 import { config } from "shared/config"
 import {
@@ -17,43 +16,24 @@ import {
   TablePagination,
   TableProvider,
 } from "shared/ui"
+import { TableProviderProps } from "shared/ui/table"
+import { localizationTable } from "shared/ui/table/localization"
 
 import styles from "./styles.module.css"
 import { createBestTestId, createDataTestId } from "./utils"
 
-type Props<T> = {
-  tableRef?: MutableRefObject<TableType<T> | null>
-  isLoading?: boolean
-  enableColumnDragging?: boolean
-  draggingColumnCacheKey?: string
-  resizeColumnCacheKey?: string
-  enableRowDragging?: boolean
-  paginationSizes?: number[]
-  rowBodyClassName?: string | ((row: Row<T>) => string)
-  paginationVisible?: boolean
-  tableHeadVisible?: boolean
-  tableBodyVisible?: boolean
-  color?: "linear" | "solid"
-  onRowClick?: (row: Row<T>) => void
-  getCoreRowModel?: (table: TableType<T>) => () => RowModel<T>
-  onDataChange?: (data: T[]) => void
-} & Omit<TableOptions<T>, "getCoreRowModel"> &
-  HTMLDataAttribute
+type Props<T> = Omit<TableProviderProps<T>, "children">
 
 export const DataTable = <T extends object>({
-  tableRef,
   isLoading = false,
-  enableColumnDragging = false,
-  draggingColumnCacheKey,
-  resizeColumnCacheKey,
-  enableRowDragging = false,
   paginationVisible = true,
   tableHeadVisible = true,
   tableBodyVisible = true,
   paginationSizes = config.pageSizeOptions.map(Number),
   rowBodyClassName,
-  onDataChange,
-  color = "solid",
+  formatTotalText,
+  lang = "en",
+  emptyText = localizationTable[lang].empty,
   ...tableOptions
 }: Props<T>) => {
   const dataTestId = tableOptions["data-testid"] ? tableOptions["data-testid"] : undefined
@@ -61,13 +41,14 @@ export const DataTable = <T extends object>({
   return (
     <TableProvider
       isLoading={isLoading}
-      enableColumnDragging={enableColumnDragging}
-      draggingColumnCacheKey={draggingColumnCacheKey}
-      resizeColumnCacheKey={resizeColumnCacheKey}
-      enableRowDragging={enableRowDragging}
-      onDataChange={onDataChange}
-      color={color}
-      tableRef={tableRef}
+      paginationVisible={paginationVisible}
+      tableHeadVisible={tableHeadVisible}
+      tableBodyVisible={tableBodyVisible}
+      paginationSizes={paginationSizes}
+      rowBodyClassName={rowBodyClassName}
+      formatTotalText={formatTotalText}
+      lang={lang}
+      emptyText={emptyText}
       {...tableOptions}
     >
       {(table) => (
@@ -133,7 +114,7 @@ export const DataTable = <T extends object>({
                     </TableBodyRow>
                   ))
                 ) : (
-                  <TableEmpty table={table} />
+                  <TableEmpty table={table} text={emptyText} />
                 )}
               </TableBody>
             )}
@@ -145,15 +126,14 @@ export const DataTable = <T extends object>({
                 setPageSize={table.setPageSize}
                 sizes={paginationSizes}
                 currentSize={table.getState().pagination.pageSize}
+                formatTotalText={formatTotalText}
                 data-testid={createDataTestId(dataTestId, `page-sizer`)}
               />
               <TablePageChanger
-                current={table.getState().pagination.pageIndex + 1}
+                current={table.getState().pagination.pageIndex}
                 pageSize={table.getState().pagination.pageSize}
                 total={tableOptions.rowCount ?? table.getFilteredRowModel().rows.length}
-                onChangePage={(page) => {
-                  table.setPageIndex(page - 1)
-                }}
+                onChangePage={table.setPageIndex}
                 data-testid={createDataTestId(dataTestId, `page-changer`)}
               />
             </TablePagination>

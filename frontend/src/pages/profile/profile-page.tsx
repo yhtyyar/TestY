@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { ProfileAvatar } from "widgets"
 
 import { ChangeLang, ChangeTheme } from "features/system"
-import { ChangeProfile } from "features/user"
+import { ChangePassword, ChangeProfile } from "features/user"
 
 import styles from "./styles.module.css"
 
@@ -76,6 +76,9 @@ export const ProfilePage = () => {
             <Col span={16}>
               <ChangeLang />
             </Col>
+          </Row>
+          <Row>
+
           </Row>
         </Col>
       </Row>

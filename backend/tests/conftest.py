@@ -653,3 +653,9 @@ async def subscribed_user(notification_setting_factory, user_factory):
         UserModel.objects.all().delete()
 
     await database_sync_to_async(teardown_wrapper)()
+
+
+@pytest.fixture(autouse=True, scope='session')
+def mock_create_histories():
+    with mock.patch('testy.root.tasks.create_archive_histories.delay') as create_history_mock:
+        yield create_history_mock

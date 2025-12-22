@@ -45,7 +45,6 @@ export const filterTestCaseSchema = z.object({
   test_suite_created_after: z.string().optional(),
   test_case_created_before: z.string().optional(),
   test_case_created_after: z.string().optional(),
-  _n: z.number().optional(),
 })
 
 export type TestCaseDataFilters = z.infer<typeof filterTestCaseSchema>

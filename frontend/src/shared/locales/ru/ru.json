@@ -178,6 +178,7 @@
   "The passwords that you entered do not match!": "Введённые пароли не совпадают!",
   "Is Private": "Приватный",
   "Is Favorite": "Избранный",
+  "Add to Favorite": "Добавить в избранный",
   "No Comment": "Нет комментариев",
   "load more": "загрузить ещё",
   "ver.": "вер.",
@@ -450,5 +451,8 @@
   "Use placeholders for variables: {{TESTY_PROJECT_ID}} and {{TESTY_PLAN_ID}}": "для использования переменных используй плейсхолдеры {{TESTY_PROJECT_ID}} и {{TESTY_PLAN_ID}}",
   "Interface": "Интерфейс",
   "Theme": "Тема",
-  "Language": "Язык"
+  "Language": "Язык",
+  "Label with this name already exists": "Лейбл с таким именем уже существует",
+  "Attachment url copied to clipboard": "Ссылка на вложение скопирована в буфер обмена",
+  "User manual": "Руководство пользователя"
 }

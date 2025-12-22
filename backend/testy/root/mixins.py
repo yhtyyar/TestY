@@ -1,5 +1,5 @@
 # TestY TMS - Test Management System
-# Copyright (C) 2024 KNS Group LLC (YADRO)
+# Copyright (C) 2025 KNS Group LLC (YADRO)
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published
@@ -28,6 +28,9 @@
 # if any, to sign a "copyright disclaimer" for the program, if necessary.
 # For more information on this, and how to apply and follow the GNU AGPL, see
 # <http://www.gnu.org/licenses/>.
+from copy import deepcopy
+from dataclasses import dataclass
+from itertools import zip_longest
 from typing import Any, TypedDict
 from uuid import uuid4
 
@@ -37,7 +40,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.exceptions import FieldDoesNotExist
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import CASCADE, ManyToManyRel, ManyToOneRel, Model
 from django.db.models.sql import Query
 from rest_framework import mixins, status
@@ -45,21 +48,22 @@ from rest_framework.decorators import action
 from rest_framework.generics import QuerySet
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from simple_history.utils import bulk_update_with_history
-from utilities.request import mock_request_with_query_params
 
 from testy.core.services.recovery import RecoveryService
 from testy.paginations import StandardSetPagination
 from testy.root.api.v2.serializers import RecoveryInputSerializer
 from testy.root.ltree.models import LtreeModel
 from testy.root.models import DeletedQuerySet, SoftDeleteQuerySet
+from testy.root.tasks import create_archive_histories
 from testy.swagger.core import preview_schema
 from testy.tests_description.models import TestSuite
 from testy.tests_description.services.suites import TestSuiteService
+from testy.utilities.request import mock_request_with_query_params
 
 UniqueRelationSet = set[ManyToOneRel | GenericRelation | ManyToManyRel]
 _TARGET_OBJECT = 'target_object'
 _POST = 'post'
+_ID = 'id'
 
 
 class TargetObject(TypedDict):
@@ -86,6 +90,23 @@ class MetaForCaching(TypedDict):
 
 
 CacheReadyQuerySet = tuple[list[QuerySetMeta], list[QuerySetInfo]]
+
+
+@dataclass
+class RelatedQuerysetConfig:
+    """
+    Dataclass for related querysets configuration.
+
+    manager_name: name of the related queryset manager
+    ignore_on_delete_property: ignore on_delete property in gathering related querysets.
+    distinct_fields: mapping  Model to distinct field for restore
+    qs_info_list_required: is info required
+    """
+
+    ignore_on_delete_property: bool = True
+    manager_name: str = 'objects'
+    qs_info_list_required: bool = False
+    distinct_fields: dict[str, str] | None = None
 
 
 class RelationTreeMixin:
@@ -122,10 +143,7 @@ class RelationTreeMixin:
         model,
         qs_info_list: list[QuerySetInfo] | None = None,
         qs_meta_list: list[QuerySetMeta] | None = None,
-        deleted: bool = False,
         relation_tree=None,
-        ignore_on_delete_property: bool = False,
-        distinct_fields: dict[str, str] | None = None,
     ) -> CacheReadyQuerySet:
         """
         Recursive function to get all related objects of instance as list of querysets.
@@ -135,15 +153,14 @@ class RelationTreeMixin:
             model: model in which we are looking for relations.
             qs_info_list: list of descriptions of elements to be deleted.
             qs_meta_list: meta information to restore querysets from cache.
-            deleted: defines which manager to use for getting querysets.
             relation_tree: List of relations to avoid duplicate querysets.
-            ignore_on_delete_property: ignore on_delete property in gathering related querysets.
-            distinct_fields: mapping  Model to distinct field for restore
 
         Returns:
             List of querysets.
         """
-        manager = 'deleted_objects' if deleted else 'objects'
+        config = self._get_config()
+        manager = config.manager_name
+        distinct_fields = config.distinct_fields
         if distinct_fields is None:
             distinct_fields = {}
         if qs_info_list is None:
@@ -154,20 +171,20 @@ class RelationTreeMixin:
         related_objects.extend(model._meta.private_fields)
         for single_object in related_objects:
             if not isinstance(single_object, GenericRelation):
-                if not single_object.identity[6] == CASCADE and not ignore_on_delete_property:  # noqa: WPS508
+                if not single_object.identity[6] == CASCADE and not config.ignore_on_delete_property:  # noqa: WPS508
                     continue
             if single_object.model == single_object.related_model:
                 continue
             if single_object not in relation_tree:
                 continue
+            sub_qs = self._replace_is_deleted_condition(qs)
             if isinstance(single_object, GenericRelation):
                 filter_option = {
-                    f'{single_object.object_id_field_name}__in': [instance.id for instance in qs],
+                    f'{single_object.object_id_field_name}__in': sub_qs.values(_ID),
                     f'{single_object.content_type_field_name}': ContentType.objects.get_for_model(model),
                 }
             else:
-                filter_option = {f'{single_object.field.attname}__in': [instance.id for instance in qs]}  # noqa: WPS237
-
+                filter_option = {f'{single_object.field.attname}__in': sub_qs.values(_ID)}  # noqa: WPS237
             if isinstance(single_object.related_model, LtreeModel):
                 new_qs = getattr(single_object.related_model, manager).filter(**filter_option).get_descendants(
                     include_self=True,
@@ -176,16 +193,17 @@ class RelationTreeMixin:
                 new_qs = getattr(single_object.related_model, manager).filter(**filter_option)
             model_name = new_qs.model.__name__
             if distinct_field := distinct_fields.get(model_name):
-                distinct_items = new_qs.values('id', distinct_field).order_by(distinct_field).distinct(distinct_field)
-                new_qs = new_qs.filter(id__in=[item['id'] for item in distinct_items])
+                distinct_items = new_qs.values(_ID, distinct_field).order_by(distinct_field).distinct(distinct_field)
+                new_qs = new_qs.filter(id__in=[item[_ID] for item in distinct_items])
             model_meta_data = single_object.related_model._meta
-            qs_info_list.append(
-                QuerySetInfo(
-                    verbose_name=model_meta_data.verbose_name,
-                    verbose_name_related_model=single_object.model._meta.verbose_name_plural,
-                    count=new_qs.count(),
-                ),
-            )
+            if config.qs_info_list_required:
+                qs_info_list.append(
+                    QuerySetInfo(
+                        verbose_name=model_meta_data.verbose_name,
+                        verbose_name_related_model=single_object.model._meta.verbose_name_plural,
+                        count=new_qs.count(),
+                    ),
+                )
             qs_meta_list.append(
                 QuerySetMeta(
                     app_label=model_meta_data.app_label,
@@ -199,12 +217,26 @@ class RelationTreeMixin:
                     model=single_object.related_model,
                     qs_info_list=qs_info_list,
                     qs_meta_list=qs_meta_list,
-                    deleted=deleted,
                     relation_tree=relation_tree,
-                    ignore_on_delete_property=ignore_on_delete_property,
-                    distinct_fields=distinct_fields,
                 )
         return qs_meta_list, qs_info_list
+
+    def _get_config(self):
+        match self.action:
+            case str() as action if action in {'archive_objects', 'restore_archived'}:
+                return RelatedQuerysetConfig()
+            case 'archive_preview':
+                return RelatedQuerysetConfig(qs_info_list_required=True)
+            case 'restore':
+                return RelatedQuerysetConfig(
+                    manager_name='deleted_objects',
+                    ignore_on_delete_property=False,
+                    distinct_fields={'LabeledItem': 'label_id'},
+                )
+            case 'destroy':
+                return RelatedQuerysetConfig(ignore_on_delete_property=False)
+            case 'delete_preview':
+                return RelatedQuerysetConfig(qs_info_list_required=True, ignore_on_delete_property=False)
 
     @classmethod
     def _check_for_relation(cls, new_relation: GenericRelation | ManyToManyRel | ManyToOneRel, relations):
@@ -236,6 +268,14 @@ class RelationTreeMixin:
     def _get_qs_from_meta_data(cls, meta_data: QuerySetMeta, qs_class: type[QuerySet]) -> QuerySet[Model]:
         model = apps.get_model(app_label=meta_data.get('app_label'), model_name=meta_data.get('model'))
         return qs_class(model=model, query=meta_data.get('query'))
+
+    @classmethod
+    def _replace_is_deleted_condition(cls, qs: QuerySet[Model]):
+        new_qs = deepcopy(qs)
+        new_qs.query.where.children = [
+            child for child in qs.query.where.children if 'is_deleted' not in str(child)
+        ]
+        return new_qs
 
 
 class TestyDestroyModelMixin(RelationTreeMixin):
@@ -352,6 +392,7 @@ class TestyDestroyModelMixin(RelationTreeMixin):
 
 
 class TestyArchiveMixin(RelationTreeMixin):
+    default_batch_size = 1500
 
     @preview_schema
     @action(
@@ -399,11 +440,9 @@ class TestyArchiveMixin(RelationTreeMixin):
             for meta_data in meta_objects:
                 querysets_to_archive.append(self._get_qs_from_meta_data(meta_data, SoftDeleteQuerySet))
         with transaction.atomic():
-            for related_qs in querysets_to_archive:
-                if getattr(related_qs.model, 'history', None):
-                    self.update_is_archive_with_history(related_qs)
-                else:
-                    related_qs.update(is_archive=True)
+            for queryset in querysets_to_archive:
+                self._update_is_archive(queryset)
+
         return Response(status=status.HTTP_200_OK)
 
     @action(
@@ -418,11 +457,10 @@ class TestyArchiveMixin(RelationTreeMixin):
         qs = RecoveryService.get_objects_by_ids(self.get_queryset(), serializer.validated_data)
         model_class = qs.model()
         relation_tree = self.build_relation_tree(model_class)
-        qs_meta_list, qs_info_list = self.get_all_related_querysets(
+        qs_meta_list, _ = self.get_all_related_querysets(
             qs,
             model_class,
             relation_tree=relation_tree,
-            ignore_on_delete_property=True,
         )
         with transaction.atomic():
             for meta in qs_meta_list:
@@ -431,11 +469,13 @@ class TestyArchiveMixin(RelationTreeMixin):
                     queryset.model()._meta.get_field('is_archive')
                 except FieldDoesNotExist:
                     continue
-                queryset.update(is_archive=False)
-            qs.update(is_archive=False)
+                self._update_is_archive(queryset, is_archive=False)
+            self._update_is_archive(qs, is_archive=False)
+
         return Response(status=status.HTTP_200_OK)
 
     def get_objects_to_archive(self) -> CacheReadyQuerySet:
+        config = self._get_config()
         instance = self.get_object()
         qs = RecoveryService.get_objects_by_instance(instance)
         relation_tree = self.build_relation_tree(qs.model)
@@ -443,7 +483,6 @@ class TestyArchiveMixin(RelationTreeMixin):
             qs,
             qs.model,
             relation_tree=relation_tree,
-            ignore_on_delete_property=True,
         )
         model_meta_data = qs.model()._meta
         qs_meta_list.append(
@@ -453,17 +492,18 @@ class TestyArchiveMixin(RelationTreeMixin):
                 query=qs.query,
             ),
         )
-        qs_info_list.append(
-            QuerySetInfo(
-                verbose_name='source model',
-                verbose_name_related_model=model_meta_data.verbose_name_plural,
-                count=qs.count(),
-            ),
-        )
+        if config.qs_info_list_required:
+            qs_info_list.append(
+                QuerySetInfo(
+                    verbose_name='source model',
+                    verbose_name_related_model=model_meta_data.verbose_name_plural,
+                    count=qs.count(),
+                ),
+            )
 
         result_meta_list = []
         result_info_list = []
-        for meta, info in zip(qs_meta_list, qs_info_list):
+        for meta, info in zip_longest(qs_meta_list, qs_info_list):
             try:
                 apps.get_model(
                     meta.get('app_label'),
@@ -472,16 +512,30 @@ class TestyArchiveMixin(RelationTreeMixin):
             except FieldDoesNotExist:
                 continue
             result_meta_list.append(meta)
-            result_info_list.append(info)
+            if info:
+                result_info_list.append(info)
         return result_meta_list, result_info_list
 
     @classmethod
-    def update_is_archive_with_history(cls, queryset: QuerySet[Any]):
-        objs_to_update = []
-        for elem in queryset:
-            elem.is_archive = True
-            objs_to_update.append(elem)
-        bulk_update_with_history(objs_to_update, queryset.model, ['is_archive'])
+    def _update_is_archive(cls, queryset: QuerySet[Any], is_archive: bool = True):
+        table_name = queryset.model._meta.db_table
+        ids = list(queryset.values_list('id', flat=True))
+        with connection.cursor() as cursor:
+            for idx in range(0, len(ids), cls.default_batch_size):
+                batch_ids = ids[idx:idx + cls.default_batch_size]
+                placeholders = ','.join(['%s'] * len(batch_ids))  # noqa: WPS435
+                is_archive_str = 'TRUE' if is_archive else 'FALSE'
+                query = (
+                    f'UPDATE {table_name} SET is_archive = '  # noqa: S608
+                    f'{is_archive_str} WHERE id IN ({placeholders})'  # noqa: WPS326
+                )
+                cursor.execute(query, batch_ids)
+        if getattr(queryset.model, 'history', None):
+            create_archive_histories.delay(
+                app_label=queryset.model._meta.app_label,
+                model_name=queryset.model._meta.model_name,
+                ids=ids,
+            )
 
 
 class TestyRestoreModelMixin(RelationTreeMixin):
@@ -501,9 +555,7 @@ class TestyRestoreModelMixin(RelationTreeMixin):
         qs_meta_data, _ = self.get_all_related_querysets(
             qs,
             model_class,
-            deleted=True,
             relation_tree=relation_tree,
-            distinct_fields={'LabeledItem': 'label_id'},
         )
         related_querysets = []
         for meta_data in qs_meta_data:

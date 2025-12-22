@@ -1,4 +1,4 @@
-import { Form, Input, Modal, Switch } from "antd"
+import { Form, Input, Switch } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
@@ -6,6 +6,7 @@ import { useUserModal } from "entities/user/model"
 
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 export const CreateEditUserModal = () => {
   const { t } = useTranslation()
@@ -25,7 +26,7 @@ export const CreateEditUserModal = () => {
   const formType = isEditMode ? t("Edit").toLowerCase() : t("Create").toLowerCase()
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${formType}-user-modal-body` }}
       wrapProps={{ "data-testid": `${formType}-user-modal-wrapper` }}
       title={<span data-testid={`${formType}-user-modal-title`}>{title}</span>}
@@ -178,6 +179,6 @@ export const CreateEditUserModal = () => {
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

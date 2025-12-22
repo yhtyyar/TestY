@@ -6,11 +6,11 @@ import { useAttachments } from "entities/attachment/model"
 
 import { useProjectContext } from "pages/project"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 
 export const useEditComment = (comment: CommentType) => {
   const project = useProjectContext()
+  const { antdNotification, initInternalError } = useAntdModals()
   const [isShow, setIsShow] = useState(false)
   const [commentValue, setCommentValue] = useState(comment.content)
 

@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom"
 
 import { useGetProjectQuery, useUpdateProjectJsonMutation } from "entities/project/api"
 
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 
 interface Props {
   record: Status
@@ -12,6 +12,7 @@ interface Props {
 
 export const SetDefaultStatusButton = ({ record }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { projectId } = useParams<ParamProjectId>()
   const { data: project, isLoading: isProjectLoading } = useGetProjectQuery(Number(projectId), {
     skip: !projectId,

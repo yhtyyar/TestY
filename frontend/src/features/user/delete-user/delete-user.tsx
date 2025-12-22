@@ -3,12 +3,12 @@ import { useTranslation } from "react-i18next"
 
 import { useDeleteUserMutation } from "entities/user/api"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { Button } from "shared/ui"
 
 export const DeleteUser = ({ user }: { user: User }) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const [deleteUser] = useDeleteUserMutation()
   const handleModalConfirm = async () => {
     try {

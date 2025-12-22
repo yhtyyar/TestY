@@ -1,8 +1,6 @@
 import { ColumnDef, createColumnHelper } from "@tanstack/react-table"
 import { Space } from "antd"
 import { useGetIntegrationsQuery } from "entities/integrations/api"
-import { useState } from "react"
-import { useTranslation } from "react-i18next"
 import { DataTable } from "widgets"
 
 import { DeleteIntegrationButton, EditIntegrationButton } from "features/integration"
@@ -10,23 +8,22 @@ import { DeleteIntegrationButton, EditIntegrationButton } from "features/integra
 import { useProjectContext } from "pages/project"
 
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH } from "shared/constants"
+import { useMyTranslation } from "shared/hooks"
+import { usePagination } from "shared/ui"
 
 const DATA_TEST_ID = "integrations-table"
 
 const columnHelper = createColumnHelper<IntegrationEntity>()
 export const IntegrationsTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
   const project = useProjectContext()
 
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
 
   const { data: integrations, isFetching } = useGetIntegrationsQuery({
     project: project.id,
-    page: paginationParams.pageIndex + 1,
-    page_size: paginationParams.pageSize,
+    page: pagination.pageIndex + 1,
+    page_size: pagination.pageSize,
   })
 
   const columns = [
@@ -85,10 +82,12 @@ export const IntegrationsTable = () => {
       isLoading={isFetching}
       rowCount={integrations?.count ?? 0}
       state={{
-        pagination: paginationParams,
+        pagination,
       }}
-      onPaginationChange={setPaginationParams}
+      onPaginationChange={setPagination}
       manualPagination
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       resizeColumnCacheKey={DATA_TEST_ID}
       data-testid={DATA_TEST_ID}
     />

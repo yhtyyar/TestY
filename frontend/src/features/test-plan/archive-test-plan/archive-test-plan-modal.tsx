@@ -6,8 +6,9 @@ import {
   useGetTestPlanArchivePreviewQuery,
 } from "entities/test-plan/api"
 
-import { initInternalError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useProjectContext } from "pages/project"
+
+import { useAntdModals } from "shared/hooks"
 import { AlertSuccessChange } from "shared/ui"
 
 import { ModalConfirmDeleteArchive } from "widgets/[ui]/modal-confirm-delete-archive"
@@ -21,6 +22,8 @@ interface Props {
 
 export const ArchiveTestPlanModal = ({ isShow, setIsShow, testPlan, onSubmit }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, initInternalError } = useAntdModals()
+  const { id: projectId } = useProjectContext()
   const [archiveTestPlan, { isLoading: isLoadingDelete }] = useArchiveTestPlanMutation()
   const { data, isLoading, status } = useGetTestPlanArchivePreviewQuery(String(testPlan.id), {
     skip: !isShow,
@@ -34,7 +37,7 @@ export const ArchiveTestPlanModal = ({ isShow, setIsShow, testPlan, onSubmit }: 
 
   const handleArchive = async () => {
     try {
-      await archiveTestPlan(testPlan.id).unwrap()
+      await archiveTestPlan({ testPlanId: testPlan.id, projectId }).unwrap()
       navigate(`/projects/${testPlan.project}/plans`)
       antdNotification.success("archive-test-plan", {
         description: (

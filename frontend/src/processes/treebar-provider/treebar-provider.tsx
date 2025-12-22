@@ -1,18 +1,20 @@
+import { Row, RowSelectionState, Table } from "@tanstack/react-table"
 import {
   DependencyList,
   Dispatch,
+  MutableRefObject,
   PropsWithChildren,
-  RefObject,
   SetStateAction,
   createContext,
+  useContext,
+  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react"
 import { useLocation, useSearchParams } from "react-router-dom"
 
 import { useDebounce } from "shared/hooks"
-import { LazyNodeProps, LazyTreeApi, TreeFetcherAncestors, TreeNodeFetcher } from "shared/libs/tree"
+import { BaseTreeNodeProps, LazyTreeNodeParams, LoadChildrenParams, TreeNode } from "shared/ui/tree"
 
 import { TreeSettings, getTreeSettingsLS, updateTreeSettingsLS } from "widgets/[ui]/treebar/utils"
 
@@ -20,22 +22,26 @@ import { useTreebarPlan } from "./use-treebar-plan"
 import { useTreebarSuite } from "./use-treebar-suite"
 
 interface TreebarProviderContextType {
-  treebar:
-    | RefObject<LazyTreeApi<Suite, LazyNodeProps>>
-    | RefObject<LazyTreeApi<TestPlan, LazyNodeProps>>
+  treebar: MutableRefObject<Table<TreeNode<Suite | TestPlan>>>
   searchText: string
   treeSettings: TreeSettings
   treebarWidth: number
   setSearchText: Dispatch<SetStateAction<string>>
   updateTreeSettings: (newSettings: Partial<TreeSettings>) => void
-  fetcher: TreeNodeFetcher<TestPlan | Suite, LazyNodeProps>
-  fetcherAncestors: TreeFetcherAncestors
   updateTreebarWidth: (width: number) => void
   skipInit: boolean
   initParent: string | null
-  selectedId: string | null
+  selectedId: RowSelectionState
   initDependencies: DependencyList
   activeTab: "suites" | "plans"
+  loadChildren: (
+    row: Row<TreeNode<Suite | TestPlan>> | null,
+    params: LazyTreeNodeParams
+  ) => Promise<{
+    data: TreeNode<Suite | TestPlan, BaseTreeNodeProps>[]
+    params: LoadChildrenParams
+  }>
+  loadAncestors: (rowId: string) => Promise<number[]>
 }
 
 export const TreebarContext = createContext<TreebarProviderContextType | null>(null)
@@ -48,9 +54,6 @@ export const TreebarProvider = ({ children }: PropsWithChildren) => {
   const [searchParams] = useSearchParams()
   const location = useLocation()
 
-  const treebarSuite = useRef<LazyTreeApi<Suite, LazyNodeProps>>(null)
-  const treebarPlan = useRef<LazyTreeApi<TestPlan, LazyNodeProps>>(null)
-
   const [treeSettings, setTreeSettings] = useState(getTreeSettingsLS())
   const [searchText, setSearchText] = useState(searchParams.get("treeSearch") ?? "")
   const searchDebounce = useDebounce(searchText, 250, true)
@@ -58,6 +61,7 @@ export const TreebarProvider = ({ children }: PropsWithChildren) => {
   const [treebarWidth, updateTreebarWidth] = useState(
     treeSettings.collapsed ? MIN_WITH_TREE : DEFAULT_WITH_TREE
   )
+  const [selectedId, setSelectedId] = useState<RowSelectionState>({})
 
   const activeTab = useMemo(() => {
     setSearchText("")
@@ -71,14 +75,33 @@ export const TreebarProvider = ({ children }: PropsWithChildren) => {
     }
   }, [location.pathname])
 
-  const contextSuite = useTreebarSuite({
+  const {
+    treebar: contextSuiteTreebar,
+    initDependencies: contextSuiteInitDeps,
+    selectedId: contextSuiteSelectedId,
+    ...contextSuite
+  } = useTreebarSuite({
     treeSettings,
     searchDebounce,
   })
-  const contextPlan = useTreebarPlan({
+  const {
+    treebar: contextPlanTreebar,
+    initDependencies: contextPlanInitDeps,
+    selectedId: contextPlanSelectedId,
+    ...contextPlan
+  } = useTreebarPlan({
     treeSettings,
     searchDebounce,
   })
+
+  useEffect(() => {
+    const id = contextSuiteSelectedId ?? contextPlanSelectedId
+    if (id) {
+      setSelectedId({ [id]: true })
+    } else {
+      setSelectedId({})
+    }
+  }, [contextSuiteSelectedId, contextPlanSelectedId])
 
   const updateTreeSettings = (newSettings: Partial<TreeSettings>) => {
     setTreeSettings((prevState) => {
@@ -88,11 +111,10 @@ export const TreebarProvider = ({ children }: PropsWithChildren) => {
     })
   }
 
-  const contextValue: TreebarProviderContextType = useMemo(() => {
-    const initDeps =
-      activeTab === "suites" ? contextSuite.initDependencies : contextPlan.initDependencies
+  const contextValue = useMemo(() => {
+    const initDeps = activeTab === "suites" ? contextSuiteInitDeps : contextPlanInitDeps
     const baseValue = {
-      treebar: activeTab === "suites" ? treebarSuite : treebarPlan,
+      treebar: activeTab === "suites" ? contextSuiteTreebar : contextPlanTreebar,
       searchText,
       treeSettings,
       initParent,
@@ -107,12 +129,32 @@ export const TreebarProvider = ({ children }: PropsWithChildren) => {
       ...baseValue,
       ...(activeTab === "suites" ? contextSuite : contextPlan),
       initDependencies: [...initDeps, activeTab],
-    }
-  }, [treebarWidth, initParent, activeTab, contextSuite, contextPlan])
+      selectedId,
+    } as TreebarProviderContextType
+  }, [
+    treebarWidth,
+    initParent,
+    selectedId,
+    activeTab,
+    contextSuiteTreebar,
+    contextPlanTreebar,
+    contextSuiteInitDeps,
+    contextPlanInitDeps,
+    contextSuite,
+    contextPlan,
+  ])
 
   if (!activeTab) {
     return null
   }
 
   return <TreebarContext.Provider value={contextValue}>{children}</TreebarContext.Provider>
+}
+
+export const useTreebarProvider = () => {
+  const context = useContext(TreebarContext)
+  if (!context) {
+    throw new Error("useTreebarProvider must be used within TreebarProvider")
+  }
+  return context
 }

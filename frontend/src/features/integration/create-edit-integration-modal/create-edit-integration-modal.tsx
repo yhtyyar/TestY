@@ -1,9 +1,10 @@
-import { Form, Input, Modal, Switch } from "antd"
+import { Form, Input, Switch } from "antd"
 import { Controller } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 
 import { ErrorObj } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import { PLAN_PLACEHOLDER, PROJECT_PLACEHOLDER } from "../constants"
 import {
@@ -33,7 +34,7 @@ export const CreateEditIntegrationModal = (props: UseCreateEditIntegrationModalP
   }
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${mode}-integration-modal-body` }}
       wrapProps={{ "data-testid": `${mode}-integration-modal-wrapper` }}
       title={<span data-testid={`${mode}-integration-modal-title`}>{title}</span>}
@@ -127,7 +128,7 @@ export const CreateEditIntegrationModal = (props: UseCreateEditIntegrationModalP
                     field.onChange(e)
                     handleResetError("service_url")
                   }}
-                  placeholder={`https://my-jenkins.com/my_job/?test_plan=${PLAN_PLACEHOLDER}&project=${PROJECT_PLACEHOLDER}`}
+                  placeholder={`https://jenkins.yadro.com/my_job/?test_plan=${PLAN_PLACEHOLDER}&project=${PROJECT_PLACEHOLDER}`}
                   rows={2}
                   allowClear
                 />
@@ -149,6 +150,6 @@ export const CreateEditIntegrationModal = (props: UseCreateEditIntegrationModalP
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

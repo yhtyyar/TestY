@@ -1,24 +1,19 @@
-import { Alert, Flex, Form, Modal, Select } from "antd"
+import { Alert, Flex, Form, Select } from "antd"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { useGetLabelsQuery } from "entities/label/api"
-import { useTestCaseFormLabels } from "entities/label/model"
-import { Label, LabelList, LabelWrapper } from "entities/label/ui"
+import { LabelSelectWithAdd } from "entities/label/ui"
 
-import { useProjectContext } from "pages/project"
-
-import { colors } from "shared/config"
-import { ErrorObj, useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { ErrorObj, useAntdModals, useErrors } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import styles from "./styles.module.css"
 
 interface Props {
   isShow: boolean
   onClose: () => void
-  onSubmit: (labels: LabelInForm[], operationType: ChangeLabelBulkOperationType) => Promise<void>
+  onSubmit: (labels: SelectedLabel[], operationType: ChangeLabelBulkOperationType) => Promise<void>
   selectedCount: number
 }
 
@@ -33,10 +28,10 @@ type BulkOperation = (typeof BULK_OPERATION_TYPES)[number]
 
 export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit }: Props) => {
   const { t } = useTranslation()
-  const project = useProjectContext()
+  const { antdNotification } = useAntdModals()
   const [selectedOperation, setSelectedOperation] = useState<BulkOperation>("add")
+  const [selectedLabels, setSelectedLabels] = useState<SelectedLabel[]>([])
   const [isUpdating, setIsUpdating] = useState(false)
-  const { data, isLoading: isLoadingLabels } = useGetLabelsQuery({ project: project.id.toString() })
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const { onHandleError } = useErrors<ErrorData>(setErrors)
 
@@ -52,14 +47,8 @@ export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit 
     value: operation,
   }))
 
-  const labelProps = useTestCaseFormLabels({
-    setValue: () => {},
-    testCase: null,
-    isEditMode: false,
-  })
-
   useEffect(() => {
-    labelProps.handleClearLabels()
+    setSelectedLabels([])
   }, [selectedOperation])
 
   const handleSubmit = async () => {
@@ -69,7 +58,7 @@ export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit 
 
       const operation = selectedOperation === "clear" ? "update" : selectedOperation
 
-      await onSubmit(labelProps.labels, operation)
+      await onSubmit(selectedLabels, operation)
 
       antdNotification.success("change-bulk-label", {
         description: t("Labels changed successfully"),
@@ -82,14 +71,8 @@ export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit 
     }
   }
 
-  const handleLabelClick = ({ name, id }: LabelInForm) => {
-    if (!labelProps.labels.find((label) => label.id === id)) {
-      labelProps.handleAddLabel(name)
-    }
-  }
-
   return (
-    <Modal
+    <NyModal
       title={
         <div className={styles.header}>
           <div className={styles.title}>{t("Change Labels")}</div>
@@ -119,7 +102,7 @@ export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit 
             data-testid="submit-bulk-add-labels-modal"
             loading={isUpdating}
             onClick={handleSubmit}
-            disabled={labelProps.labels.length === 0 && selectedOperation !== "clear"}
+            disabled={selectedLabels.length === 0 && selectedOperation !== "clear"}
             color="accent"
           >
             {t("Submit")}
@@ -140,37 +123,18 @@ export const ChangeBulkLabelModal = ({ isShow, onClose, selectedCount, onSubmit 
         </Form.Item>
         {selectedOperation !== "clear" && (
           <Form.Item label={t("Labels")} layout="vertical">
-            <LabelWrapper
-              labelProps={labelProps}
-              disabled={!selectedOperation}
+            <LabelSelectWithAdd
+              id="bulk-add-label-list"
+              value={selectedLabels}
+              onChange={setSelectedLabels}
               noAdding={selectedOperation === "delete"}
             />
-            <LabelList
-              id="bulk-add-label-list"
-              isLoading={isLoadingLabels}
-              showMore={{ text: t("Show All"), styles: { margin: "8px auto 0 0" } }}
-            >
-              {(data ?? []).map((label) => {
-                const isSelected = labelProps.labels.some(({ id }) => label.id === id)
-
-                return (
-                  <li key={label.id} data-testid={`bulk-add-label-list-${label.name}`}>
-                    <Label
-                      color={isSelected ? colors.primary : undefined}
-                      content={label.name}
-                      onClick={() => handleLabelClick(label)}
-                      className={styles.label}
-                    />
-                  </li>
-                )
-              })}
-            </LabelList>
           </Form.Item>
         )}
         {selectedOperation === "clear" && (
           <Alert message={t("All labels of the selected entities will be removed")} banner />
         )}
       </Flex>
-    </Modal>
+    </NyModal>
   )
 }

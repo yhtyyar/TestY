@@ -8,8 +8,8 @@ import { useCopySuiteMutation } from "entities/suite/api"
 
 import { useProjectContext } from "pages/project"
 
-import { initInternalError, isFetchBaseQueryError } from "shared/libs"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
+import { isFetchBaseQueryError } from "shared/libs"
 import { AlertSuccessChange } from "shared/ui"
 
 interface FormSuiteCopy {
@@ -30,6 +30,7 @@ export const useSuiteCopyModal = (
   onSubmit?: (newSuite: CopySuiteResponse) => void
 ) => {
   const { t } = useTranslation(["translation", "errors"])
+  const { antdNotification, initInternalError } = useAntdModals()
   const [errors, setErrors] = useState<string[]>([])
   const [isShow, setIsShow] = useState(false)
   const project = useProjectContext()

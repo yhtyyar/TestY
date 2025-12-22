@@ -2,7 +2,6 @@ import { ColumnFiltersState, SortingState, createColumnHelper } from "@tanstack/
 import { Flex } from "antd"
 import { useStatuses } from "entities/status/model/use-statuses"
 import { useMemo, useState } from "react"
-import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 import { DataTable } from "widgets"
 
@@ -14,7 +13,8 @@ import { UserAvatar, UserUsername } from "entities/user/ui"
 
 import { useProjectContext } from "pages/project"
 
-import { Status, TableFilterSelect, TableSorting } from "shared/ui"
+import { useMyTranslation } from "shared/hooks"
+import { Status, TableFilterSelect, TableSorting, usePagination } from "shared/ui"
 import { UntestedStatus } from "shared/ui/status"
 import { testySortRequestFormat } from "shared/ui/table/utils"
 
@@ -25,13 +25,11 @@ interface Props {
 
 const columnHelper = createColumnHelper<TestsWithPlanBreadcrumbs>()
 export const TestCaseTestsList = ({ testCase, isShowArchive }: Props) => {
-  const { t } = useTranslation(["translation", "entities"])
+  const { t, language } = useMyTranslation(["translation", "entities", "common"])
+
   const project = useProjectContext()
   const { renderBreadCrumbs } = useTestPlanActivityBreadcrumbs()
-  const [paginationParams, setPaginationParams] = useState({
-    pageIndex: 0,
-    pageSize: 10,
-  })
+  const { pagination, setPagination } = usePagination()
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnSorting, setColumnSorting] = useState<SortingState>([])
@@ -51,8 +49,8 @@ export const TestCaseTestsList = ({ testCase, isShowArchive }: Props) => {
   const { data, isFetching } = useGetTestCaseTestsListQuery(
     {
       testCaseId: testCase.id,
-      page: paginationParams.pageIndex + 1,
-      page_size: paginationParams.pageSize,
+      page: pagination.pageIndex + 1,
+      page_size: pagination.pageSize,
       is_archive: isShowArchive,
       ordering,
       ...filterRequest,
@@ -160,17 +158,19 @@ export const TestCaseTestsList = ({ testCase, isShowArchive }: Props) => {
       data={data?.results ?? []}
       columns={columns}
       rowCount={data?.count ?? 0}
-      onPaginationChange={setPaginationParams}
+      onPaginationChange={setPagination}
       onColumnFiltersChange={setColumnFilters}
       onSortingChange={setColumnSorting}
       state={{
-        pagination: paginationParams,
+        pagination,
         columnFilters,
         sorting: columnSorting,
       }}
       manualPagination
       manualSorting
       manualFiltering
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       data-testid="test-case-tests-table"
     />
   )

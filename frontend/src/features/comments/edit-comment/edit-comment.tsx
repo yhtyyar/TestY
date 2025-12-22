@@ -1,8 +1,9 @@
 import { EditOutlined, UploadOutlined } from "@ant-design/icons"
-import { Modal, Tooltip, Upload } from "antd"
+import { Tooltip, Upload } from "antd"
 import { useTranslation } from "react-i18next"
 
 import { Attachment, Button, TextArea } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 import styles from "./styles.module.css"
 import { useEditComment } from "./use-edit-comment"
@@ -48,7 +49,7 @@ export const EditComment = ({ comment }: Props) => {
         />
       </Tooltip>
 
-      <Modal
+      <NyModal
         bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
         wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
         title={<span data-testid={`${TEST_ID}-modal-title`}>{t("Edit comment")}</span>}
@@ -103,7 +104,7 @@ export const EditComment = ({ comment }: Props) => {
             id="edit-comment"
           />
         </div>
-      </Modal>
+      </NyModal>
     </>
   )
 }

@@ -12,11 +12,6 @@ import { useTestPlanContext } from "pages/project"
 
 import { ArchivedTag } from "shared/ui"
 
-import {
-  refetchNodeAfterArchive,
-  refetchNodeAfterCreateOrCopy,
-  refetchNodeAfterDelete,
-} from "widgets/[ui]/treebar/utils"
 import { TestsTreeContext } from "widgets/tests"
 
 import styles from "./styles.module.css"
@@ -26,41 +21,29 @@ export const TestPlanHeader = () => {
   const { t } = useTranslation()
   const { testPlanId } = useParams<ParamTestPlanId>()
   const { treebar } = useContext(TreebarContext)!
-  const { testsTree } = useContext(TestsTreeContext)!
+  const { tree: testsTree } = useContext(TestsTreeContext)!
   const { testPlan, isFetching } = useTestPlanContext()
 
   const refetchParentAfterCopy = async (updatedEntity: TestPlan) => {
-    const id = updatedEntity?.parent?.id ?? null
-    await testsTree.current?.refetchNodeBy((node) => node.id === id && !node.props.isLeaf)
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterCreateOrCopy(treebar.current, updatedEntity)
+    const id = updatedEntity?.parent?.id.toString() ?? null
+    await testsTree.current?.rowRefetch(id, (row) => !row.original.data.is_leaf)
+    treebar.current.rowRefetch(updatedEntity.parent?.id.toString())
   }
 
   const refetchParentAfterArchive = async (updatedEntity: TestPlan) => {
-    const id = updatedEntity?.parent?.id ?? null
-    await testsTree.current?.refetchNodeBy((node) => node.id === id && !node.props.isLeaf)
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterArchive(treebar.current, updatedEntity)
+    const id = updatedEntity?.parent?.id.toString() ?? null
+    await testsTree.current?.rowRefetch(id, (row) => !row.original.data.is_leaf)
+    treebar.current.rowRefetch(updatedEntity.parent?.id.toString())
   }
 
   const refetchParentAfterDelete = async (updatedEntity: TestPlan) => {
-    const id = updatedEntity?.parent?.id ?? null
-    await testsTree.current?.refetchNodeBy((node) => node.id === id && !node.props.isLeaf)
-    if (!treebar.current) {
-      return
-    }
-
-    await refetchNodeAfterDelete(treebar.current, updatedEntity)
+    const id = updatedEntity?.parent?.id.toString() ?? null
+    await testsTree.current?.rowRefetch(id, (row) => !row.original.data.is_leaf)
+    const foundTreeRow = treebar.current?.getRow(updatedEntity.id.toString())
+    foundTreeRow.delete()
   }
 
   if (!testPlanId) return null
-
   if (!testPlan || isFetching) return <TestPlanHeaderSkeleton />
 
   return (

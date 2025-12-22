@@ -1547,7 +1547,6 @@ class TestCaseWithStepsEndpoints:
         with allure.step('Validate error message'):
             assert response.json()[_ERRORS][0] == FORBIDDEN_USER_TEST_CASE
 
-    @allure.link('https://j.yadro.com/browse/TMS-894')
     @allure.title('Regression migrating back steps')
     def test_migrating_steps(self, authorized_client, project, test_suite_factory):
         suite = test_suite_factory(project=project)

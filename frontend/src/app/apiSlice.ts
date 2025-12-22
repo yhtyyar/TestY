@@ -6,7 +6,6 @@ import { getCsrfCookie } from "entities/auth/api"
 import { logout } from "entities/auth/model"
 
 import { config } from "shared/config"
-import { savePrevPageUrl } from "shared/libs"
 
 import { handleError } from "./slice"
 
@@ -73,8 +72,9 @@ export const baseQueryWithLogout: BaseQueryFn<
       try {
         await authQuery("logout/", api, extraOptions)
       } finally {
-        savePrevPageUrl(window.location.pathname)
-        window.location.href = "/login"
+        window.location.href =
+          "/login?nextPage=" +
+          encodeURIComponent(`${window.location.pathname}${window.location.search}`)
         api.dispatch(logout())
         release()
       }

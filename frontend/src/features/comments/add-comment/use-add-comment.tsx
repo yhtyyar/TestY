@@ -6,8 +6,7 @@ import { useAttachments } from "entities/attachment/model"
 
 import { useProjectContext } from "pages/project"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 interface Props {
   model: Models
@@ -17,6 +16,7 @@ interface Props {
 
 export const useAddComment = ({ setIsShowAdd, model, object_id }: Props) => {
   const project = useProjectContext()
+  const { antdNotification } = useAntdModals()
   const [comment, setComment] = useState("")
   const [errors, setErrors] = useState<{ errors: string[] } | null>(null)
   const { onHandleError } = useErrors<{ errors: string[] }>(setErrors)

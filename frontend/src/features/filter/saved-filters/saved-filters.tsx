@@ -16,7 +16,7 @@ export const SavedFilters = ({ options, value, onChange, hasUnsavedChanges }: Pr
   return (
     <Select
       options={options.map((item) => ({ value: item, label: item }))}
-      onChange={onChange}
+      onSelect={onChange}
       defaultValue={value}
       value={value ?? t("Saved Filters")}
       prefix={hasUnsavedChanges ? <Tooltip title={t("Unsaved Changes")}>*</Tooltip> : null}

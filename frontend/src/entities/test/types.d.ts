@@ -56,7 +56,7 @@ interface Test {
   avatar_link: string | null
   test_suite_description?: string | null
   estimate: string | null
-  labels: Pick<Label, "id" | "name">[]
+  labels: Pick<Label, "id" | "name" | "color">[]
   parent?: Parent | null
 }
 
@@ -121,6 +121,8 @@ interface TestBulkUpdate {
   project: number
   included_tests: number[]
   excluded_tests: number[]
+  included_plans: number[]
+  excluded_plans: number[]
   current_plan?: number
   plan_id?: number
   assignee_id?: number | null

@@ -14,8 +14,7 @@ import {
   showArchivedResults,
 } from "entities/test-plan/model"
 
-import { useCacheState } from "shared/hooks"
-import { antdModalCloseConfirm } from "shared/libs/antd-modals"
+import { useAntdModals, useCacheState } from "shared/hooks"
 
 import { selectDrawerData, selectDrawerTest, setDrawerTest, setDrawerView } from "./slice"
 
@@ -23,6 +22,7 @@ type TabTypes = "result" | "comment" | "all"
 
 export const useTestDetail = () => {
   const dispatch = useAppDispatch()
+  const { antdModalCloseConfirm } = useAntdModals()
   const [tab, setTab] = useCacheState<TabTypes>("test-detail-tab", "all")
   const [ordering, setOrdering] = useCacheState<Ordering>("test-detail-entities-ordering", "desc")
   const tests = useAppSelector(selectTests)

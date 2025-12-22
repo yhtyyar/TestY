@@ -5,12 +5,23 @@ import { useParams } from "react-router-dom"
 
 import { useCreateLabelMutation, useUpdateLabelMutation } from "entities/label/api"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
+
+const BASE_COLORS = [
+  null,
+  "#B2D860",
+  "#2D7365",
+  "#468AA5",
+  "#7883E2",
+  "#C088FF",
+  "#EB76BE",
+  "#E4387A",
+]
 
 interface ErrorData {
   name?: string
   type?: string
+  color?: string
 }
 
 export interface UseCreateEditLabelModalProps {
@@ -27,6 +38,7 @@ export const useCreateEditLabelModal = ({
   isShow,
 }: UseCreateEditLabelModalProps) => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { projectId } = useParams<ParamProjectId>()
 
   const [createLabel, { isLoading: isLoadingCreating }] = useCreateLabelMutation()
@@ -38,12 +50,12 @@ export const useCreateEditLabelModal = ({
     handleSubmit,
     reset,
     control,
-    setValue,
     formState: { isDirty },
   } = useForm<LabelUpdate>({
     defaultValues: {
       name: label?.name ?? "",
       type: 0,
+      color: BASE_COLORS[0],
     },
   })
 
@@ -92,10 +104,12 @@ export const useCreateEditLabelModal = ({
 
   // use effect for edit modal
   useEffect(() => {
-    if (!isShow || mode !== "edit" || !label) return
-
-    setValue("name", label.name)
-    setValue("type", label.type)
+    if (mode !== "edit" || !label) return
+    reset({
+      name: label.name,
+      type: label.type,
+      color: label.color,
+    })
   }, [mode, label])
 
   return {
@@ -105,6 +119,7 @@ export const useCreateEditLabelModal = ({
     errors,
     isLoading: isLoadingCreating || isLoadingUpdating,
     isDirty,
+    BASE_COLORS,
     handleCancel,
     handleSubmitForm: handleSubmit(onSubmit),
   }

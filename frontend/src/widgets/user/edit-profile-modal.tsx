@@ -1,4 +1,4 @@
-import { Form, Input, Modal } from "antd"
+import { Form, Input } from "antd"
 import { useEffect, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -11,9 +11,9 @@ import { selectUser } from "entities/auth/model"
 import { useUpdateMeMutation } from "entities/user/api"
 import { hideEditProfileModal, selectProfileModalIsShow } from "entities/user/model"
 
-import { ErrorObj, useErrors } from "shared/hooks"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
+import { ErrorObj, useAntdModals, useErrors } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 interface Inputs {
   first_name: string
@@ -29,6 +29,7 @@ const TEST_ID = "edit-profile"
 
 export const EditProfileModal = () => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const dispatch = useDispatch()
   const isShow = useAppSelector(selectProfileModalIsShow)
   const user = useSelector(selectUser)
@@ -81,7 +82,7 @@ export const EditProfileModal = () => {
   }
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={<span data-testid={`${TEST_ID}-modal-title`}>{t("Edit Profile")}</span>}
@@ -135,6 +136,6 @@ export const EditProfileModal = () => {
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

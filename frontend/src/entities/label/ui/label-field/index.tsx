@@ -1,13 +1,11 @@
 import { Divider } from "antd"
 
-import { colors } from "shared/config"
-
 import { Label } from "../label"
 import styles from "./styles.module.css"
 
 interface LabelFieldProps {
   title: string
-  labels: LabelInForm[]
+  labels: SelectedLabel[]
 }
 
 export const LabelField = ({ title, labels }: LabelFieldProps) => {
@@ -18,8 +16,8 @@ export const LabelField = ({ title, labels }: LabelFieldProps) => {
       </Divider>
       <ul className={styles.list} data-testid="labels-list">
         {labels.map((label) => (
-          <li key={label.id}>
-            <Label content={label.name} color={colors.accent} />
+          <li key={label.value}>
+            <Label content={label.label} color={label.color} />
           </li>
         ))}
       </ul>

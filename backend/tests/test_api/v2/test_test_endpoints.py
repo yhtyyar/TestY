@@ -55,6 +55,7 @@ class TestTestEndpoints:
     view_name_list = 'api:v2:test-list'
     view_name_detail = 'api:v2:test-detail'
     view_name_bulk_update = 'api:v2:test-bulk-update'
+    view_name_bulk_update_tree = 'api:v2:test-bulk-update-tree'
     view_name_results_union = 'api:v2:test-results-union'
 
     def test_list(self, api_client, authorized_superuser, test_factory, project):
@@ -934,6 +935,57 @@ class TestTestEndpoints:
         ).json()['results']
         assert len(actual_results) == len(expected_results)
         assert actual_results == expected_results
+
+    @pytest.mark.parametrize('update_key', ['plan_id', 'assignee_id', 'is_deleted'])
+    @mock.patch('testy.root.celery.app.send_task', new=Mock())
+    def test_bulk_update_tests_tree(
+        self,
+        api_client,
+        authorized_superuser,
+        project,
+        test_plan_factory,
+        test_factory,
+        test_result_factory,
+        user,
+        update_key,
+    ):
+        parent_plan = test_plan_factory(project=project)
+        include_plan = test_plan_factory(project=project, parent=parent_plan)
+        exclude_plan = test_plan_factory(project=project, parent=parent_plan)
+        affected_test_ids = []
+        tests_in_payload = []
+        update_value = None
+        if update_key == 'plan_id':
+            update_value = test_plan_factory(project=project).pk
+        elif update_key == 'assignee_id':
+            update_value = user.pk
+        elif update_key == 'is_deleted':
+            update_value = True
+        payload = {update_key: update_value}
+        for _ in range(constants.NUMBER_OF_OBJECTS_TO_CREATE):
+            include_test = test_factory(project=project, plan=include_plan)
+            test_factory(project=project, plan=exclude_plan)
+            test_result_factory(test=include_test, project=project)
+            test = test_factory(project=project, plan=parent_plan)
+            affected_test_ids.extend([include_test.pk, test.pk])
+            tests_in_payload.append(test.pk)
+
+        api_client.send_request(
+            self.view_name_bulk_update_tree,
+            {
+                'project': project.id,
+                'included_tests': tests_in_payload,
+                'included_plans': [include_plan.pk],
+                **payload,
+            },
+            HTTPStatus.OK,
+            RequestType.PUT,
+        )
+        manager = Test.deleted_objects if update_key == 'is_deleted' else Test.objects
+        actual_count = manager.filter(pk__in=affected_test_ids, **payload).count()
+        if update_key == 'is_deleted':
+            assert not TestResult.objects.filter(test_id__in=affected_test_ids).exists()
+        assert actual_count == len(affected_test_ids)
 
     @contextmanager
     def _role(self, project: Project, user: User, role: Role):

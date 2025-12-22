@@ -2,7 +2,6 @@ import { DeleteOutlined, EditOutlined } from "@ant-design/icons"
 import { ColumnDef, Table, createColumnHelper } from "@tanstack/react-table"
 import { Flex, Space } from "antd"
 import { useRef } from "react"
-import { useTranslation } from "react-i18next"
 import { useDispatch } from "react-redux"
 import { DataTable } from "widgets"
 
@@ -11,14 +10,14 @@ import { setParameter, showEditParameterModal } from "entities/parameter/model"
 
 import { useProjectContext } from "pages/project"
 
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useMyTranslation } from "shared/hooks"
 import { Button } from "shared/ui"
 import { TableFilterSearch, TableSorting } from "shared/ui"
 
 const columnHelper = createColumnHelper<IParameter>()
 export const ParametersTable = () => {
-  const { t } = useTranslation()
+  const { t, language } = useMyTranslation(["translation", "common"])
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const dispatch = useDispatch()
   const project = useProjectContext()
   const { data: parameters = [], isFetching } = useGetParametersQuery(project.id)
@@ -125,6 +124,8 @@ export const ParametersTable = () => {
         isLoading={isFetching}
         data={parameters}
         columns={columns}
+        formatTotalText={(count) => t("common:paginationTotal", { count })}
+        lang={language}
         data-testid="parameters-table"
       />
     </>

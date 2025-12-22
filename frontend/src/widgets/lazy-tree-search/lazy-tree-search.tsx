@@ -1,5 +1,5 @@
+import { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table"
 import Search from "antd/es/input/Search"
-import { makeNode } from "processes/treebar-provider/utils"
 import { ChangeEvent, useEffect, useRef, useState } from "react"
 
 import { LazyGetTriggerType } from "app/export-types"
@@ -8,13 +8,8 @@ import { useProjectContext } from "pages/project"
 
 import { config } from "shared/config"
 import { useDebounce, useOnClickOutside } from "shared/hooks"
-import {
-  LazyNodeProps,
-  LazyTreeNodeApi,
-  LazyTreeView,
-  NodeId,
-  TreeNodeFetcher,
-} from "shared/libs/tree"
+import { BaseTreeNodeProps, DataTree, LazyTreeNodeParams, TreeNode } from "shared/ui/tree"
+import { makeTreeNodes } from "shared/ui/tree/utils"
 
 import { LazyTreeSearchNode } from "./lazy-tree-search-node"
 import styles from "./styles.module.css"
@@ -27,12 +22,11 @@ export interface BaseSearchEntity {
 
 interface Props<T> {
   id: string
-  getData: LazyGetTriggerType<T>
-  getAncestors: LazyGetTriggerType<T>
-  onSelect: (node: LazyTreeNodeApi<unknown, LazyNodeProps> | null) => void
+  getData: LazyGetTriggerType<PaginationResponse<T[]>>
+  getAncestors: LazyGetTriggerType<number[]>
+  onSelect: (data: TreeNode<T, BaseTreeNodeProps> | null) => void
   searchValue?: string
-  skipInit?: boolean
-  selectedId?: NodeId | null
+  selectedId?: number | null
   placeholder?: string
   valueKey?: string
   disabled?: boolean
@@ -45,7 +39,6 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
   getAncestors,
   onSelect,
   selectedId,
-  skipInit = true,
   placeholder,
   valueKey = "name",
   disabled = false,
@@ -58,6 +51,7 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
   const [isShowDropdown, setIsShowDropdown] = useState(false)
   const searchDebounce = useDebounce(searchText, 250, true)
   const popupRef = useRef(null)
+  const [selected, setSelected] = useState<RowSelectionState>({})
 
   const handleDropdownClickOutside = () => {
     setIsShowDropdown(false)
@@ -67,7 +61,7 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
 
   useOnClickOutside(popupRef, handleDropdownClickOutside, true, [`#${id}`])
 
-  const fetcher: TreeNodeFetcher<unknown, LazyNodeProps> = async (params) => {
+  const loadChildren = async (row: Row<TreeNode<T>> | null, params: LazyTreeNodeParams) => {
     const res = await getData(
       {
         project: project.id,
@@ -76,23 +70,37 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
         page_size: config.defaultTreePageSize,
         ordering: "name",
         treesearch: searchDebounce,
-        _n: params._n,
+        _n: new Date().getTime(),
         ...dataParams,
       },
       true
     ).unwrap()
 
-    // @ts-ignore
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const data = makeNode(res.results, (item) => ({ ...params, title: item[valueKey] }))
-    return { data, nextInfo: res.pages, _n: params._n }
+    const nodes = makeTreeNodes(
+      res.results,
+      {
+        // @ts-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        title: (item) => item?.[valueKey],
+      },
+      {
+        parent: params.parent ?? null,
+        page: params.page,
+        _n: params._n?.toString(),
+      }
+    )
+
+    return {
+      data: nodes,
+      params: {
+        page: params.page,
+        hasMore: !!res.pages.next,
+      },
+    }
   }
 
-  const fetcherAncestors = async (newId: NodeId): Promise<number[]> => {
-    return (await getAncestors({
-      project: project.id,
-      id: Number(newId),
-    }).unwrap()) as unknown as Promise<number[]>
+  const loadAncestors = async (rowId: string) => {
+    return getAncestors({ project: project.id, id: Number(rowId) }).unwrap()
   }
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
@@ -100,27 +108,46 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
 
     setSearchText(value)
     setSearchInputText(value)
-
-    if (!value.length) {
-      onSelect(null)
-    }
   }
 
   const handleSearchClick = () => {
     setIsShowDropdown(true)
   }
 
-  const handleSelect = (node: LazyTreeNodeApi<unknown, LazyNodeProps> | null) => {
+  const handleSelect = (node: Row<TreeNode<T>> | null) => {
     if (node) {
-      setSearchInputText(node.title)
-      onSelect(node)
+      setSearchInputText(node.original.title)
+      onSelect(node.original)
       setIsShowDropdown(false)
     }
+  }
+
+  const handleClear = () => {
+    setSearchInputText("")
+    setSearchText("")
+    onSelect(null)
   }
 
   useEffect(() => {
     setSearchInputText(searchValue)
   }, [searchValue])
+
+  useEffect(() => {
+    setSelected(selectedId ? { [selectedId.toString()]: true } : {})
+  }, [selectedId])
+
+  const columns: ColumnDef<TreeNode<T>>[] = [
+    {
+      id: "name",
+      cell: ({ row }) => (
+        <LazyTreeSearchNode node={row} onSelect={handleSelect} searchText={searchText} />
+      ),
+    },
+  ]
+
+  const handleSelectChange = (selectedRowKeys: RowSelectionState) => {
+    setSelected(selectedRowKeys)
+  }
 
   return (
     <div className={styles.searchContainer}>
@@ -130,26 +157,35 @@ export const LazyTreeSearch = <T extends BaseSearchEntity>({
         placeholder={placeholder}
         onChange={handleSearch}
         onClick={handleSearchClick}
+        onClear={handleClear}
         value={searchInputText}
         allowClear
         disabled={disabled}
+        autoComplete="off"
       />
       {isShowDropdown && !disabled && (
         <div className={styles.searchDropdown} ref={popupRef} data-testid={`${id}-search-dropdown`}>
-          <LazyTreeView
-            fetcher={fetcher}
-            fetcherAncestors={fetcherAncestors}
-            skipInit={skipInit}
-            selectedId={selectedId}
-            initDependencies={[searchDebounce]}
-            renderNode={(node) => (
-              <LazyTreeSearchNode
-                node={node}
-                selectedId={selectedId}
-                onSelect={handleSelect}
-                searchText={searchInputText}
-              />
-            )}
+          <DataTree
+            columns={columns}
+            type="lazy"
+            loadChildren={loadChildren}
+            loadAncestors={loadAncestors}
+            state={{ rowActive: selected }}
+            autoLoadRoot={{
+              deps: [searchDebounce],
+              additionalParams: {
+                treesearch: searchDebounce,
+              },
+            }}
+            autoLoadParentsBySelected
+            autoOpenParentsBySelected
+            getRowCanExpand={(row) => row.original.data.has_children}
+            enableRowSelection
+            showSelectionCheckboxes={false}
+            enableMultiRowSelection={false}
+            enableSubRowSelection={false}
+            onRowSelectionChange={handleSelectChange}
+            data-testid={`${id}-tree`}
           />
         </div>
       )}

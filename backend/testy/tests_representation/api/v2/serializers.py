@@ -30,15 +30,14 @@
 # <http://www.gnu.org/licenses/>.
 from functools import partial
 
-from core.selectors.projects import ProjectSelector
 from rest_framework.fields import BooleanField, CharField, DateTimeField, IntegerField, ListField, SerializerMethodField
 from rest_framework.relations import HyperlinkedIdentityField, PrimaryKeyRelatedField
 from rest_framework.reverse import reverse
 from rest_framework.serializers import JSONField, ModelSerializer, Serializer
-from tests_representation.validators import AssigneeExistsValidator, PlanExistsValidator
 
 from testy.core.api.v2.serializers import AttachmentSerializer, ParentMinSerializer
 from testy.core.selectors.attachments import AttachmentSelector
+from testy.core.selectors.projects import ProjectSelector
 from testy.core.validators import BulkUpdateExcludeIncludeValidator, RecursionValidator
 from testy.serializer_fields import EstimateField
 from testy.tests_description.api.v2.serializers import TestCaseLabelOutputSerializer
@@ -48,9 +47,11 @@ from testy.tests_representation.selectors.parameters import ParameterSelector
 from testy.tests_representation.selectors.testplan import TestPlanSelector
 from testy.tests_representation.selectors.tests import TestSelector
 from testy.tests_representation.validators import (
+    AssigneeExistsValidator,
     AssigneeValidator,
     DateRangeValidator,
     MoveTestsSameProjectValidator,
+    PlanExistsValidator,
     ResultStatusValidator,
     StatusExistsValidator,
     TestPlanCasesValidator,
@@ -376,6 +377,7 @@ class TestPlanUnionSerializer(TestPlanOutputSerializer):
     total_tests = IntegerField(read_only=True)
     estimate = EstimateField(read_only=True, allow_null=True, allow_blank=True)
     tests_progress_total = IntegerField(read_only=True)
+    union_count = IntegerField(read_only=True)
 
     class Meta:
         model = TestPlan
@@ -397,6 +399,7 @@ class TestPlanUnionSerializer(TestPlanOutputSerializer):
             'total_tests',
             'tests_progress_total',
             'estimate',
+            'union_count',
         )
 
 
@@ -577,6 +580,19 @@ class BulkUpdateTestsSerializer(Serializer):
             ),
             AssigneeValidator(),
         ]
+
+
+class BulkUpdateTestsTreeSerializer(BulkUpdateTestsSerializer):
+    project = PrimaryKeyRelatedField(queryset=ProjectSelector().project_list_raw(), required=True, allow_null=False)
+    current_plan = None
+    excluded_tests = None
+    included_plans = PrimaryKeyRelatedField(
+        queryset=TestPlanSelector.testplan_list_raw(),
+        many=True,
+        allow_empty=True,
+        allow_null=False,
+        required=False,
+    )
 
 
 class TestPlanTreeBreadcrumbsSerializer(ModelSerializer):

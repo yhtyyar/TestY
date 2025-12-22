@@ -1,7 +1,5 @@
 import { Flex } from "antd"
-import equal from "fast-deep-equal"
 import { useMeContext } from "processes"
-import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { ZodObject } from "zod"
 
@@ -9,7 +7,7 @@ import { FilterSettings } from "entities/test/model/test-filter-slice.types"
 
 import { useProjectContext } from "pages/project"
 
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals } from "shared/hooks"
 import { schemaFillBySearchParams } from "shared/libs/sync-url"
 
 import styles from "./styles.module.css"
@@ -18,7 +16,6 @@ import { SelectFilter } from "./ui/select-filter/select-filter"
 
 interface Props {
   type: "plans" | "suites"
-  hasSomeFilter: boolean
   filterData: Record<string, unknown>
   filterSchema: ZodObject
   filterSettings: FilterSettings
@@ -29,7 +26,6 @@ interface Props {
 
 export const FilterControl = ({
   type,
-  hasSomeFilter,
   filterData,
   filterSchema,
   filterSettings,
@@ -38,6 +34,7 @@ export const FilterControl = ({
   clearFilter,
 }: Props) => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm } = useAntdModals()
 
   const { userConfig, updateConfig } = useMeContext()
   const project = useProjectContext()
@@ -95,22 +92,6 @@ export const FilterControl = ({
     const filterParse = schemaFillBySearchParams(filterSchema, { url: value })
     updateFilter(filterParse)
   }
-
-  useEffect(() => {
-    if (!hasSomeFilter || !configFilters || filterSettings.selected) {
-      return
-    }
-
-    const urlParse = schemaFillBySearchParams(filterSchema)
-    for (const [filterName, filterValue] of Object.entries(configFilters)) {
-      const filterParse = schemaFillBySearchParams(filterSchema, { url: filterValue })
-      const isEqualUrlFilter = equal(urlParse, filterParse)
-      if (isEqualUrlFilter) {
-        updateSettings({ selected: filterName })
-        return
-      }
-    }
-  }, [hasSomeFilter, configFilters, filterSettings.selected])
 
   return (
     <Flex vertical justify="space-between">

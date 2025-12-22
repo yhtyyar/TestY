@@ -4,7 +4,6 @@
   flex-grow: 1;
   height: 100%;
   width: 100%;
-  overflow-x: scroll;
 }
 
 .form :global(.ant-tabs-nav) {

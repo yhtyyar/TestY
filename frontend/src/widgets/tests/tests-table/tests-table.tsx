@@ -1,6 +1,8 @@
 import { memo } from "react"
 import { DataTable } from "widgets"
 
+import { useMyTranslation } from "shared/hooks"
+
 import { useTestsTable } from "./use-tests-table"
 
 interface Props {
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export const TestsTable = memo(({ testPlanId }: Props) => {
+  const { t, language } = useMyTranslation(["translation", "common"])
   const {
     tableRef,
     activeTestId,
@@ -46,6 +49,8 @@ export const TestsTable = memo(({ testPlanId }: Props) => {
       }}
       manualPagination
       enableColumnDragging
+      formatTotalText={(count) => t("common:paginationTotal", { count })}
+      lang={language}
       draggingColumnCacheKey="tests-table"
       resizeColumnCacheKey="tests-table"
       data-testid="tests-table"

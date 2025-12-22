@@ -1,17 +1,21 @@
-import { CaretDownOutlined, SearchOutlined } from "@ant-design/icons"
-import { Flex, Input, Select, Tree, TreeDataNode } from "antd"
-import { DataNode } from "antd/es/tree"
-import { TreeProps } from "antd/lib"
+import { CaretRightOutlined, SearchOutlined } from "@ant-design/icons"
+import { ColumnDef, ExpandedState, RowSelectionState } from "@tanstack/react-table"
+import { Flex, Input, Select, TreeDataNode } from "antd"
 import classNames from "classnames"
-import React, { Key, useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 
-import { Button, ContainerLoader, Toggle } from "shared/ui"
+import { useDebounce } from "shared/hooks"
+import { objectToArrayNumber } from "shared/libs"
+import { Button, HighLighterTesty, Toggle } from "shared/ui"
 
+import { DataTree, TreeNode } from "../tree"
+import { arrayOfStringToObject, makeTreeNodes } from "../tree/utils"
 import styles from "./styles.module.css"
-import { BaseTreeFilterNode, treeFilterFormat } from "./utils"
+import { BaseTreeFilterNode, FilterWithKey, treeFilterFormat } from "./utils"
 
 interface TreeDataNodeExtend extends TreeDataNode {
+  key: string
   titleText: string
   children: TreeDataNodeExtend[]
 }
@@ -25,25 +29,29 @@ interface Props<T> {
   onClose?: () => void
   onClear?: () => void
   showFullOnly?: boolean
+  treeWrapperId: string
+  enableSubRowSelection?: boolean
 }
 
 function findNodesWithParentKeys(
-  tree: TreeDataNodeExtend[],
+  tree: TreeNode<TreeDataNodeExtend>[],
   title: string,
-  parentKey: Key | null = null,
-  path: Key[] = []
-): Key[] {
-  let results: Key[] = []
+  parentKey: string | null = null,
+  path: string[] = []
+): string[] {
+  let results: string[] = []
 
   for (const node of tree) {
-    const currentPath = [...path, parentKey].filter(Boolean) as Key[]
+    const currentPath = [...path, parentKey].filter(Boolean) as string[]
 
-    if (String(node.titleText.toLowerCase()).includes(title.toLowerCase())) {
+    if (String(node.data.titleText.toLowerCase()).includes(title.toLowerCase())) {
       results.push(...currentPath)
     }
 
     if (node.children && node.children.length > 0) {
-      results = results.concat(findNodesWithParentKeys(node.children, title, node.key, currentPath))
+      results = results.concat(
+        findNodesWithParentKeys(node.children, title, node.data.key, currentPath)
+      )
     }
   }
 
@@ -68,22 +76,8 @@ function findTreeNodeById<T extends BaseTreeFilterNode>(
   return null
 }
 
-const getAllParentIdsByNode = (
-  allNodes: BaseTreeFilterNode[],
-  node: BaseTreeFilterNode,
-  parentIds: number[] = []
-) => {
-  if (node?.parent?.id) {
-    parentIds.push(node.parent.id)
-    const parentNode = findTreeNodeById(allNodes, node.parent.id)
-    if (parentNode) {
-      return getAllParentIdsByNode(allNodes, parentNode, parentIds)
-    }
-  }
-  return parentIds
-}
-
 export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
+  treeWrapperId,
   type,
   value,
   getData,
@@ -92,16 +86,16 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
   onClose,
   onClear,
   showFullOnly = false,
+  enableSubRowSelection = true,
 }: Props<T>) => {
   const { t } = useTranslation()
 
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isShowFullTree, setIsShowFullTree] = useState(showFullOnly)
-  const [halfChecked, setHalfChecked] = useState<string[]>([])
-  const [expandedKeys, setExpandedKeys] = useState<Key[]>([])
-  const [autoExpandParent, setAutoExpandParent] = useState(true)
+  const [expandedKeys, setExpandedKeys] = useState<ExpandedState>({})
   const [searchValue, setSearchValue] = useState("")
+  const searchDebounce = useDebounce(searchValue, 250, true)
   const [allEntityData, setAllEntityData] = useState<T[]>([])
   const [visibleShortData, setVisibleShortData] = useState<T[]>([])
 
@@ -114,50 +108,29 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
 
     const [data, selectedData] = treeFilterFormat<T>({
       data: visibleData,
-      searchValue,
+      searchValue: searchDebounce,
       titleKey: type === "plans" ? "title" : "name",
     })
+
+    const dataTree = makeTreeNodes(data, {
+      title: (row) => row.titleText,
+      parent: (row) => row.parent?.id.toString() ?? null,
+      children: (row) => row.children,
+    })
+
     return {
-      data,
+      data: dataTree,
       selectedData,
     }
-  }, [visibleData, searchValue])
-
-  useEffect(() => {
-    const prepareHalfCheked = (nodes: BaseTreeFilterNode[], checked: number[] = []) => {
-      for (const node of nodes) {
-        if (checkedKeys.includes(String(node.id))) {
-          // @ts-ignore
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (node?.parent?.id) {
-            checked.push(...getAllParentIdsByNode(visibleData, node))
-          }
-        }
-
-        if (node.children.length) {
-          prepareHalfCheked(node.children, checked)
-        }
-      }
-
-      return checked
-    }
-
-    setHalfChecked([...new Set(prepareHalfCheked(visibleData).map((i) => String(i)))])
-  }, [visibleData, value])
+  }, [visibleData, searchDebounce])
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value: newValue } = e.target
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const newExpandedKeys = findNodesWithParentKeys(treeData.data, newValue)
-    setExpandedKeys(newExpandedKeys)
+    setExpandedKeys(arrayOfStringToObject(newExpandedKeys))
     setSearchValue(newValue)
-    setAutoExpandParent(true)
-  }
-
-  const handleExpand = (newExpandedKeys: React.Key[]) => {
-    setExpandedKeys(newExpandedKeys)
-    setAutoExpandParent(false)
   }
 
   const handleSelectAll = () => {
@@ -187,27 +160,8 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
     onChange(keys)
   }
 
-  const handleCheck: TreeProps["onCheck"] = (checkedKeysValue, info) => {
-    const { node, checked } = info
-    let newCheckedKeys = [...checkedKeys]
-
-    if (checked) {
-      const addKeys = (addedNode: DataNode) => {
-        if (!newCheckedKeys.includes(addedNode.key as string)) {
-          newCheckedKeys.push(addedNode.key as string)
-        }
-        addedNode.children?.forEach(addKeys)
-      }
-      addKeys(node)
-    } else {
-      const removeKeys = (removedNode: DataNode) => {
-        newCheckedKeys = newCheckedKeys.filter((key) => key !== removedNode.key)
-        removedNode.children?.forEach(removeKeys)
-      }
-      removeKeys(node)
-    }
-
-    onChange(newCheckedKeys.map(Number))
+  const handleCheck = (checkedKeysValue: RowSelectionState) => {
+    onChange(objectToArrayNumber(checkedKeysValue))
   }
 
   const handleShowFullTree = (toggle: boolean) => {
@@ -227,7 +181,26 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
     fetchData()
   }, [])
 
-  const checkedKeys = value.map(String)
+  const checkedKeys = useMemo(() => {
+    return arrayOfStringToObject(value)
+  }, [value])
+
+  const columns: ColumnDef<TreeNode<FilterWithKey>>[] = useMemo(
+    () => [
+      {
+        id: "name",
+        cell: ({ row }) => (
+          <div className={styles.treeRow} onClick={() => row.toggleSelected()}>
+            <HighLighterTesty searchWords={searchValue} textToHighlight={row.original.title} />
+          </div>
+        ),
+        meta: {
+          fullWidth: true,
+        },
+      } as ColumnDef<TreeNode<FilterWithKey>>,
+    ],
+    [searchValue]
+  )
 
   const checkedKeysWithLabel = useMemo(() => {
     return value.map((val) => {
@@ -259,10 +232,10 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
       onChange={handleChange}
       allowClear
       style={{ width: "100%" }}
-      dropdownStyle={{ padding: 0 }}
-      onDropdownVisibleChange={handleDropdownVisibleChange}
-      dropdownRender={() => (
-        <>
+      styles={{ popup: { root: { padding: 0 } } }}
+      onOpenChange={handleDropdownVisibleChange}
+      popupRender={() => (
+        <div data-testid={treeWrapperId}>
           <div className={styles.searchBlock} data-testid="entity-tree-filter-search-block">
             <Input
               className={styles.input}
@@ -307,50 +280,40 @@ export const EntityTreeFilter = <T extends BaseTreeFilterNode>({
                 />
               )}
             </Flex>
-            {isLoading && <ContainerLoader />}
-            {!isLoading && (
-              <>
-                <Tree
-                  checkable
-                  checkStrictly
-                  defaultCheckedKeys={checkedKeys}
-                  height={300}
-                  virtual={false}
-                  showIcon={false}
-                  selectable={false}
-                  treeData={treeData.data}
-                  autoExpandParent={autoExpandParent}
-                  onExpand={handleExpand}
-                  expandedKeys={expandedKeys}
-                  checkedKeys={{ checked: checkedKeys, halfChecked }}
-                  onCheck={handleCheck}
-                  className={styles.tree}
-                  data-testid="entity-tree-filter-tree"
-                  switcherIcon={(node) => {
-                    return (
-                      <CaretDownOutlined
-                        data-testid={
-                          `node-arrow-${node?.titleText}` +
-                          (node.expanded ? "_expanded" : "_closed")
-                        }
-                        className={classNames(styles.arrow, {
-                          [styles.expanded]: node.expanded,
-                        })}
-                      />
-                    )
-                  }}
+            <DataTree
+              data={treeData.data}
+              columns={columns}
+              isLoading={isLoading}
+              enableRowSelection
+              enableSubRowSelection={enableSubRowSelection}
+              state={{
+                rowSelection: checkedKeys,
+                expanded: expandedKeys,
+              }}
+              onRowSelectionChange={handleCheck}
+              onExpandedChange={setExpandedKeys}
+              styles={{ container: { height: 300 } }}
+              expandIcon={(row) => (
+                <CaretRightOutlined
+                  data-testid={
+                    `node-arrow-${row.original.title}` +
+                    (row.getIsExpanded() ? "_expanded" : "_closed")
+                  }
+                  className={classNames(styles.arrow, {
+                    [styles.expanded]: row.getIsExpanded(),
+                  })}
                 />
-
-                <span
-                  style={{ opacity: 0.7, marginTop: 4 }}
-                  data-testid="entity-tree-filter-selected-count"
-                >
-                  {t("Selected")}: {value.length}
-                </span>
-              </>
-            )}
+              )}
+              data-testid="entity-tree-filter-tree"
+            />
+            <span
+              style={{ opacity: 0.7, marginTop: 4 }}
+              data-testid="entity-tree-filter-selected-count"
+            >
+              {t("Selected")}: {value.length}
+            </span>
           </div>
-        </>
+        </div>
       )}
     />
   )

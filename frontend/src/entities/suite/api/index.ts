@@ -4,6 +4,8 @@ import { baseQueryWithLogout } from "app/apiSlice"
 
 import { systemStatsInvalidate } from "entities/system/api"
 
+import { testSuiteTestCasesInvalidate } from "entities/test-case/api"
+
 import { invalidatesList, providesList } from "shared/libs"
 
 const rootPath = "suites"
@@ -83,6 +85,7 @@ export const suiteApi = createApi({
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         await queryFulfilled
         dispatch(systemStatsInvalidate)
+        dispatch(testSuiteTestCasesInvalidate)
       },
       invalidatesTags: (result) => invalidatesList(result, "TestSuite"),
     }),

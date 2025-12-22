@@ -1,4 +1,4 @@
-import { Form, Input, Modal, Switch, Upload } from "antd"
+import { Form, Input, Switch, Upload } from "antd"
 import { RcFile, UploadChangeParam, UploadFile } from "antd/lib/upload"
 import { useMeContext } from "processes"
 import { useEffect, useState } from "react"
@@ -8,10 +8,10 @@ import { useTranslation } from "react-i18next"
 import { useUpdateProjectMutation } from "entities/project/api"
 import { ProjectIcon } from "entities/project/ui"
 
-import { ErrorObj, useErrors } from "shared/hooks"
+import { ErrorObj, useAntdModals, useErrors } from "shared/hooks"
 import { fileReader } from "shared/libs"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
 import { AlertError, AlertSuccessChange, Button, TextArea } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 interface ErrorData {
   name?: string
@@ -30,6 +30,7 @@ const TEST_ID = "edit-project"
 
 export const EditProjectModal = ({ isShow, setIsShow, project }: Props) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const { me } = useMeContext()
   const [errors, setErrors] = useState<ErrorData | null>(null)
   const {
@@ -140,7 +141,7 @@ export const EditProjectModal = ({ isShow, setIsShow, project }: Props) => {
   }
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${TEST_ID}-modal-body` }}
       wrapProps={{ "data-testid": `${TEST_ID}-modal-wrapper` }}
       title={
@@ -279,6 +280,6 @@ export const EditProjectModal = ({ isShow, setIsShow, project }: Props) => {
           )}
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

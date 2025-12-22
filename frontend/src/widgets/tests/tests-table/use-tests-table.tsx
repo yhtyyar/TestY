@@ -35,7 +35,6 @@ import { UserAvatar, UserUsername } from "entities/user/ui"
 
 import { useProjectContext } from "pages/project"
 
-import { colors } from "shared/config"
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, NOT_ASSIGNED_FILTER_VALUE } from "shared/constants"
 import { useRowSelection } from "shared/hooks"
 import { ArchivedTag, HighLighterTesty, Status } from "shared/ui"
@@ -137,7 +136,6 @@ export const useTestsTable = ({ testPlanId }: Props) => {
     test_plan_created_after: reqParams.test_plan_created_after,
     test_created_before: reqParams.test_created_before,
     test_created_after: reqParams.test_created_after,
-    _n: reqParams._n,
   }
 
   const { data: testPlanData, isFetching: isFetchingTestPlan } = useGetTestPlanTestsQuery(
@@ -174,6 +172,10 @@ export const useTestsTable = ({ testPlanId }: Props) => {
     setSearchParams(searchParams)
     dispatch(setDrawerTest(row.original))
   }
+
+  useEffect(() => {
+    resetAll()
+  }, [data])
 
   useEffect(() => {
     if (!data) return
@@ -307,7 +309,7 @@ export const useTestsTable = ({ testPlanId }: Props) => {
           <ul className={styles.list}>
             {getValue().map((label) => (
               <li key={label.id}>
-                <Label content={label.name} color={colors.accent} />
+                <Label content={label.name} color={label.color} truncate />
               </li>
             ))}
           </ul>

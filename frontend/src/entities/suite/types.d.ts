@@ -10,9 +10,11 @@ interface Suite {
   cases_count: number
   descendant_count: number
   total_cases_count: number
+  union_count: number
   estimates: string | null
   total_estimates: string | null
   url: string
+  labels: Pick<Label, "id" | "name" | "color">[]
   created_at: string
   attachments: IAttachment[]
   attributes: AttributesObject
@@ -31,6 +33,9 @@ interface SuiteResponseUpdate {
 interface SuiteWithCases extends Suite {
   test_cases: TestCase[]
   children: SuiteWithCases[]
+  labels?: LabelInForm[]
+  is_archive?: TestCase["is_archive"]
+  parent_id: number | null
 }
 
 interface SuiteUpdate {
@@ -72,7 +77,10 @@ interface GetTestSuitesQuery {
   _n?: string | number
 }
 
-type GetTestSuitesUnionQuery = Omit<GetTestSuitesQuery, "treesearch"> & { search?: string }
+type GetTestSuitesUnionQuery = Omit<GetTestSuitesQuery, "treesearch"> & {
+  search?: string
+  level: number
+}
 
 interface CopySuiteResponse {
   id: Id

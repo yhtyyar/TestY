@@ -52,7 +52,10 @@ export const TextAreaWithAttach = ({
 
   const onChange = (info: UploadChangeParam<UploadFileExtend<IAttachmentWithStatus[]>>) => {
     setAttachments(
-      (info.fileList as IAttachmentWithStatus[]).map((f) => ({ ...f, filename: f.name }))
+      (info.fileList as IAttachmentWithStatus[]).map((f) => ({
+        ...f,
+        filename: f?.status ? f.name : f.filename,
+      }))
     )
 
     const { status } = info.file as IAttachmentWithStatus

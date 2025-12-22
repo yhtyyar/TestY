@@ -1,4 +1,4 @@
-import { TreebarProvider } from "processes"
+import { TreebarProvider } from "processes/treebar-provider"
 import { Outlet } from "react-router-dom"
 
 import { Treebar } from "widgets/[ui]/treebar/treebar"

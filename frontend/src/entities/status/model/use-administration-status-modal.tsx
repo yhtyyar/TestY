@@ -4,9 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
 import { CUSTOM_TYPE } from "shared/config/status-types"
-import { useErrors } from "shared/hooks"
-import { initInternalError } from "shared/libs"
-import { antdModalConfirm, antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 import { useCreateStatusMutation, useDeleteStatusMutation, useUpdateStatusMutation } from "../api"
 
@@ -18,6 +16,7 @@ interface ErrorData {
 
 export const useAdministrationStatusModal = () => {
   const { t } = useTranslation()
+  const { antdNotification, antdModalConfirm, initInternalError } = useAntdModals()
   const { projectId } = useParams<ParamProjectId>()
 
   const [createStatus, { isLoading: isLoadingCreating }] = useCreateStatusMutation()

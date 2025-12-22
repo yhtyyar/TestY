@@ -245,17 +245,28 @@ class TestCaseService:
         queryset: QuerySet[TestCase],
         payload: dict[str, Any],
         user: User,
+        is_tree: bool = False,
     ) -> QuerySet[TestCase]:
         project = payload[_PROJECT]
-        test_cases = TestCaseSelector.list_for_bulk_operation(
-            queryset=queryset,
-            included_objects=payload.pop('included_cases', None),
-            excluded_objects=payload.pop('excluded_cases', None),
-        )
+        func_args = {
+            'queryset': queryset,
+            'included_objects': payload.pop('included_cases', None),
+        }
+        if is_tree:
+            func_args.update(
+                {
+                    'included_related_objects': payload.pop('included_suites', None),
+                    'related_field': 'suite_id',
+                },
+            )
+            method = TestCaseSelector.list_for_bulk_operation_tree
+        else:
+            func_args['excluded_objects'] = payload.pop('excluded_cases', None)
+            method = TestCaseSelector.list_for_bulk_operation
+
+        test_cases = method(**func_args)
         labels = payload.pop('labels', None)
         labels_action = payload.pop('labels_action', None)
-        if labels is not None:
-            cls._process_labels(test_cases, labels, labels_action, project, user)
 
         for test_case in test_cases:
             for field_name, field_value in payload.items():
@@ -268,7 +279,22 @@ class TestCaseService:
             default_user=user,
             default_change_reason='Bulk update test cases',
         )
-        return TestCaseSelector().case_list({'pk__in': [case.pk for case in test_cases]})
+        if labels is not None:
+            cls._process_labels(test_cases, labels, labels_action, project, user)
+
+        test_cases = TestCaseSelector().case_list({'pk__in': [case.pk for case in test_cases]})
+        steps_for_update = TestCaseStepSelector.steps_by_ids_list(test_cases.values('id'), 'test_case_id')
+        if steps_for_update.exists():
+            for step in steps_for_update:
+                step.test_case_history_id = step.test_case.history.first().history_id
+            bulk_update_with_history(
+                steps_for_update,
+                model=TestCaseStep,
+                fields=['test_case_history_id'],
+                default_user=user,
+                default_change_reason='Bulk update test cases',
+            )
+        return test_cases
 
     @classmethod
     def _process_labels(

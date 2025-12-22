@@ -8,8 +8,7 @@ import { SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
-import { useErrors } from "shared/hooks"
-import { antdNotification } from "shared/libs/antd-modals"
+import { useAntdModals, useErrors } from "shared/hooks"
 
 const { confirm } = Modal
 
@@ -34,6 +33,7 @@ export const useCreateEditIntegrationModal = ({
   isShow,
 }: UseCreateEditIntegrationModalProps) => {
   const { t } = useTranslation()
+  const { antdNotification } = useAntdModals()
   const { projectId } = useParams<ParamProjectId>()
 
   const [createIntegration, { isLoading: isLoadingCreating }] = useCreateIntegrationMutation()

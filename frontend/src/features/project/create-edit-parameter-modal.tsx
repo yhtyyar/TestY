@@ -1,4 +1,4 @@
-import { Form, Input, Modal } from "antd"
+import { Form, Input } from "antd"
 import { useEffect, useState } from "react"
 import { Controller, SubmitHandler, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
@@ -14,9 +14,9 @@ import {
   selectParameter,
 } from "entities/parameter/model"
 
-import { ErrorObj, useErrors } from "shared/hooks"
-import { antdModalCloseConfirm, antdNotification } from "shared/libs/antd-modals"
+import { ErrorObj, useAntdModals, useErrors } from "shared/hooks"
 import { AlertError, Button } from "shared/ui"
+import { NyModal } from "shared/ui/ny-modal/ny-modal"
 
 interface ErrorData {
   data?: string
@@ -29,6 +29,7 @@ interface CreateParameterModalProps {
 
 export const CreateEditParameterModal = ({ projectId }: CreateParameterModalProps) => {
   const { t } = useTranslation()
+  const { antdModalCloseConfirm, antdNotification } = useAntdModals()
   const dispatch = useDispatch()
   const isShow = useAppSelector(selectModalIsShow)
   const isEditMode = useAppSelector(selectModalIsEditMode)
@@ -103,7 +104,7 @@ export const CreateEditParameterModal = ({ projectId }: CreateParameterModalProp
   const testId = `${type}-parameter`
 
   return (
-    <Modal
+    <NyModal
       bodyProps={{ "data-testid": `${testId}-modal-body` }}
       wrapProps={{ "data-testid": `${testId}-modal-wrapper` }}
       title={<span data-testid={`${testId}-modal-title`}>{title}</span>}
@@ -162,6 +163,6 @@ export const CreateEditParameterModal = ({ projectId }: CreateParameterModalProp
           </Form.Item>
         </Form>
       </>
-    </Modal>
+    </NyModal>
   )
 }

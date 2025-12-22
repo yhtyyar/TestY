@@ -85,6 +85,8 @@ export const TestCaseTypeForm = ({ value, onChange }: Props) => {
             handleChange([])
           }}
           showFullOnly
+          enableSubRowSelection={false}
+          treeWrapperId="testcase-custom-attribute-tree"
         />
       )}
     </div>

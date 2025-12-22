@@ -4,15 +4,13 @@ import { useInView } from "react-intersection-observer"
 
 import { useLazyGetProjectsQuery } from "entities/project/api"
 
+import { useLazyAdvanced } from "shared/hooks"
+import { usePagination } from "shared/ui"
+
 import { DashboardViewContext } from "../../dashboard"
 
-interface RequestParams {
-  page: number
-  page_size: number
-  is_archive?: boolean
-  favorites?: boolean
-  name?: string
-  nonce?: number
+interface RequestMeta {
+  is_search: boolean
 }
 
 interface Props {
@@ -21,119 +19,95 @@ interface Props {
 
 export const useProjectsDashboardCards = ({ searchName }: Props) => {
   const { userConfig } = useMeContext()
-  const [paginationParams, setPaginationParams] = useState({ page: 1, page_size: 10 })
+  const { pagination, setPagination, resetPagination } = usePagination()
   const [projects, setProjects] = useState<Project[]>([])
   const [isLastPage, setIsLastPage] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [nonce, setNonce] = useState(1)
   const dashboardContext = useContext(DashboardViewContext)
 
-  const [getProjects] = useLazyGetProjectsQuery()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  const activeRequestRef = useRef<any>(null)
+  const [getProjects, { isFetching }] = useLazyAdvanced<
+    QueryWithPagination<GetProjectsQuery>,
+    PaginationResponse<Project[]>,
+    RequestMeta
+  >(useLazyGetProjectsQuery, {
+    onSuccess: (_, { results, pages }, meta) => {
+      const hasResults = results.length > 0
+      const isLast = !pages.next || !hasResults
+      setIsLastPage(isLast)
+
+      setProjects((prevState) => {
+        if (meta?.is_search) {
+          return results
+        }
+        return hasResults ? [...prevState, ...results] : prevState
+      })
+    },
+  })
+
   const isInitialLoadRef = useRef(true)
 
   const { ref, inView } = useInView({
     threshold: 0.5,
     trackVisibility: true,
     delay: 150,
-    skip: isLoading || isLastPage,
+    skip: isFetching || isLastPage,
   })
 
-  const fetchData = useCallback(
-    async (params: RequestParams, isSearch = false) => {
-      if (activeRequestRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        activeRequestRef.current.abort()
-      }
-
-      try {
-        setIsLoading(true)
-        const res = getProjects({ ...params, ordering: "is_private" })
-        activeRequestRef.current = res
-
-        const { data } = await res
-
-        if (!data) {
-          setIsLastPage(true)
-          return
-        }
-
-        const hasResults = data.results && data.results.length > 0
-        const isLast = !data.pages?.next || !hasResults
-
-        setProjects((prevState) => {
-          if (isSearch) {
-            return data.results || []
-          }
-          return hasResults ? [...prevState, ...data.results] : prevState
-        })
-
-        setIsLastPage(isLast)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setIsLoading(false)
-        activeRequestRef.current = null
-      }
-    },
-    [getProjects]
-  )
-
   const handleClear = useCallback(() => {
-    setPaginationParams({ page: 1, page_size: paginationParams.page_size })
+    resetPagination({ pageSize: pagination.pageSize })
     setProjects([])
     setIsLastPage(false)
-  }, [paginationParams.page_size])
+  }, [pagination.pageSize])
 
   useEffect(() => {
-    if (!inView || isLoading || isLastPage || isInitialLoadRef.current) return
+    if (!inView || isFetching || isLastPage || isInitialLoadRef.current) return
 
-    const nextPage = paginationParams.page + 1
+    setPagination((prev) => {
+      const nextPage = prev.pageIndex + 1
+      getProjects({
+        page: nextPage + 1,
+        page_size: prev.pageSize,
+        is_archive: userConfig?.projects?.is_show_archived,
+        favorites: userConfig?.projects?.is_only_favorite ?? false,
+        name: searchName,
+        ordering: "is_private",
+      })
 
-    setPaginationParams((prev) => ({
-      ...prev,
-      page: nextPage,
-    }))
-
-    fetchData({
-      page: nextPage,
-      page_size: paginationParams.page_size,
-      is_archive: userConfig?.projects?.is_show_archived,
-      favorites: userConfig?.projects?.is_only_favorite ?? false,
-      name: searchName,
+      return {
+        ...prev,
+        pageIndex: nextPage,
+      }
     })
   }, [
     inView,
-    isLoading,
+    isFetching,
     isLastPage,
-    paginationParams.page,
-    paginationParams.page_size,
+    pagination.pageIndex,
+    pagination.pageSize,
     userConfig?.projects?.is_show_archived,
     userConfig?.projects?.is_only_favorite,
     searchName,
-    fetchData,
   ])
 
   useEffect(() => {
     handleClear()
     isInitialLoadRef.current = true
 
-    fetchData({
+    getProjects({
       page: 1,
-      page_size: paginationParams.page_size,
+      page_size: pagination.pageSize,
       is_archive: userConfig?.projects?.is_show_archived,
       favorites: userConfig?.projects?.is_only_favorite ?? false,
       name: searchName,
+      ordering: "is_private",
     }).finally(() => {
       isInitialLoadRef.current = false
     })
   }, [
     userConfig?.projects?.is_only_favorite,
     userConfig?.projects?.is_show_archived,
-    fetchData,
     handleClear,
-    paginationParams.page_size,
+    pagination.pageSize,
   ])
 
   useEffect(() => {
@@ -141,33 +115,26 @@ export const useProjectsDashboardCards = ({ searchName }: Props) => {
 
     handleClear()
 
-    fetchData(
+    getProjects(
       {
         page: 1,
-        page_size: paginationParams.page_size,
+        page_size: pagination.pageSize,
         is_archive: userConfig?.projects?.is_show_archived,
         favorites: userConfig?.projects?.is_only_favorite ?? false,
         name: searchName,
+        ordering: "is_private",
       },
-      true
+      {
+        is_search: true,
+      }
     )
   }, [
     searchName,
-    fetchData,
     handleClear,
-    paginationParams.page_size,
+    pagination.pageSize,
     userConfig?.projects?.is_show_archived,
     userConfig?.projects?.is_only_favorite,
   ])
-
-  useEffect(() => {
-    return () => {
-      if (activeRequestRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        activeRequestRef.current.abort()
-      }
-    }
-  }, [])
 
   useEffect(() => {
     if (!dashboardContext?.needRefetchProjects) {
@@ -177,14 +144,14 @@ export const useProjectsDashboardCards = ({ searchName }: Props) => {
     const refreshPages = async () => {
       const newProjects: Project[] = []
 
-      for (let i = 1; i <= paginationParams.page; i++) {
+      for (let i = 1; i <= pagination.pageIndex + 1; i++) {
         const data = await getProjects({
           page: i,
-          page_size: paginationParams.page_size,
+          page_size: pagination.pageSize,
           is_archive: userConfig?.projects?.is_show_archived,
           favorites: userConfig?.projects?.is_only_favorite ?? false,
           name: searchName,
-          nonce: nonce,
+          nonce,
           ordering: "is_private",
         }).unwrap()
 
@@ -200,7 +167,7 @@ export const useProjectsDashboardCards = ({ searchName }: Props) => {
     setNonce((prev) => prev + 1)
   }, [
     dashboardContext?.needRefetchProjects,
-    paginationParams.page,
+    pagination.pageIndex,
     searchName,
     nonce,
     userConfig?.projects?.is_show_archived,
@@ -209,7 +176,7 @@ export const useProjectsDashboardCards = ({ searchName }: Props) => {
 
   return {
     projects,
-    isLoading,
+    isLoading: isFetching,
     isLastPage,
     bottomRef: ref,
   }
