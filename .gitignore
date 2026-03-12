@@ -32,3 +32,4 @@ nginx/*.key
 /.gitleaksignore
 /backend/user_activity.log
 celerybeat-schedule
+docs/local/
