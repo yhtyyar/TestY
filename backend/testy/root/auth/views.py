@@ -46,6 +46,7 @@ from testy.root.auth.serializers import (
     TTLTokenOutputSerializer,
 )
 from testy.root.selectors import TTLTokenSelector
+from testy.root.throttles import LoginRateThrottle
 
 _REQUEST = 'request'
 
@@ -115,7 +116,7 @@ class TTLTokenViewSet(ModelViewSet):
 
 
 class LoginView(APIView):
-    throttle_classes = ()
+    throttle_classes = (LoginRateThrottle,)
     permission_classes = ()
     authentication_classes = (CsrfExemptSessionAuthentication,)
     parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser)

@@ -267,7 +267,15 @@ REST_FRAMEWORK = {
     ],
     'NON_FIELD_ERRORS_KEY': 'errors',
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
-    # 'ALLOWED_VERSIONS': ['v1', 'v2']
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.environ.get('THROTTLE_ANON_RATE', '100/minute'),
+        'user': os.environ.get('THROTTLE_USER_RATE', '300/minute'),
+        'login': os.environ.get('THROTTLE_LOGIN_RATE', '5/minute'),
+    },
 }
 # NamespaceVersioning
 # URLPathVersioning
@@ -275,7 +283,7 @@ ACCESS_TOKEN_LIFETIME: timedelta(minutes=60)
 
 # Django CORS headers
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = json.loads(os.environ.get('CORS_ALLOWED_ORIGINS', '["http://127.0.0.1", "http://localhost"]'))
 
 # Company
 COMPANY_DOMAIN = os.environ.get('COMPANY_DOMAIN')
@@ -294,6 +302,9 @@ LOGGING = {
     'formatters': {
         'default': {
             'format': '%(asctime)s - %(module)s - %(levelname)s: %(message)s',
+        },
+        'json': {
+            'format': '%(asctime)s %(name)s %(levelname)s %(message)s %(pathname)s %(lineno)d',
         },
     },
     'handlers': {
@@ -327,6 +338,11 @@ LOGGING = {
         'core': {
             'handlers': ['console'],
             'level': os.getenv('CORE_LOG_LEVEL', 'INFO'),
+        },
+        'testy': {
+            'handlers': ['console'],
+            'level': os.getenv('TESTY_LOG_LEVEL', 'INFO'),
+            'propagate': False,
         },
         '': {
             'handlers': ['console'],
