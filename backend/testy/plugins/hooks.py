@@ -127,3 +127,7 @@ class PluginEntrypointHookSpecs:
     @hookspec
     def config(self) -> type[TestyPluginConfig]:
         """Get plugin config class hook."""
+
+    @hookspec(firstresult=True)
+    def get_issue_tracker(self, project_integration):
+        """Return an IssueTracker instance for the given project integration."""
