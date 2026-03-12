@@ -54,6 +54,7 @@ setup(
         'django-celery-beat==2.5.0',
         'django-redis==5.2.0',
         'pytimeparse==1.1.8',
+        'openpyxl==3.1.2',
     ],
     zip_safe=False,
     include_package_data=True,
