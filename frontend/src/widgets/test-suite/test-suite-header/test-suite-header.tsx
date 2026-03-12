@@ -1,10 +1,12 @@
-import { Flex, Typography } from "antd"
+import { UploadOutlined } from "@ant-design/icons"
+import { Button, Flex, Typography } from "antd"
 import dayjs from "dayjs"
 import { TreebarContext } from "processes"
-import { useContext } from "react"
+import { useContext, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams } from "react-router-dom"
 
+import { ImportZephyrModal } from "features/import-test-cases"
 import { ChangeTestSuite, CopySuite, DeleteSuite } from "features/suite"
 
 import { useTestSuiteContext } from "pages/project"
@@ -20,6 +22,7 @@ export const TestSuiteHeader = () => {
   const { treebar } = useContext(TreebarContext)!
   const { tree: testCasesTree } = useContext(TestCasesTreeContext)!
   const { suite, isFetching } = useTestSuiteContext()
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   const refetchParentAfterCopy = async (updatedEntity: CopySuiteResponse) => {
     const id = updatedEntity?.parent?.id.toString() ?? null
@@ -67,7 +70,19 @@ export const TestSuiteHeader = () => {
         <CopySuite suite={suite} onSubmit={refetchParentAfterCopy} />
         <ChangeTestSuite suite={suite} type="edit" />
         <DeleteSuite suite={suite} onSubmit={refetchParentAfterDelete} />
+        <Button
+          icon={<UploadOutlined />}
+          onClick={() => setImportModalOpen(true)}
+        >
+          {t("Import from Zephyr")}
+        </Button>
       </Flex>
+      <ImportZephyrModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        projectId={suite.project}
+        rootSuiteId={suite.id}
+      />
     </>
   )
 }

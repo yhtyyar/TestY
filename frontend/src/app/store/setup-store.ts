@@ -1,5 +1,6 @@
 import { EmptyObject, PreloadedState, combineReducers, configureStore } from "@reduxjs/toolkit"
 import { commentsApi } from "entities/comments/api"
+import { importApi } from "features/import-test-cases/api"
 import { commentsReducer } from "entities/comments/model/slice"
 import { customAttributeApi } from "entities/custom-attribute/api"
 import { integrationsApi } from "entities/integrations/api"
@@ -92,6 +93,7 @@ const rootReducer = combineReducers({
   [commentsApi.reducerPath]: commentsApi.reducer,
   [customAttributeApi.reducerPath]: customAttributeApi.reducer,
   [notificationApi.reducerPath]: notificationApi.reducer,
+  [importApi.reducerPath]: importApi.reducer,
   notificationWS: notificationWSReducer,
 })
 
@@ -130,6 +132,7 @@ export const setupStore = (preloadedState?: PreloadedState<EmptyObject>) => {
         .concat(systemApi.middleware)
         .concat(customAttributeApi.middleware)
         .concat(notificationApi.middleware)
+        .concat(importApi.middleware)
         .concat(notificationWSMiddleware),
     devTools: import.meta.env.NODE_ENV !== "production",
   })
