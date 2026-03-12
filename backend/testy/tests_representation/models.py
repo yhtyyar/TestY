@@ -40,14 +40,14 @@ from simple_history.models import HistoricalRecords
 
 from testy.comments.models import Comment
 from testy.core.constraints import unique_soft_delete_constraint
-from testy.core.models import Attachment, Project
+from testy.core.models import Attachment, Environment, Project
 from testy.root.ltree.indexes import get_indexes
 from testy.root.ltree.managers import LtreeManager
 from testy.root.ltree.triggers import get_triggers
 from testy.root.mixins import TestyArchiveMixin
 from testy.root.models import BaseModel, LtreeBaseModel
 from testy.tests_description.models import TestCase, TestCaseStep
-from testy.tests_representation.choices import ResultStatusType
+from testy.tests_representation.choices import ResultStatusType, TestPlanStatus
 from testy.triggers import get_statistic_triggers
 from testy.users.models import User
 
@@ -82,6 +82,7 @@ class TestPlan(LtreeBaseModel, TestyArchiveMixin):
     due_date = models.DateTimeField()
     finished_at = models.DateTimeField(null=True, blank=True)
     is_archive = models.BooleanField(default=False)
+    status = models.IntegerField(choices=TestPlanStatus.choices, default=TestPlanStatus.DRAFT)
     description = models.TextField('description', default='', blank=True)
     comments = GenericRelation(Comment)
     attributes = models.JSONField(default=dict, blank=True)
@@ -147,6 +148,7 @@ class TestResult(BaseModel):
         blank=True,
         validators=[MinValueValidator(settings.MIN_VALUE_POSITIVE_INTEGER)],
     )
+    environment = models.ForeignKey(Environment, on_delete=models.SET_NULL, null=True, blank=True)
     attachments = GenericRelation(Attachment)
     attributes = models.JSONField(default=dict, blank=True)
     history = HistoricalRecords()

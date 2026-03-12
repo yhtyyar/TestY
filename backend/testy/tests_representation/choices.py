@@ -46,6 +46,13 @@ class TestStatuses(CallableChoicesMixin, models.IntegerChoices):
     ROLLBACKED = 7, 'Rollbacked'
 
 
+class TestPlanStatus(models.IntegerChoices):
+    DRAFT = 1, 'Draft'
+    ACTIVE = 2, 'Active'
+    COMPLETED = 3, 'Completed'
+    ARCHIVED = 4, 'Archived'
+
+
 class ResultStatusType(models.IntegerChoices):
     SYSTEM = 0, 'System'
     CUSTOM = 1, 'Custom'
