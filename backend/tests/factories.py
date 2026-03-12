@@ -43,6 +43,7 @@ from testy.core.choices import CustomFieldType
 from testy.core.models import (
     Attachment,
     CustomAttribute,
+    Environment,
     Label,
     LabeledItem,
     NotificationSetting,
@@ -439,6 +440,16 @@ class BaseProjectIntegrationFactory(DjangoModelFactory):
     class Meta:
         model = ProjectIntegration
         exclude = ('linked_object',)
+
+
+class EnvironmentFactory(DjangoModelFactory):
+    name = Sequence(lambda n: f'Environment{n}')
+    description = 'Test environment'
+    project = SubFactory(ProjectFactory)
+    is_active = True
+
+    class Meta:
+        model = Environment
 
 
 class PlanIntegrationFactory(BaseProjectIntegrationFactory):

@@ -324,3 +324,19 @@ class ProjectIntegration(BaseModel):
         verbose_name = _('Project integration')
         verbose_name_plural = _('Project integrations')
         constraints = [unique_soft_delete_constraint([_PROJECT, _NAME], 'project_integration')]
+
+
+class Environment(BaseModel):
+    name = models.CharField(max_length=settings.CHAR_FIELD_MAX_LEN)
+    description = models.TextField(blank=True, default='')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        default_related_name = 'environments'
+        verbose_name = _('Environment')
+        verbose_name_plural = _('Environments')
+        constraints = [unique_soft_delete_constraint([_PROJECT, _NAME], 'environment')]
+
+    def __str__(self):
+        return self.name
