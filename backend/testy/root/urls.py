@@ -42,6 +42,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from testy.core.views import AttachmentView
 from testy.plugins.url import plugin_urls
 from testy.root.auth.views import LoginView, LogoutView, TTLTokenViewSet
+from testy.root.health import liveness, readiness
 from testy.root.views import healthcheck, sql_log_query, trigger_error
 from testy.swagger.custom_schema_generation import SchemaGenerator
 from testy.users.views import AvatarView
@@ -98,6 +99,8 @@ urlpatterns = [
     # SQL Debug
     path('debug/sql-long-query/', sql_log_query),
     path('healthcheck/', healthcheck),
+    path('healthz/', liveness, name='liveness'),
+    path('readyz/', readiness, name='readiness'),
 ]
 
 if settings.DEBUG:
