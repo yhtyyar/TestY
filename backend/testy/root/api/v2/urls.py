@@ -34,6 +34,7 @@ from rest_framework import routers
 
 from testy.root.api.v2 import views
 from testy.root.api.v2.bulk_views import BulkResultCreateView, BulkTestCaseMoveView, BulkTestUpdateView
+from testy.tests_description.api.v2.import_views import ZephyrImportView
 
 router = routers.DefaultRouter()
 router.APIRootView = views.V2RootView
@@ -50,6 +51,9 @@ urlpatterns = [
     path('tests/bulk-update/', BulkTestUpdateView.as_view(), name='bulk-test-update'),
     path('test-cases/bulk-move/', BulkTestCaseMoveView.as_view(), name='bulk-testcase-move'),
     path('test-results/bulk-create/', BulkResultCreateView.as_view(), name='bulk-result-create'),
+
+    # Import
+    path('import/zephyr/', ZephyrImportView.as_view(), name='import-zephyr'),
 ]
 
 urlpatterns += router.urls
