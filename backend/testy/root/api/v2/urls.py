@@ -33,6 +33,7 @@ from django.urls import include, path
 from rest_framework import routers
 
 from testy.root.api.v2 import views
+from testy.root.api.v2.bulk_views import BulkResultCreateView, BulkTestCaseMoveView, BulkTestUpdateView
 
 router = routers.DefaultRouter()
 router.APIRootView = views.V2RootView
@@ -44,6 +45,11 @@ urlpatterns = [
     path('', include('tests_representation.api.v2.urls')),
     path('', include('users.api.v2.urls')),
     path('', include('comments.api.v2.urls')),
+
+    # Bulk operations
+    path('tests/bulk-update/', BulkTestUpdateView.as_view(), name='bulk-test-update'),
+    path('test-cases/bulk-move/', BulkTestCaseMoveView.as_view(), name='bulk-testcase-move'),
+    path('test-results/bulk-create/', BulkResultCreateView.as_view(), name='bulk-result-create'),
 ]
 
 urlpatterns += router.urls
